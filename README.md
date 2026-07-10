@@ -99,6 +99,8 @@ VITE_USE_MOCKS=false
 - build command: `npm run build`
 - output directory: `dist`
 
+Подробный сценарий настройки в панели: [readme/TIMEWEB_DEPLOY.md](/Users/nikita/AndroidStudioProjects/mtg_oculus/readme/TIMEWEB_DEPLOY.md)
+
 Если приложение будет работать в mock-режиме, в переменных окружения Timeweb нужно задать:
 
 ```env
