@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
 import type { DashboardFilters } from '@/shared/api/types';
+import { defaultFilters } from '@/shared/lib/filters';
+import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { Input } from '@/shared/ui/Input';
@@ -28,7 +30,7 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
   });
 
   const cityOptions = [
-    { value: '', label: citiesQuery.isLoading ? 'Загрузка городов...' : 'Выберите город' },
+    { value: '', label: citiesQuery.isLoading ? 'Загружаем города...' : 'Все города' },
     ...(citiesQuery.data?.items ?? []).map((item) => ({
       value: item.id,
       label: item.name,
@@ -36,7 +38,7 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
   ];
 
   const clubOptions = [
-    { value: '', label: clubsQuery.isLoading ? 'Загрузка клубов...' : 'Все клубы' },
+    { value: '', label: clubsQuery.isLoading ? 'Загружаем клубы...' : 'Все клубы' },
     ...(clubsQuery.data?.items ?? []).map((item) => ({
       value: item.id,
       label: item.name,
@@ -44,7 +46,7 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
   ];
 
   const formatOptions = [
-    { value: '', label: formatsQuery.isLoading ? 'Загрузка форматов...' : 'Выберите формат' },
+    { value: '', label: formatsQuery.isLoading ? 'Загружаем форматы...' : 'Все форматы' },
     ...(formatsQuery.data?.items ?? []).map((item) => ({
       value: item.id,
       label: item.name,
@@ -57,13 +59,25 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
     { value: 'tournament', label: 'Турнир' },
   ];
 
+  const activeExtraFiltersCount = [
+    filters.clubId !== defaultFilters.clubId,
+    filters.tournamentType !== defaultFilters.tournamentType,
+    filters.dateFrom !== defaultFilters.dateFrom,
+    filters.dateTo !== defaultFilters.dateTo,
+    filters.cityId !== defaultFilters.cityId,
+    filters.formatId !== defaultFilters.formatId,
+  ].filter(Boolean).length;
+
   return (
     <Card className="filters-panel">
       <div className="section-header">
         <div>
-          <h2 className="section-header__title">Фильтры</h2>
+          <div className="section-header__title-row">
+            <h2 className="section-header__title">Фильтры</h2>
+            <Badge>{activeExtraFiltersCount > 0 ? `Активно: ${activeExtraFiltersCount}` : 'Базовый срез'}</Badge>
+          </div>
           <p className="section-header__description">
-            Соберите нужный срез по городу, клубу, формату, типу турнира и периоду.
+            Эти фильтры влияют на все блоки ниже. Выберите город, клуб, формат и даты, чтобы посмотреть нужную статистику.
           </p>
         </div>
         <Button

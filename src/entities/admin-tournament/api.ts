@@ -11,6 +11,7 @@ function payloadToFormData(payload: CreateTournamentPayload) {
   formData.set('clubId', payload.clubId);
   formData.set('tournamentType', payload.tournamentType);
   formData.set('formatId', payload.formatId);
+  formData.set('aetherhubUrl', payload.aetherhubUrl ?? '');
   formData.set('finalStandingsFile', payload.finalStandingsFile);
   formData.set('allRoundsFile', payload.allRoundsFile);
   formData.set('playerDecksText', payload.playerDecksText);

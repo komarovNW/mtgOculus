@@ -21,6 +21,7 @@ type FormState = {
   clubId: string;
   tournamentType: TournamentType;
   formatId: string;
+  aetherhubUrl: string;
   finalStandingsFile: File | null;
   allRoundsFile: File | null;
   playerDecksText: string;
@@ -32,6 +33,7 @@ const initialState: FormState = {
   clubId: '',
   tournamentType: 'daily',
   formatId: 'legacy',
+  aetherhubUrl: '',
   finalStandingsFile: null,
   allRoundsFile: null,
   playerDecksText: '',
@@ -69,14 +71,14 @@ export function CreateTournamentPage() {
   function validateForm() {
     const errors: string[] = [];
 
-    if (!formState.date) errors.push('Дата турнира обязательна.');
-    if (!formState.cityId) errors.push('Город обязателен.');
-    if (!formState.clubId) errors.push('Клуб обязателен.');
-    if (!formState.tournamentType) errors.push('Тип турнира обязателен.');
-    if (!formState.formatId) errors.push('Формат обязателен.');
-    if (!formState.finalStandingsFile) errors.push('CSV со стендингами обязателен.');
-    if (!formState.allRoundsFile) errors.push('CSV со всеми раундами обязателен.');
-    if (!formState.playerDecksText.trim()) errors.push('Текст player -> deck обязателен.');
+    if (!formState.date) errors.push('Выберите дату турнира.');
+    if (!formState.cityId) errors.push('Выберите город.');
+    if (!formState.clubId) errors.push('Выберите клуб.');
+    if (!formState.tournamentType) errors.push('Выберите тип турнира.');
+    if (!formState.formatId) errors.push('Выберите формат.');
+    if (!formState.finalStandingsFile) errors.push('Добавьте CSV с итоговыми стендингами.');
+    if (!formState.allRoundsFile) errors.push('Добавьте CSV со всеми раундами.');
+    if (!formState.playerDecksText.trim()) errors.push('Добавьте список игроков и колод.');
 
     setValidationErrors(errors);
 
@@ -97,6 +99,7 @@ export function CreateTournamentPage() {
         clubId: formState.clubId,
         tournamentType: formState.tournamentType,
         formatId: formState.formatId,
+        aetherhubUrl: formState.aetherhubUrl.trim() || undefined,
         finalStandingsFile: formState.finalStandingsFile!,
         allRoundsFile: formState.allRoundsFile!,
         playerDecksText: formState.playerDecksText,
@@ -107,7 +110,7 @@ export function CreateTournamentPage() {
   }
 
   if (citiesQuery.isLoading || formatsQuery.isLoading) {
-    return <LoadingState description="Подгружаем справочники для формы импорта." />;
+    return <LoadingState description="Загружаем города, клубы и форматы для формы." />;
   }
 
   if (citiesQuery.isError || formatsQuery.isError) {
@@ -115,7 +118,7 @@ export function CreateTournamentPage() {
       <ErrorState
         description={getErrorMessage(
           citiesQuery.error ?? formatsQuery.error,
-          'Не удалось загрузить справочники для формы.',
+          'Не получилось загрузить данные для формы. Попробуйте обновить страницу.',
         )}
       />
     );
@@ -126,20 +129,39 @@ export function CreateTournamentPage() {
       <PageHeader
         badges={[
           <Badge key="route" variant="warning">
-            Admin route
+            Служебный раздел
           </Badge>,
-          <Badge key="multipart">multipart/form-data</Badge>,
+          <Badge key="multipart">Ручная загрузка</Badge>,
         ]}
-        description="Ручной MVP-импорт турнира с зависимыми справочниками города и клуба."
+        description="Соберите турнир из файлов и списка колод участников. Ссылку на Aetherhub можно добавить сразу, чтобы позже перейти на более простой импорт."
         eyebrow="Импорт турнира"
         title="Добавить турнир"
       />
+
+      <Card tone="muted">
+        <div className="section-header">
+          <div>
+            <h2 className="section-header__title">Что понадобится</h2>
+            <p className="section-header__description">
+              Сейчас турнир всё ещё собирается по CSV, поэтому перед загрузкой лучше подготовить всё в одном месте.
+            </p>
+          </div>
+        </div>
+        <ul className="flat-list">
+          <li>Дата, город, клуб, тип турнира и формат.</li>
+          <li>Ссылка на Aetherhub, если она уже есть.</li>
+          <li>CSV с итоговыми стендингами.</li>
+          <li>CSV со всеми раундами.</li>
+          <li>Список игроков и колод в простом текстовом виде.</li>
+        </ul>
+      </Card>
 
       {validationErrors.length > 0 ? (
         <Card tone="muted">
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Проверьте форму</h2>
+              <h2 className="section-header__title">Нужно поправить форму</h2>
+              <p className="section-header__description">Перед загрузкой проверьте поля ниже. Вот что сейчас не заполнено:</p>
             </div>
           </div>
           <ul className="flat-list">
@@ -151,18 +173,20 @@ export function CreateTournamentPage() {
       ) : null}
 
       {importMutation.isError ? (
-        <ErrorState description={getErrorMessage(importMutation.error, 'Не удалось импортировать турнир.')} />
+        <ErrorState
+          description={getErrorMessage(importMutation.error, 'Не получилось импортировать турнир. Проверьте файлы и попробуйте ещё раз.')}
+        />
       ) : null}
 
       {importMutation.isSuccess ? (
-        <Card tone="accent">
+        <Card tone="success">
           <div className="section-header">
             <div>
               <h2 className="section-header__title">Импорт завершён</h2>
               <p className="section-header__description">{importMutation.data.message}</p>
             </div>
           </div>
-          <p className="muted-text">ID турнира: {importMutation.data.tournamentId}</p>
+          <p className="muted-text">Номер турнира: {importMutation.data.tournamentId}</p>
           {importMutation.data.warnings?.length ? (
             <ul className="flat-list">
               {importMutation.data.warnings.map((warning) => (
@@ -180,6 +204,11 @@ export function CreateTournamentPage() {
             void handleSubmit(event);
           }}
         >
+          <div className="form-grid__full form-section">
+            <h2 className="form-section__title">1. Что это за турнир</h2>
+            <p className="form-section__description">Заполните дату, площадку, формат и ссылку на турнир.</p>
+          </div>
+
           <Input
             label="Дата турнира"
             onChange={(event) => setField('date', event.target.value)}
@@ -202,7 +231,7 @@ export function CreateTournamentPage() {
             label="Клуб"
             onChange={(event) => setField('clubId', event.target.value)}
             options={[
-              { value: '', label: clubsQuery.isLoading ? 'Загрузка клубов...' : 'Выберите клуб' },
+              { value: '', label: clubsQuery.isLoading ? 'Загружаем клубы...' : 'Выберите клуб' },
               ...(clubsQuery.data?.items ?? []).map((club) => ({
                 value: club.id,
                 label: club.name,
@@ -229,6 +258,21 @@ export function CreateTournamentPage() {
             value={formState.formatId}
           />
           <div className="form-grid__spacer" />
+          <div className="form-grid__full">
+            <Input
+              helperText="Пока поле необязательное. Сейчас турнир всё ещё загружается по CSV, но ссылку уже можно добавить."
+              label="Ссылка на Aetherhub"
+              onChange={(event) => setField('aetherhubUrl', event.target.value)}
+              placeholder="https://aetherhub.com/..."
+              type="url"
+              value={formState.aetherhubUrl}
+            />
+          </div>
+
+          <div className="form-grid__full form-section">
+            <h2 className="form-section__title">2. Что загрузить из файлов</h2>
+            <p className="form-section__description">Нам нужны отдельные CSV для итогов и для раундов.</p>
+          </div>
 
           <FileInput
             accept=".csv,text/csv"
@@ -242,10 +286,17 @@ export function CreateTournamentPage() {
             label="CSV всех раундов"
             onChange={(event) => setField('allRoundsFile', event.target.files?.[0] ?? null)}
           />
+
           <div className="form-grid__full">
+            <div className="form-section">
+              <h2 className="form-section__title">3. Кто чем играл</h2>
+              <p className="form-section__description">
+                Добавьте простой список вида «Игрок -&gt; Колода». Этого достаточно, чтобы собрать участников турнира.
+              </p>
+            </div>
             <Textarea
               helperText="По одной строке: Имя игрока -> Колода"
-              label="Список player -> deck"
+              label="Список игроков и колод"
               onChange={(event) => setField('playerDecksText', event.target.value)}
               placeholder={'Терехов Александр -> Lands\nРадченко Фёдор -> UW Phelia'}
               rows={8}
@@ -258,7 +309,7 @@ export function CreateTournamentPage() {
               disabled={importMutation.isPending}
               type="submit"
             >
-              {importMutation.isPending ? 'Импортируем...' : 'Импортировать турнир'}
+              {importMutation.isPending ? 'Загружаем турнир...' : 'Загрузить турнир'}
             </Button>
           </div>
         </form>

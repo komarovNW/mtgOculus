@@ -23,7 +23,7 @@ export function Select({ label, options, helperText, className, id, ...props }: 
       <span className="field__label">{label}</span>
       <select
         id={selectId}
-        className={cn('field__control', className)}
+        className={cn('field__control', 'field__control--select', className)}
         {...props}
       >
         {options.map((option) => (
@@ -39,4 +39,3 @@ export function Select({ label, options, helperText, className, id, ...props }: 
     </label>
   );
 }
-

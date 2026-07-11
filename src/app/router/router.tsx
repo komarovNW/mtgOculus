@@ -1,9 +1,11 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { RequirePermission } from '@/app/router/RequirePermission';
 import { AppLayout } from '@/widgets/app-layout/AppLayout';
 import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
 import { DeckDetailPage } from '@/pages/deck-detail/DeckDetailPage';
 import { DecksPage } from '@/pages/decks/DecksPage';
 import { HomePage } from '@/pages/home/HomePage';
+import { LoginPage } from '@/pages/login/LoginPage';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
 import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
 import { PlayersPage } from '@/pages/players/PlayersPage';
@@ -63,8 +65,18 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: 'admin/tournaments/create',
-        element: <CreateTournamentPage />,
+        path: 'login',
+        element: <LoginPage />,
+      },
+      {
+        path: 'admin',
+        element: <RequirePermission permission="tournament:create" />,
+        children: [
+          {
+            path: 'tournaments/create',
+            element: <CreateTournamentPage />,
+          },
+        ],
       },
       {
         path: '*',
@@ -73,4 +85,3 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
-

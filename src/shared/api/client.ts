@@ -1,4 +1,5 @@
 import { env } from '@/shared/config/env';
+import { getStoredAuthToken } from '@/shared/auth/storage';
 import type { ApiErrorDetail, QueryValue } from '@/shared/api/types';
 
 export class AppError extends Error {
@@ -56,16 +57,26 @@ async function parseError(response: Response): Promise<AppError> {
     return new AppError({
       status: response.status,
       code: data.error?.code ?? 'REQUEST_FAILED',
-      message: data.error?.message ?? 'Не удалось выполнить запрос.',
+      message: data.error?.message ?? 'Не удалось загрузить данные.',
       details: data.error?.details,
     });
   } catch {
     return new AppError({
       status: response.status,
       code: 'REQUEST_FAILED',
-      message: 'Не удалось выполнить запрос.',
+      message: 'Не удалось загрузить данные.',
     });
   }
+}
+
+function buildAuthHeaders() {
+  const token = getStoredAuthToken();
+
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : undefined;
 }
 
 export async function apiGet<T>(
@@ -74,6 +85,7 @@ export async function apiGet<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(buildUrl(path, params), {
+    headers: buildAuthHeaders(),
     method: 'GET',
     signal,
   });
@@ -87,6 +99,7 @@ export async function apiGet<T>(
 
 export async function apiPostForm<T>(path: string, body: FormData, signal?: AbortSignal): Promise<T> {
   const response = await fetch(buildUrl(path), {
+    headers: buildAuthHeaders(),
     method: 'POST',
     body,
     signal,
@@ -98,4 +111,3 @@ export async function apiPostForm<T>(path: string, body: FormData, signal?: Abor
 
   return (await response.json()) as T;
 }
-

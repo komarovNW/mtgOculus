@@ -11,8 +11,8 @@ describe('HomePage', () => {
       </TestProviders>,
     );
 
-    expect(screen.getByText('Magic Oculus')).toBeInTheDocument();
+    expect(screen.getByText('Legacy в Москве')).toBeInTheDocument();
     expect(await screen.findByText('Последние турниры')).toBeInTheDocument();
-    expect(screen.getByText('Результативность колод')).toBeInTheDocument();
+    expect(screen.getByText('Как выступают колоды')).toBeInTheDocument();
   });
 });

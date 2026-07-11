@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom';
 import type { RecentTournamentItem } from '@/shared/api/types';
 import { formatDate } from '@/shared/lib/formatDate';
 import { Badge } from '@/shared/ui/Badge';
@@ -6,10 +7,17 @@ import { EntityLink } from '@/shared/ui/EntityLink';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 
 const columns: TableColumn<RecentTournamentItem>[] = [
-  { id: 'date', header: 'Дата', render: (row) => formatDate(row.date) },
+  {
+    id: 'date',
+    header: 'Дата',
+    defaultSortDirection: 'desc',
+    render: (row) => formatDate(row.date),
+    sortValue: (row) => row.date,
+  },
   {
     id: 'title',
     header: 'Турнир',
+    sortValue: (row) => row.title,
     render: (row) => (
       <EntityLink
         id={row.id}
@@ -21,16 +29,32 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   {
     id: 'type',
     header: 'Тип',
+    sortValue: (row) => row.type,
     render: (row) => <Badge variant="accent">{row.type === 'daily' ? 'Дейлик' : 'Турнир'}</Badge>,
   },
-  { id: 'city', header: 'Город', render: (row) => row.city.name },
-  { id: 'club', header: 'Клуб', render: (row) => row.club.name },
-  { id: 'format', header: 'Формат', render: (row) => row.format.name },
-  { id: 'players', header: 'Игроков', align: 'right', render: (row) => row.playersCount },
-  { id: 'rounds', header: 'Раундов', align: 'right', render: (row) => row.roundsCount },
+  { id: 'city', header: 'Город', render: (row) => row.city.name, sortValue: (row) => row.city.name },
+  { id: 'club', header: 'Клуб', render: (row) => row.club.name, sortValue: (row) => row.club.name },
+  { id: 'format', header: 'Формат', render: (row) => row.format.name, sortValue: (row) => row.format.name },
+  {
+    id: 'players',
+    header: 'Игроков',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.playersCount,
+    sortValue: (row) => row.playersCount,
+  },
+  {
+    id: 'rounds',
+    header: 'Раундов',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.roundsCount,
+    sortValue: (row) => row.roundsCount,
+  },
   {
     id: 'winner',
     header: 'Победитель',
+    sortValue: (row) => row.winner?.player.name,
     render: (row) =>
       row.winner ? (
         <EntityLink
@@ -45,9 +69,11 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   {
     id: 'deck',
     header: 'Колода',
+    sortValue: (row) => row.winner?.deck.name,
     render: (row) =>
       row.winner?.deck ? (
         <EntityLink
+          colors={row.winner.deck.colors}
           id={row.winner.deck.id}
           name={row.winner.deck.name}
           type="deck"
@@ -58,26 +84,118 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   },
 ];
 
+const compactColumns: TableColumn<RecentTournamentItem>[] = [
+  {
+    id: 'date',
+    header: 'Дата',
+    defaultSortDirection: 'desc',
+    render: (row) => formatDate(row.date),
+    sortValue: (row) => row.date,
+  },
+  {
+    id: 'title',
+    header: 'Турнир',
+    sortValue: (row) => row.title,
+    render: (row) => (
+      <div className="stacked-cell stacked-cell--compact">
+        <EntityLink
+          id={row.id}
+          name={row.title}
+          type="tournament"
+        />
+        <span className="muted-text">
+          {row.club.name} · {row.type === 'daily' ? 'Дейлик' : 'Турнир'}
+        </span>
+      </div>
+    ),
+  },
+  {
+    id: 'players',
+    header: 'Игроков',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.playersCount,
+    sortValue: (row) => row.playersCount,
+  },
+  {
+    id: 'winner',
+    header: 'Победитель',
+    sortValue: (row) => row.winner?.player.name,
+    render: (row) =>
+      row.winner ? (
+        <div className="stacked-cell stacked-cell--compact">
+          <EntityLink
+            id={row.winner.player.id}
+            name={row.winner.player.name}
+            type="player"
+          />
+          <span className="muted-text">
+            {row.winner.deck ? (
+              <EntityLink
+                colors={row.winner.deck.colors}
+                id={row.winner.deck.id}
+                name={row.winner.deck.name}
+                type="deck"
+              />
+            ) : (
+              'Колода не указана'
+            )}
+          </span>
+        </div>
+      ) : (
+        '—'
+      ),
+  },
+];
+
 type RecentTournamentsTableProps = {
   items: RecentTournamentItem[];
+  limit?: number;
+  compact?: boolean;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
-export function RecentTournamentsTable({ items }: RecentTournamentsTableProps) {
+export function RecentTournamentsTable({
+  items,
+  limit,
+  compact = false,
+  actionHref,
+  actionLabel = 'Смотреть все турниры',
+}: RecentTournamentsTableProps) {
+  const location = useLocation();
+  const visibleItems = limit ? items.slice(0, limit) : items;
+
   return (
     <Card>
       <div className="section-header">
         <div>
           <h2 className="section-header__title">Последние турниры</h2>
           <p className="section-header__description">
-            Последние загруженные события с быстрым переходом в турнир, игрока-победителя и его колоду.
+            {compact
+              ? 'Показываем самые свежие турниры, чтобы быстро понять, что уже загружено в базу.'
+              : 'Здесь собраны самые свежие загруженные турниры.'}
           </p>
         </div>
+        {actionHref ? (
+          <Link
+            className="button button--ghost section-link"
+            to={{
+              pathname: actionHref,
+              search: location.search,
+            }}
+          >
+            {actionLabel}
+          </Link>
+        ) : null}
       </div>
       <Table
-        columns={columns}
-        data={items}
-        emptyMessage="Пока нет турниров по выбранным фильтрам."
+        columns={compact ? compactColumns : columns}
+        data={visibleItems}
+        emptyMessage="Турниры по этим фильтрам ещё не загружены."
         getRowKey={(row) => row.id}
+        layout={compact ? 'auto' : 'fixed'}
+        minWidth={compact ? 680 : 880}
       />
     </Card>
   );

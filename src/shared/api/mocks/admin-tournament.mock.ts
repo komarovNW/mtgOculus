@@ -6,14 +6,13 @@ export async function createTournamentMock(
 ): Promise<CreateTournamentResponse> {
   const warnings =
     payload.playerDecksText.trim().split('\n').filter(Boolean).length < 4
-      ? ['В импорт попало меньше четырёх строк player -> deck. Проверьте полноту данных.']
+      ? ['В списке игроков и колод меньше четырёх строк. Проверьте, все ли участники добавлены.']
       : undefined;
 
   return wait({
     success: true,
     tournamentId: `mock_${payload.date}_${payload.clubId}`,
-    message: 'Турнир успешно импортирован в mock-режиме.',
+    message: 'Турнир успешно загружен в демо-режиме.',
     warnings,
   }, 420);
 }
-
