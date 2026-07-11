@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/app/providers/useAuth';
+import { Link } from 'react-router-dom';
 import { getTournaments } from '@/entities/tournament/api';
 import type { TournamentListItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
@@ -15,10 +17,17 @@ import { Table, type TableColumn } from '@/shared/ui/Table';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
 const columns: TableColumn<TournamentListItem>[] = [
-  { id: 'date', header: 'Дата', render: (row) => formatDate(row.date) },
+  {
+    id: 'date',
+    header: 'Дата',
+    defaultSortDirection: 'desc',
+    render: (row) => formatDate(row.date),
+    sortValue: (row) => row.date,
+  },
   {
     id: 'title',
     header: 'Турнир',
+    sortValue: (row) => row.title,
     render: (row) => (
       <EntityLink
         id={row.id}
@@ -30,16 +39,39 @@ const columns: TableColumn<TournamentListItem>[] = [
   {
     id: 'type',
     header: 'Тип',
+    sortValue: (row) => row.type,
     render: (row) => <Badge variant="accent">{row.type === 'daily' ? 'Дейлик' : 'Турнир'}</Badge>,
   },
-  { id: 'club', header: 'Клуб', render: (row) => row.club.name },
-  { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge> },
-  { id: 'players', header: 'Игроков', align: 'right', render: (row) => row.playersCount },
-  { id: 'rounds', header: 'Раундов', align: 'right', render: (row) => row.roundsCount },
-  { id: 'matches', header: 'Матчей', align: 'right', render: (row) => row.matchesCount },
+  { id: 'club', header: 'Клуб', render: (row) => row.club.name, sortValue: (row) => row.club.name },
+  { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge>, sortValue: (row) => row.format.name },
+  {
+    id: 'players',
+    header: 'Игроков',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.playersCount,
+    sortValue: (row) => row.playersCount,
+  },
+  {
+    id: 'rounds',
+    header: 'Раундов',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.roundsCount,
+    sortValue: (row) => row.roundsCount,
+  },
+  {
+    id: 'matches',
+    header: 'Матчей',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.matchesCount,
+    sortValue: (row) => row.matchesCount,
+  },
   {
     id: 'winner',
     header: 'Победитель',
+    sortValue: (row) => row.winner?.player.name,
     render: (row) =>
       row.winner ? (
         <EntityLink
@@ -54,7 +86,9 @@ const columns: TableColumn<TournamentListItem>[] = [
 ];
 
 export function TournamentsPage() {
+  const { hasPermission } = useAuth();
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
+  const canCreateTournament = hasPermission('tournament:create');
   const tournamentsQuery = useQuery({
     queryKey: ['tournaments', apiFilters],
     queryFn: () => getTournaments({ ...apiFilters, page: 1, limit: 50 }),
@@ -66,7 +100,7 @@ export function TournamentsPage() {
         badges={getAppliedFilterLabels(tournamentsQuery.data?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Общий список загруженных событий с быстрым переходом на detail-страницы."
+        description="Здесь удобно найти нужный дейлик или турнир, а потом открыть стендинги, пары и колоды участников."
         eyebrow="Турниры"
         title="Турниры"
       />
@@ -77,10 +111,10 @@ export function TournamentsPage() {
         onReset={resetFilters}
       />
 
-      {tournamentsQuery.isLoading ? <LoadingState description="Собираем список турниров." /> : null}
+      {tournamentsQuery.isLoading ? <LoadingState description="Загружаем список турниров." /> : null}
       {tournamentsQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(tournamentsQuery.error, 'Не удалось загрузить турниры.')}
+          description={getErrorMessage(tournamentsQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void tournamentsQuery.refetch();
           }}
@@ -88,24 +122,111 @@ export function TournamentsPage() {
       ) : null}
 
       {tournamentsQuery.isSuccess ? (
-        <Card>
-          <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Все турниры</h2>
-              <p className="section-header__description">
-                Найдено {tournamentsQuery.data.pagination.total} событий по текущему фильтру.
-              </p>
+        <>
+          <Card
+            className="insights-card"
+            tone="muted"
+          >
+            <div className="section-header">
+              <div>
+                <h2 className="section-header__title">Как читать этот раздел</h2>
+                <p className="section-header__description">
+                  Сначала смотрите свежие и крупные события, а потом открывайте конкретный турнир, если нужны стендинги,
+                  раунды и метагейм.
+                </p>
+              </div>
             </div>
-          </div>
-          <Table
-            columns={columns}
-            data={tournamentsQuery.data.items}
-            emptyMessage="Пока нет турниров по выбранным фильтрам."
-            getRowKey={(row) => row.id}
-          />
-        </Card>
+
+            <div className="insights-grid">
+              <div className="insights-summary">
+                <div className="insights-summary__value">{tournamentsQuery.data.pagination.total}</div>
+                <div className="insights-summary__title">турниров в этом списке</div>
+                <p className="insights-summary__description">
+                  Фильтры выше помогут быстро сузить список до нужного клуба, формата или периода.
+                </p>
+              </div>
+
+              <div className="insights-list">
+                {tournamentsQuery.data.items[0] ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Самый свежий турнир</div>
+                    <div className="insight-item__body">
+                      <EntityLink
+                        id={tournamentsQuery.data.items[0].id}
+                        name={tournamentsQuery.data.items[0].title}
+                        type="tournament"
+                      />{' '}
+                      на {tournamentsQuery.data.items[0].playersCount} игроков.
+                    </div>
+                  </article>
+                ) : null}
+
+                {tournamentsQuery.data.items.length > 0 ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Самый большой турнир в списке</div>
+                    <div className="insight-item__body">
+                      {(() => {
+                        const biggestTournament = [...tournamentsQuery.data.items].sort(
+                          (left, right) => right.playersCount - left.playersCount || right.matchesCount - left.matchesCount,
+                        )[0];
+
+                        return (
+                          <>
+                            <EntityLink
+                              id={biggestTournament.id}
+                              name={biggestTournament.title}
+                              type="tournament"
+                            />{' '}
+                            собрал {biggestTournament.playersCount} игроков и {biggestTournament.matchesCount} матчей.
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </article>
+                ) : null}
+
+                <article className="insight-item">
+                  <div className="insight-item__title">Что делать дальше</div>
+                  <div className="insight-item__body">
+                    Открывайте турнир по названию, если хотите посмотреть итоговые места, пары по раундам и колоды всех
+                    участников.
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div className="insights-actions">
+              <Link
+                className="button button--primary section-link"
+                state={canCreateTournament ? undefined : { from: '/admin/tournaments/create' }}
+                to={canCreateTournament ? '/admin/tournaments/create' : '/login'}
+              >
+                {canCreateTournament ? 'Добавить турнир' : 'Войти, чтобы добавить турнир'}
+              </Link>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="section-header">
+              <div>
+                <h2 className="section-header__title">Все турниры</h2>
+                <p className="section-header__description">
+                  Найдено {tournamentsQuery.data.pagination.total} турниров. Нажмите на нужный турнир, чтобы открыть
+                  детали.
+                </p>
+              </div>
+            </div>
+            <Table
+              columns={columns}
+              data={tournamentsQuery.data.items}
+              emptyMessage="По этим фильтрам пока нет загруженных турниров."
+              getRowKey={(row) => row.id}
+              layout="fixed"
+              minWidth={880}
+            />
+          </Card>
+        </>
       ) : null}
     </div>
   );
 }
-

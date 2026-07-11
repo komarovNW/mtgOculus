@@ -3,7 +3,7 @@ import { cn } from '@/shared/lib/cn';
 
 type CardProps = PropsWithChildren<
   HTMLAttributes<HTMLElement> & {
-    tone?: 'default' | 'muted' | 'accent';
+    tone?: 'default' | 'muted' | 'accent' | 'success';
   }
 >;
 
@@ -17,4 +17,3 @@ export function Card({ children, className, tone = 'default', ...props }: CardPr
     </section>
   );
 }
-

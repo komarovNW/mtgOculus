@@ -6,7 +6,18 @@ import type { DeckMatchupItem, DeckPlayerItem, TournamentDeckResultItem } from '
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { formatDate } from '@/shared/lib/formatDate';
 import { formatPercent } from '@/shared/lib/formatPercent';
-import { formatRecord } from '@/shared/lib/formatRecord';
+import {
+  MATCH_RECORD_HINT,
+  MATCH_RECORD_LABEL,
+  SMALL_SAMPLE_HINT,
+  TOURNAMENT_PARTICIPATIONS_HINT,
+  TOURNAMENT_PARTICIPATIONS_LABEL,
+  WIN_RATE_HINT,
+  WIN_RATE_LABEL,
+  formatRecord,
+  getRecordSortValue,
+  getRecordSortValueFromString,
+} from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
@@ -14,6 +25,7 @@ import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadingState } from '@/shared/ui/LoadingState';
+import { ManaPips } from '@/shared/ui/ManaPips';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { Tabs } from '@/shared/ui/Tabs';
@@ -21,10 +33,17 @@ import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
 
 const tournamentColumns: TableColumn<TournamentDeckResultItem>[] = [
-  { id: 'date', header: 'Дата', render: (row) => formatDate(row.tournament.date) },
+  {
+    id: 'date',
+    header: 'Дата',
+    defaultSortDirection: 'desc',
+    render: (row) => formatDate(row.tournament.date),
+    sortValue: (row) => row.tournament.date,
+  },
   {
     id: 'tournament',
     header: 'Турнир',
+    sortValue: (row) => row.tournament.title,
     render: (row) => (
       <EntityLink
         id={row.tournament.id}
@@ -36,6 +55,7 @@ const tournamentColumns: TableColumn<TournamentDeckResultItem>[] = [
   {
     id: 'player',
     header: 'Игрок',
+    sortValue: (row) => row.player.name,
     render: (row) => (
       <EntityLink
         id={row.player.id}
@@ -44,15 +64,38 @@ const tournamentColumns: TableColumn<TournamentDeckResultItem>[] = [
       />
     ),
   },
-  { id: 'rank', header: 'Место', align: 'right', render: (row) => row.rank },
-  { id: 'record', header: 'Record', align: 'right', render: (row) => row.record },
-  { id: 'points', header: 'Очки', align: 'right', render: (row) => row.points },
+  {
+    id: 'rank',
+    header: 'Место',
+    align: 'right',
+    defaultSortDirection: 'asc',
+    render: (row) => row.rank,
+    sortValue: (row) => row.rank,
+  },
+  {
+    id: 'record',
+    header: 'Результат',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    headerTitle: MATCH_RECORD_HINT,
+    render: (row) => row.record,
+    sortValue: (row) => getRecordSortValueFromString(row.record),
+  },
+  {
+    id: 'points',
+    header: 'Очки',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.points,
+    sortValue: (row) => row.points,
+  },
 ];
 
 const playerColumns: TableColumn<DeckPlayerItem>[] = [
   {
     id: 'player',
     header: 'Игрок',
+    sortValue: (row) => row.player.name,
     render: (row) => (
       <div className="entity-cell">
         <EntityLink
@@ -60,35 +103,111 @@ const playerColumns: TableColumn<DeckPlayerItem>[] = [
           name={row.player.name}
           type="player"
         />
-        {row.isSmallSample ? <Badge variant="warning">Малая выборка</Badge> : null}
+        {row.isSmallSample ? (
+          <Badge
+            title={SMALL_SAMPLE_HINT}
+            variant="warning"
+          >
+            Малая выборка
+          </Badge>
+        ) : null}
       </div>
     ),
   },
-  { id: 'tournaments', header: 'Турниров', align: 'right', render: (row) => row.tournamentsCount },
-  { id: 'matches', header: 'Матчей', align: 'right', render: (row) => row.matchesCount },
-  { id: 'record', header: 'Record', align: 'right', render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws) },
-  { id: 'winrate', header: 'Winrate', align: 'right', render: (row) => formatPercent(row.matchWinRate) },
-  { id: 'best', header: 'Лучшее место', align: 'right', render: (row) => row.bestRank ?? '—' },
+  {
+    id: 'tournaments',
+    header: 'Турниров',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.tournamentsCount,
+    sortValue: (row) => row.tournamentsCount,
+  },
+  {
+    id: 'matches',
+    header: 'Матчей',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.matchesCount,
+    sortValue: (row) => row.matchesCount,
+  },
+  {
+    id: 'record',
+    header: MATCH_RECORD_LABEL,
+    align: 'right',
+    defaultSortDirection: 'desc',
+    headerTitle: MATCH_RECORD_HINT,
+    render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
+    sortValue: (row) => getRecordSortValue(row.matchWins, row.matchLosses, row.matchDraws),
+  },
+  {
+    id: 'winrate',
+    header: WIN_RATE_LABEL,
+    align: 'right',
+    defaultSortDirection: 'desc',
+    headerTitle: WIN_RATE_HINT,
+    render: (row) => formatPercent(row.matchWinRate),
+    sortValue: (row) => row.matchWinRate,
+  },
+  {
+    id: 'best',
+    header: 'Лучшее место',
+    align: 'right',
+    defaultSortDirection: 'asc',
+    render: (row) => row.bestRank ?? '—',
+    sortValue: (row) => row.bestRank,
+  },
 ];
 
 const matchupColumns: TableColumn<DeckMatchupItem>[] = [
   {
     id: 'opponent',
     header: 'Против колоды',
+    sortValue: (row) => row.opponentDeck.name,
     render: (row) => (
       <div className="entity-cell">
         <EntityLink
+          colors={row.opponentDeck.colors}
           id={row.opponentDeck.id}
           name={row.opponentDeck.name}
           type="deck"
         />
-        {row.isSmallSample ? <Badge variant="warning">Малая выборка</Badge> : null}
+        {row.isSmallSample ? (
+          <Badge
+            title={SMALL_SAMPLE_HINT}
+            variant="warning"
+          >
+            Малая выборка
+          </Badge>
+        ) : null}
       </div>
     ),
   },
-  { id: 'matches', header: 'Матчей', align: 'right', render: (row) => row.matchesCount },
-  { id: 'record', header: 'Record', align: 'right', render: (row) => formatRecord(row.wins, row.losses, row.draws) },
-  { id: 'winrate', header: 'Winrate', align: 'right', render: (row) => formatPercent(row.winRate) },
+  {
+    id: 'matches',
+    header: 'Матчей',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.matchesCount,
+    sortValue: (row) => row.matchesCount,
+  },
+  {
+    id: 'record',
+    header: MATCH_RECORD_LABEL,
+    align: 'right',
+    defaultSortDirection: 'desc',
+    headerTitle: MATCH_RECORD_HINT,
+    render: (row) => formatRecord(row.wins, row.losses, row.draws),
+    sortValue: (row) => getRecordSortValue(row.wins, row.losses, row.draws),
+  },
+  {
+    id: 'winrate',
+    header: WIN_RATE_LABEL,
+    align: 'right',
+    defaultSortDirection: 'desc',
+    headerTitle: WIN_RATE_HINT,
+    render: (row) => formatPercent(row.winRate),
+    sortValue: (row) => row.winRate,
+  },
 ];
 
 export function DeckDetailPage() {
@@ -102,17 +221,17 @@ export function DeckDetailPage() {
   });
 
   if (deckQuery.isLoading) {
-    return <LoadingState description="Загружаем статистику колоды и связанные результаты." />;
+    return <LoadingState description="Загружаем статистику колоды." />;
   }
 
   if (deckQuery.isError || !deckQuery.data) {
     return (
       <ErrorState
-        description={getErrorMessage(deckQuery.error, 'Не удалось открыть страницу колоды.')}
+        description={getErrorMessage(deckQuery.error, 'Попробуйте обновить страницу или открыть колоду ещё раз.')}
         onRetry={() => {
           void deckQuery.refetch();
         }}
-        title="Колода недоступна"
+        title="Не удалось открыть страницу колоды"
       />
     );
   }
@@ -124,11 +243,26 @@ export function DeckDetailPage() {
       <PageHeader
         badges={[
           <Badge key="format">{deck.format.name}</Badge>,
-          ...(deck.colors?.length ? [<Badge key="colors">{deck.colors.join(' / ')}</Badge>] : []),
+          ...(deck.colors?.length ? [<ManaPips key="colors" colors={deck.colors} />] : []),
+          ...(summary.isSmallSample
+            ? [
+                <Badge
+                  key="small-sample"
+                  title={SMALL_SAMPLE_HINT}
+                  variant="warning"
+                >
+                  Малая выборка
+                </Badge>,
+              ]
+            : []),
           ...getAppliedFilterLabels(deckQuery.data.appliedFilters).map((label) => <Badge key={label}>{label}</Badge>),
         ]}
-        description={deck.archetype ? `Архетип: ${deck.archetype}` : 'Страница колоды'}
-        eyebrow="Детали колоды"
+        description={
+          deck.archetype
+            ? `Здесь видно, как колода выступала в турнирах и против каких архетипов играла. Архетип: ${deck.archetype}.`
+            : 'Здесь видно, как колода выступала в турнирах и против каких архетипов играла.'
+        }
+        eyebrow="Колода"
         title={deck.name}
       />
 
@@ -139,13 +273,23 @@ export function DeckDetailPage() {
       />
 
       <SummaryCards
+        description="Короткая сводка по этой колоде на текущем срезе."
+        title="Общая статистика колоды"
         items={[
           { title: 'Турниров', value: summary.tournamentsCount },
-          { title: 'Игроко-участий', value: summary.playersCount },
-          { title: 'Уникальных игроков', value: summary.uniquePlayersCount },
+          {
+            title: TOURNAMENT_PARTICIPATIONS_LABEL,
+            titleHint: TOURNAMENT_PARTICIPATIONS_HINT,
+            value: summary.playersCount,
+            subtitle: `Разных игроков: ${summary.uniquePlayersCount}`,
+          },
           { title: 'Матчей', value: summary.matchesCount },
-          { title: 'Record', value: formatRecord(summary.matchWins, summary.matchLosses, summary.matchDraws) },
-          { title: 'Winrate', value: formatPercent(summary.matchWinRate) },
+          {
+            title: MATCH_RECORD_LABEL,
+            titleHint: MATCH_RECORD_HINT,
+            value: formatRecord(summary.matchWins, summary.matchLosses, summary.matchDraws),
+          },
+          { title: WIN_RATE_LABEL, titleHint: WIN_RATE_HINT, value: formatPercent(summary.matchWinRate) },
           { title: 'Лучшее место', value: summary.bestRank ?? '—' },
         ]}
       />
@@ -170,7 +314,7 @@ export function DeckDetailPage() {
           <Table
             columns={tournamentColumns}
             data={deckQuery.data.tournamentResults}
-            emptyMessage="По выбранным фильтрам у этой колоды пока нет результатов."
+            emptyMessage="Результаты этой колоды по выбранным фильтрам ещё не загружены."
             getRowKey={(row) => `${row.tournament.id}-${row.player.id}`}
           />
         </Card>
@@ -180,13 +324,14 @@ export function DeckDetailPage() {
         <Card>
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Игроки на колоде</h2>
+              <h2 className="section-header__title">Кто играл этой колодой</h2>
+              <p className="section-header__description">Игроки, которые чаще всего приносили эту колоду на турниры.</p>
             </div>
           </div>
           <Table
             columns={playerColumns}
             data={deckQuery.data.players}
-            emptyMessage="Игроки по этой колоде не найдены."
+            emptyMessage="Пока не видно, кто играл этой колодой по выбранным фильтрам."
             getRowKey={(row) => row.player.id}
           />
         </Card>
@@ -197,12 +342,13 @@ export function DeckDetailPage() {
           <div className="section-header">
             <div>
               <h2 className="section-header__title">Матчапы колоды</h2>
+              <p className="section-header__description">Смотрим, против каких колод эта колода встречалась чаще всего и как шли матчи.</p>
             </div>
           </div>
           <Table
             columns={matchupColumns}
             data={deckQuery.data.matchups}
-            emptyMessage="Матчапы по этой колоде пока не собраны."
+            emptyMessage="Матчапы этой колоды по выбранным фильтрам ещё не собраны."
             getRowKey={(row) => row.opponentDeck.id}
           />
         </Card>
@@ -210,4 +356,3 @@ export function DeckDetailPage() {
     </div>
   );
 }
-

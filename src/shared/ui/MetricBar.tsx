@@ -4,7 +4,7 @@ type MetricBarProps = {
   value: number;
   label?: string;
   title?: string;
-  tone?: 'accent' | 'warning';
+  tone?: 'accent' | 'success' | 'warning';
   compact?: boolean;
 };
 

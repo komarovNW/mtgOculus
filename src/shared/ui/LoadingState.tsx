@@ -6,8 +6,8 @@ type LoadingStateProps = {
 };
 
 export function LoadingState({
-  title = 'Загрузка...',
-  description = 'Подготавливаем статистику и таблицы.',
+  title = 'Загружаем статистику...',
+  description = 'Собираем данные по турнирам, колодам и игрокам.',
 }: LoadingStateProps) {
   return (
     <Card className="state-card state-card--loading">
@@ -19,4 +19,3 @@ export function LoadingState({
     </Card>
   );
 }
-

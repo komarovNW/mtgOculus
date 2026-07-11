@@ -8,7 +8,7 @@ type ErrorStateProps = {
 };
 
 export function ErrorState({
-  title = 'Не удалось загрузить статистику',
+  title = 'Не удалось загрузить данные',
   description,
   onRetry,
 }: ErrorStateProps) {
@@ -22,11 +22,10 @@ export function ErrorState({
             variant="secondary"
             onClick={onRetry}
           >
-            Повторить
+            Попробовать снова
           </Button>
         </div>
       ) : null}
     </Card>
   );
 }
-

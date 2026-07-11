@@ -3,6 +3,7 @@ import { env } from '@/shared/config/env';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { formatDate } from '@/shared/lib/formatDate';
+import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
@@ -13,6 +14,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { DeckMetagameSection } from '@/widgets/deck-metagame/DeckMetagameSection';
 import { DeckPerformanceTable } from '@/widgets/deck-performance/DeckPerformanceTable';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
+import { HomeHighlights } from '@/widgets/home-highlights/HomeHighlights';
 import { PopularMatchupsTable } from '@/widgets/popular-matchups/PopularMatchupsTable';
 import { RecentTournamentsTable } from '@/widgets/recent-tournaments/RecentTournamentsTable';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
@@ -38,6 +40,8 @@ export function HomePage() {
           appliedFilters?.dateTo ? formatDate(appliedFilters.dateTo) : '—'
         }`
       : 'Весь доступный период';
+  const cityTitle = appliedFilters?.city?.name === 'Москва' ? 'Москве' : appliedFilters?.city?.name ?? 'Москве';
+  const homeTitle = `${appliedFilters?.format?.name ?? 'Legacy'} в ${cityTitle}`;
 
   return (
     <div className="page-stack">
@@ -47,13 +51,13 @@ export function HomePage() {
             key="mode"
             variant={env.useMocks ? 'warning' : 'accent'}
           >
-            {env.useMocks ? 'Mock mode' : 'API mode'}
+            {env.useMocks ? 'Демо-данные' : 'Живые данные'}
           </Badge>,
           ...appliedLabels.map((label) => <Badge key={label}>{label}</Badge>),
         ]}
-        description={`Публичный аналитический dashboard по загруженным турнирам Magic: The Gathering. Текущий срез: ${sliceLabel}. ${periodLabel}.`}
-        eyebrow="Главный экран"
-        title="Magic Oculus"
+        description="Смотрим метагейм, результаты колод, лучших игроков и частые матчапы по выбранным фильтрам."
+        eyebrow="Статистика по загруженным турнирам"
+        title={homeTitle}
       />
 
       <FiltersPanel
@@ -62,11 +66,11 @@ export function HomePage() {
         onReset={resetFilters}
       />
 
-      {homeQuery.isLoading ? <LoadingState /> : null}
+      {homeQuery.isLoading ? <LoadingState description="Загружаем статистику по выбранным фильтрам." /> : null}
 
       {homeQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(homeQuery.error, 'Попробуйте обновить страницу или сменить фильтры.')}
+          description={getErrorMessage(homeQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void homeQuery.refetch();
           }}
@@ -78,22 +82,67 @@ export function HomePage() {
           <SummaryCards
             items={[
               { title: 'Турниров', value: homeQuery.data.summary.tournamentsCount, subtitle: sliceLabel },
-              { title: 'Игроко-участий', value: homeQuery.data.summary.tournamentPlayersCount, subtitle: periodLabel },
-              { title: 'Уникальных игроков', value: homeQuery.data.summary.uniquePlayersCount, subtitle: 'Активны в текущем срезе' },
-              { title: 'Матчей', value: homeQuery.data.summary.matchesCount, subtitle: 'Все сыгранные раунды' },
-              { title: 'Уникальных колод', value: homeQuery.data.summary.uniqueDecksCount, subtitle: 'Архетипы в базе среза' },
+              {
+                title: TOURNAMENT_PARTICIPATIONS_LABEL,
+                titleHint: TOURNAMENT_PARTICIPATIONS_HINT,
+                value: homeQuery.data.summary.tournamentPlayersCount,
+                subtitle: periodLabel,
+              },
+              {
+                title: 'Уникальных игроков',
+                value: homeQuery.data.summary.uniquePlayersCount,
+                subtitle: 'Сколько разных игроков было в турнирах по этим фильтрам',
+              },
+              { title: 'Матчей', value: homeQuery.data.summary.matchesCount, subtitle: 'Все сыгранные матчи в загруженных турнирах' },
+              {
+                title: 'Уникальных колод',
+                value: homeQuery.data.summary.uniqueDecksCount,
+                subtitle: 'Сколько разных колод встретилось в турнирах по этим фильтрам',
+              },
             ]}
           />
 
           {homeQuery.data.summary.tournamentsCount === 0 ? (
-            <EmptyState description="Пока нет загруженных турниров по выбранным фильтрам." />
+            <EmptyState
+              description="Когда появятся загруженные турниры, здесь будет статистика по колодам, игрокам и матчапам."
+              title="Пока нет турниров по выбранным фильтрам"
+            />
           ) : (
             <>
-              <RecentTournamentsTable items={homeQuery.data.recentTournaments} />
-              <DeckMetagameSection items={homeQuery.data.deckMetagame} />
-              <DeckPerformanceTable items={homeQuery.data.deckPerformance} />
-              <TopPlayersTable items={homeQuery.data.topPlayers} />
-              <PopularMatchupsTable items={homeQuery.data.popularMatchups} />
+              <HomeHighlights
+                deckMetagame={homeQuery.data.deckMetagame}
+                deckPerformance={homeQuery.data.deckPerformance}
+                recentTournaments={homeQuery.data.recentTournaments}
+                summary={homeQuery.data.summary}
+                topPlayers={homeQuery.data.topPlayers}
+              />
+              <DeckMetagameSection
+                actionHref="/decks"
+                items={homeQuery.data.deckMetagame}
+                limit={10}
+              />
+              <DeckPerformanceTable
+                actionHref="/decks"
+                items={homeQuery.data.deckPerformance}
+                limit={10}
+              />
+              <TopPlayersTable
+                actionHref="/players"
+                items={homeQuery.data.topPlayers}
+                limit={10}
+                showSpotlight
+              />
+              <PopularMatchupsTable
+                expandable
+                initialLimit={5}
+                items={homeQuery.data.popularMatchups}
+              />
+              <RecentTournamentsTable
+                actionHref="/tournaments"
+                compact
+                items={homeQuery.data.recentTournaments}
+                limit={5}
+              />
             </>
           )}
         </>

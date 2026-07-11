@@ -436,6 +436,7 @@ export type CreateTournamentPayload = {
   clubId: string;
   tournamentType: TournamentType;
   formatId: string;
+  aetherhubUrl?: string;
   finalStandingsFile: File;
   allRoundsFile: File;
   playerDecksText: string;
