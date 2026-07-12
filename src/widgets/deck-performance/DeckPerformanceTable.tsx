@@ -106,8 +106,8 @@ export function DeckPerformanceTable({
           <h2 className="section-header__title">Как выступают колоды</h2>
           <p className="section-header__description">
             {limit
-              ? 'Сверху показываем колоды, которые лучше всего держат процент побед и уже успели набрать матчи.'
-              : 'Сравниваем колоды по проценту побед, результату матчей и лучшим результатам.'}
+              ? 'Сверху показываем колоды, которые хорошо держат процент побед и уже успели набрать матчи.'
+              : 'Сравниваем колоды по проценту побед, результату матчей и лучшим финишам.'}
           </p>
         </div>
         {actionHref ? (
@@ -125,7 +125,7 @@ export function DeckPerformanceTable({
       <Table
         columns={columns}
         data={visibleItems}
-        emptyMessage="Когда по этим фильтрам появятся матчи, здесь будет видно, как выступают колоды."
+        emptyMessage="Когда по этим фильтрам накопятся матчи, здесь покажем результаты колод."
         getRowKey={(row) => row.deck.id}
         getRowClassName={(_, index) => (index < 3 ? 'table__row--top' : undefined)}
       />

@@ -316,7 +316,7 @@ export function TopPlayersTable({
         <Table
           columns={showSpotlight ? compactColumns : columns}
           data={tableItems}
-          emptyMessage="Игроки по этим фильтрам ещё не загружены."
+          emptyMessage="Пока нет игроков по этим фильтрам."
           getRowKey={(row) => row.player.id}
           getRowClassName={(row) => (row.homeRank <= 3 ? 'table__row--top' : undefined)}
         />
@@ -324,7 +324,7 @@ export function TopPlayersTable({
         <Table
           columns={columns}
           data={visibleItems}
-          emptyMessage="Игроки по этим фильтрам ещё не загружены."
+          emptyMessage="Пока нет игроков по этим фильтрам."
           getRowKey={(row) => row.player.id}
           getRowClassName={(row) => (row.homeRank <= 3 ? 'table__row--top' : undefined)}
         />

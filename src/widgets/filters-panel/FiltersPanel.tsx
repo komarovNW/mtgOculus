@@ -74,10 +74,10 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
         <div>
           <div className="section-header__title-row">
             <h2 className="section-header__title">Фильтры</h2>
-            <Badge>{activeExtraFiltersCount > 0 ? `Активно: ${activeExtraFiltersCount}` : 'Базовый срез'}</Badge>
+            <Badge>{activeExtraFiltersCount > 0 ? `Изменено фильтров: ${activeExtraFiltersCount}` : 'По умолчанию'}</Badge>
           </div>
           <p className="section-header__description">
-            Эти фильтры влияют на все блоки ниже. Выберите город, клуб, формат и даты, чтобы посмотреть нужную статистику.
+            Эти фильтры меняют всю статистику на странице. Можно быстро сузить данные по городу, клубу, формату и датам.
           </p>
         </div>
         <Button
@@ -85,7 +85,7 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
           onClick={onReset}
           type="button"
         >
-          Сбросить
+          Сбросить фильтры
         </Button>
       </div>
 

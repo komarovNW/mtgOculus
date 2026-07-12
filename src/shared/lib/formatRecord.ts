@@ -1,16 +1,16 @@
 export const MATCH_RECORD_LABEL = 'Результат матчей';
-export const MATCH_RECORD_HINT = 'Показываем результат в формате победы-поражения-ничьи.';
+export const MATCH_RECORD_HINT = 'Сначала идут победы, потом поражения, а если были ничьи, показываем их третьим числом.';
 export const WIN_RATE_LABEL = 'Процент побед';
-export const WIN_RATE_HINT = 'Показываем, какой процент матчей был выигран в турнирах по выбранным фильтрам.';
+export const WIN_RATE_HINT = 'Доля выигранных матчей по этим фильтрам.';
 export const GAME_WIN_RATE_LABEL = 'Процент побед по играм';
-export const GAME_WIN_RATE_HINT = 'Показываем, какой процент отдельных игр внутри матчей был выигран.';
-export const GAME_SCORE_HINT = 'Показываем счёт по играм внутри матча: сначала победы одной стороны, потом другой.';
+export const GAME_WIN_RATE_HINT = 'Доля выигранных игр внутри матчей.';
+export const GAME_SCORE_HINT = 'Счёт по отдельным играм внутри матча: сначала победы одной стороны, потом другой.';
 export const TOURNAMENT_PARTICIPATIONS_LABEL = 'Участий в турнирах';
 export const TOURNAMENT_PARTICIPATIONS_HINT =
-  'Сколько всего раз игроки или колоды появлялись на турнирах. Если один и тот же игрок сыграл три турнира, считаем три участия.';
-export const SMALL_SAMPLE_HINT = 'Пока матчей мало, поэтому процент побед может быть нестабильным.';
+  'Сколько раз игрок или колода вообще попадали в турниры. Если один и тот же игрок сыграл три турнира, это считается как три участия.';
+export const SMALL_SAMPLE_HINT = 'Матчей пока мало, поэтому процент побед здесь может заметно меняться.';
 export const MATCHUP_SMALL_SAMPLE_HINT =
-  'В этом матчапе пока мало матчей, поэтому результаты могут заметно меняться.';
+  'Матчей в этом матчапе пока мало, поэтому расклад ещё может сильно измениться.';
 
 export function formatRecord(wins?: number | null, losses?: number | null, draws?: number | null) {
   if (wins === undefined || wins === null || losses === undefined || losses === null) {

@@ -126,7 +126,7 @@ export function DecksPage() {
         badges={getAppliedFilterLabels(decksQuery.data?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Здесь удобно сравнивать популярность колод, их результаты и быстро переходить к матчапам и турнирам."
+        description="Здесь удобно сравнивать популярность колод, их результаты и быстро переходить к турнирам и матчапам."
         eyebrow="Колоды"
         title="Колоды"
       />
@@ -140,7 +140,7 @@ export function DecksPage() {
       <Card>
         <div className="toolbar-grid">
           <Select
-            label="Как упорядочить список"
+            label="Сортировка"
             onChange={(event) => updateQueryParams({ sort: event.target.value })}
             options={sortOptions}
             value={sort}
@@ -148,10 +148,10 @@ export function DecksPage() {
         </div>
       </Card>
 
-      {decksQuery.isLoading ? <LoadingState description="Загружаем статистику колод." /> : null}
+      {decksQuery.isLoading ? <LoadingState description="Собираем статистику по колодам." /> : null}
       {decksQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(decksQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(decksQuery.error, 'Не получилось загрузить список колод. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void decksQuery.refetch();
           }}
@@ -166,9 +166,9 @@ export function DecksPage() {
           >
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Как смотреть на колоды</h2>
+                <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала смотрите, чем играют чаще всего и какие колоды уже набрали матчи, а затем открывайте нужную
+                  Сначала смотрите, чем играют чаще всего и какие колоды уже набрали матчи, а потом открывайте нужную
                   колоду для турниров, игроков и матчапов.
                 </p>
               </div>
@@ -211,7 +211,7 @@ export function DecksPage() {
 
                 {decksQuery.data.items.length > 0 ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">По результатам выделяется</div>
+                    <div className="insight-item__title">По результатам впереди</div>
                     <div className="insight-item__body">
                       {(() => {
                         const bestStableDeck =
@@ -239,10 +239,10 @@ export function DecksPage() {
                 ) : null}
 
                 <article className="insight-item">
-                  <div className="insight-item__title">Насколько надёжна выборка</div>
+                  <div className="insight-item__title">Где статистика уже набралась</div>
                   <div className="insight-item__body">
-                    У {decksQuery.data.items.filter((item) => !item.isSmallSample).length} колод уже хватает матчей, чтобы
-                    процент побед читался увереннее.
+                    У {decksQuery.data.items.filter((item) => !item.isSmallSample).length} колод уже хватает матчей,
+                    чтобы процент побед выглядел надёжнее.
                   </div>
                 </article>
               </div>
@@ -254,8 +254,8 @@ export function DecksPage() {
               <div>
                 <h2 className="section-header__title">Все колоды</h2>
                 <p className="section-header__description">
-                  Найдено {decksQuery.data.pagination.total} колод. Нажмите на колоду, чтобы открыть результаты по
-                  турнирам, игроков и матчапы.
+                  Найдено {decksQuery.data.pagination.total} колод. Нажмите на колоду, чтобы открыть турниры, игроков и
+                  матчапы.
                 </p>
               </div>
             </div>

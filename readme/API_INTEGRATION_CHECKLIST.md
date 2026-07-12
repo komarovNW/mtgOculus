@@ -1,233 +1,178 @@
 # API Integration Checklist
 
-## Цель документа
+Этот чеклист нужен на этапе перехода с моков на реальные ручки backend.
 
-Этот чеклист нужен для этапа подключения frontend к backend. Агент должен пройти его после того, как базовые страницы будут работать на mock-данных.
+## 1. Базовые проверки
 
-## Общие проверки
-
-- [ ] `.env.example` создан.
+- [ ] `.env.example` совпадает с реальными требованиями фронта.
 - [ ] `.env.local` поддерживает `VITE_API_BASE_URL`.
 - [ ] `.env.local` поддерживает `VITE_USE_MOCKS`.
-- [ ] При `VITE_USE_MOCKS=true` сайт работает без backend.
-- [ ] При `VITE_USE_MOCKS=false` сайт делает реальные API-запросы.
-- [ ] Все API-запросы идут через единый API client.
-- [ ] Ошибки API не ломают весь сайт.
-- [ ] Loading state есть на всех страницах.
-- [ ] Empty state есть на всех страницах.
-- [ ] Error state есть на всех страницах.
+- [ ] `.env.local` поддерживает `VITE_MOCK_SCENARIO`.
+- [ ] при `VITE_USE_MOCKS=true` сайт полностью работает без backend.
+- [ ] при `VITE_USE_MOCKS=false` сайт уходит на реальные API.
+- [ ] все запросы идут через `src/shared/api/client.ts`.
+- [ ] backend ошибки приходят в формате `{ error: { code, message, details } }`.
+- [ ] наличие `Authorization: Bearer ...` header на публичных ручках не ломает ответы.
+- [ ] loading, empty и error states корректно отрабатывают на всех основных экранах.
 
-## Dictionaries
+## 2. Auth и доступ в служебный раздел
 
-### Cities
+Сейчас фронт держит временную local-only авторизацию. При интеграции backend-auth нужно проверить следующий набор ручек.
 
-Endpoint:
+### `POST /api/v1/auth/login`
 
-```http
-GET /api/v1/cities
-```
+- [ ] логин принимает `application/json`.
+- [ ] успешный ответ возвращает `token`, `signedAt`, `user`.
+- [ ] `user.permissions` содержит `tournament:create` для админа.
+- [ ] 401 возвращает понятную ошибку для пользователя.
 
-Проверки:
+### `GET /api/v1/auth/me`
 
-- [ ] список городов загружается;
-- [ ] город отображается в фильтрах;
-- [ ] город отображается на форме создания турнира;
-- [ ] при пустом списке городов показывается корректное состояние.
+- [ ] по валидному `Bearer token` возвращается текущий пользователь.
+- [ ] по невалидному токену приходит 401.
 
-### Clubs
+### `POST /api/v1/auth/logout`
 
-Endpoint:
+- [ ] либо ручка реализована и корректно завершает сессию;
+- [ ] либо явно подтверждено, что logout остаётся полностью локальным и фронту достаточно удалить токен.
 
-```http
-GET /api/v1/cities/:cityId/clubs
-```
+### Guard behaviour
 
-Проверки:
+- [ ] гость не может открыть `/admin/tournaments/create`.
+- [ ] backend действительно защищает `POST /admin/tournaments/import`.
+- [ ] 401 и 403 на защищённых ручках обрабатываются пользователю понятным сообщением.
 
-- [ ] клубы загружаются после выбора города;
-- [ ] клубы фильтруются по cityId;
-- [ ] если клубов нет, показывается empty state;
-- [ ] clubId отправляется при создании турнира.
+## 3. Dictionaries
 
-### Formats
+### `GET /api/v1/cities`
 
-Endpoint:
+- [ ] список городов загружается в фильтрах и в форме импорта;
+- [ ] существует `cityId = moscow`, если defaults не менялись;
+- [ ] при пустом списке фронт не падает.
 
-```http
-GET /api/v1/formats
-```
+### `GET /api/v1/cities/:cityId/clubs`
 
-Проверки:
+- [ ] клубы грузятся после выбора города;
+- [ ] `clubId` привязан к выбранному `cityId`;
+- [ ] если клубов нет, пользователь получает понятное состояние.
+
+### `GET /api/v1/formats`
 
 - [ ] список форматов загружается;
-- [ ] Legacy доступен как формат;
-- [ ] formatId отправляется в запросах фильтрации;
-- [ ] formatId отправляется при создании турнира.
+- [ ] существует `formatId = legacy`, если defaults не менялись;
+- [ ] формат участвует и в фильтрах, и в форме импорта.
 
-## Home page
+## 4. Главная страница
 
-Endpoint:
+### `GET /api/v1/home`
 
-```http
-GET /api/v1/home?cityId=moscow&formatId=legacy
-```
+- [ ] открывается маршрут `/`;
+- [ ] summary cards показывают агрегаты;
+- [ ] последние турниры отображаются;
+- [ ] метагейм колод отображается;
+- [ ] результативность колод отображается;
+- [ ] игроки с лучшими результатами отображаются;
+- [ ] частые матчапы отображаются;
+- [ ] ссылки на турнир, игрока и колоду ведут на корректные detail pages;
+- [ ] пустой ответ даёт полезный empty state;
+- [ ] ошибка запроса даёт полезный error state.
 
-Проверки:
+## 5. Список турниров
 
-- [ ] главная страница открывается по `/`;
-- [ ] summary cards отображаются;
-- [ ] recent tournaments отображаются;
-- [ ] deck metagame отображается;
-- [ ] deck performance отображается;
-- [ ] top players отображаются;
-- [ ] popular matchups отображаются;
-- [ ] tournament links ведут на `/tournaments/:id`;
-- [ ] player links ведут на `/players/:id`;
-- [ ] deck links ведут на `/decks/:id`;
-- [ ] empty response корректно отображается;
-- [ ] API error корректно отображается.
+### `GET /api/v1/tournaments`
 
-## Tournaments list
+- [ ] маршрут `/tournaments` открывается;
+- [ ] список строится из `items`;
+- [ ] `pagination` приходит и не ломает экран;
+- [ ] `appliedFilters` приходит и даёт фронту нормальные названия вместо id;
+- [ ] фильтры корректно передаются в query params;
+- [ ] сортировка по умолчанию соответствует свежим турнирам.
 
-Endpoint:
+## 6. Детали турнира
 
-```http
-GET /api/v1/tournaments
-```
+### `GET /api/v1/tournaments/:id`
 
-Проверки:
-
-- [ ] страница открывается по `/tournaments`;
-- [ ] список турниров отображается;
-- [ ] фильтры передаются в query params;
-- [ ] клик по турниру ведет на detail page;
-- [ ] empty state работает;
-- [ ] error state работает.
-
-## Tournament detail
-
-Endpoint:
-
-```http
-GET /api/v1/tournaments/:id
-```
-
-Проверки:
-
-- [ ] страница открывается по `/tournaments/:id`;
+- [ ] маршрут `/tournaments/:id` открывается;
 - [ ] header турнира отображается;
-- [ ] финальные стендинги отображаются;
-- [ ] раунды/паринги отображаются;
-- [ ] список игрок -> колода отображается;
-- [ ] игроки кликабельны;
-- [ ] колоды кликабельны;
-- [ ] 404/NOT_FOUND отображается корректно;
-- [ ] error state работает.
+- [ ] итоговые стендинги отображаются;
+- [ ] раунды и паринги отображаются;
+- [ ] список колод участников отображается;
+- [ ] метагейм турнира отображается;
+- [ ] `scoreText`, `playerA.score` и `playerB.score` согласованы;
+- [ ] BYE-пары не ломают ссылки на игроков;
+- [ ] 404/NOT_FOUND даёт корректное состояние.
 
-## Players list
+## 7. Список игроков
 
-Endpoint:
+### `GET /api/v1/players`
 
-```http
-GET /api/v1/players
-```
+- [ ] маршрут `/players` открывается;
+- [ ] поиск `search` реально работает;
+- [ ] `sort` и `order` реально поддерживаются backend;
+- [ ] список игроков не считает winrate на фронте, а получает готовые агрегаты;
+- [ ] `mostPlayedDeck` корректно приходит;
+- [ ] `isSmallSample` корректно приходит.
 
-Проверки:
+## 8. Детали игрока
 
-- [ ] страница открывается по `/players`;
-- [ ] список игроков отображается;
-- [ ] фильтры передаются в query params;
-- [ ] клик по игроку ведет на `/players/:id`;
-- [ ] empty state работает;
-- [ ] error state работает.
+### `GET /api/v1/players/:id`
 
-## Player detail
+- [ ] маршрут `/players/:id` открывается;
+- [ ] `summary` содержит текущие агрегаты игрока;
+- [ ] `tournaments` отображаются;
+- [ ] `decks` отображаются;
+- [ ] `recentMatches` отображаются;
+- [ ] матчи можно сгруппировать по турниру без дополнительной нормализации на фронте;
+- [ ] `result`, `playerScore`, `opponentScore`, `scoreText` согласованы;
+- [ ] турнирные и колодные ссылки работают.
 
-Endpoint:
+## 9. Список колод
 
-```http
-GET /api/v1/players/:id
-```
+### `GET /api/v1/decks`
 
-Проверки:
-
-- [ ] страница открывается по `/players/:id`;
-- [ ] summary игрока отображается;
-- [ ] турниры игрока отображаются;
-- [ ] колоды игрока отображаются;
-- [ ] tournament links работают;
-- [ ] deck links работают;
-- [ ] 404/NOT_FOUND отображается корректно;
-- [ ] error state работает.
-
-## Decks list
-
-Endpoint:
-
-```http
-GET /api/v1/decks
-```
-
-Проверки:
-
-- [ ] страница открывается по `/decks`;
+- [ ] маршрут `/decks` открывается;
 - [ ] список колод отображается;
-- [ ] фильтры передаются в query params;
-- [ ] клик по колоде ведет на `/decks/:id`;
-- [ ] empty state работает;
-- [ ] error state работает.
+- [ ] `format`, `playersCount`, `matchesCount`, `matchWinRate`, `bestRank` приходят без фронтовых догадок;
+- [ ] сортировка по списку колод работает;
+- [ ] `colors` приходят как массив `W/U/B/R/G/C`, если доступны.
 
-## Deck detail
+## 10. Детали колоды
 
-Endpoint:
+### `GET /api/v1/decks/:id`
 
-```http
-GET /api/v1/decks/:id
-```
+- [ ] маршрут `/decks/:id` открывается;
+- [ ] `summary` колоды отображается;
+- [ ] `tournamentResults` отображаются;
+- [ ] `players` отображаются;
+- [ ] `matchups` отображаются;
+- [ ] турнирные и player links работают;
+- [ ] 404/NOT_FOUND даёт корректное состояние.
 
-Проверки:
+## 11. Импорт турнира
 
-- [ ] страница открывается по `/decks/:id`;
-- [ ] summary колоды отображается;
-- [ ] результаты колоды по турнирам отображаются;
-- [ ] игроки на колоде отображаются;
-- [ ] tournament links работают;
-- [ ] player links работают;
-- [ ] 404/NOT_FOUND отображается корректно;
-- [ ] error state работает.
+### `POST /api/v1/admin/tournaments/import`
 
-## Create tournament
-
-Endpoint:
-
-```http
-POST /api/v1/admin/tournaments/import
-```
-
-Проверки:
-
-- [ ] страница открывается по `/admin/tournaments/create`;
-- [ ] дата турнира обязательна;
-- [ ] cityId обязателен;
-- [ ] после выбора cityId подгружаются клубы;
-- [ ] clubId обязателен;
-- [ ] tournamentType обязателен;
-- [ ] formatId обязателен;
-- [ ] finalStandingsFile обязателен;
-- [ ] allRoundsFile обязателен;
-- [ ] playerDecksText обязателен;
+- [ ] маршрут `/admin/tournaments/create` доступен только после входа;
 - [ ] форма отправляет `multipart/form-data`;
-- [ ] success response показывает успешный результат;
-- [ ] после success можно перейти на созданный турнир;
-- [ ] validation errors отображаются пользователю;
-- [ ] warnings отображаются пользователю;
-- [ ] network error отображается пользователю.
+- [ ] обязательные поля backend валидирует:
+  - [ ] `date`
+  - [ ] `cityId`
+  - [ ] `clubId`
+  - [ ] `tournamentType`
+  - [ ] `formatId`
+  - [ ] `finalStandingsFile`
+  - [ ] `allRoundsFile`
+  - [ ] `playerDecksText`
+- [ ] `aetherhubUrl` принимается как необязательное поле;
+- [ ] успех возвращает `success`, `tournamentId`, `message`, `warnings?`;
+- [ ] validation errors возвращаются в `error.details`;
+- [ ] ошибки распознавания файлов приходят понятным языком;
+- [ ] network/server errors не ломают экран.
 
-## Production check
+## 12. Перед релизом
 
 - [ ] `npm run lint` проходит.
-- [ ] `npm run test` проходит, если тесты настроены.
+- [ ] `npm run test -- --run` проходит, если текущий этап предполагает запуск тестов.
 - [ ] `npm run build` проходит.
-- [ ] `npm run preview` открывает production build локально.
-- [ ] production env использует `VITE_USE_MOCKS=false`.
-- [ ] production env использует правильный `VITE_API_BASE_URL`.
+- [ ] production env использует `VITE_USE_MOCKS=false`, если backend уже подключён.
+- [ ] временные mock-auth credentials либо заменены, либо сознательно оставлены для закрытого стенда.

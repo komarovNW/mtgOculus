@@ -1,4 +1,4 @@
-export function getErrorMessage(error: unknown, fallback = 'Не удалось загрузить данные.') {
+export function getErrorMessage(error: unknown, fallback = 'Не удалось загрузить данные. Попробуйте обновить страницу.') {
   if (!(error instanceof Error)) {
     return fallback;
   }

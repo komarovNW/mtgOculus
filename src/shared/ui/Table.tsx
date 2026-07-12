@@ -168,7 +168,7 @@ export function Table<T>({
                         sortState?.columnId === column.id && 'table__sort-button--active',
                       )}
                       onClick={() => handleSort(column)}
-                      title={`Нажмите, чтобы отсортировать по колонке ${getColumnSortLabel(column)}`}
+                      title={`Сортировать по колонке ${getColumnSortLabel(column)}`}
                       type="button"
                     >
                       <span className="table__sort-label">{column.header}</span>

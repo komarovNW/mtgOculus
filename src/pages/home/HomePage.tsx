@@ -39,7 +39,7 @@ export function HomePage() {
       ? `Период: ${appliedFilters?.dateFrom ? formatDate(appliedFilters.dateFrom) : '—'} - ${
           appliedFilters?.dateTo ? formatDate(appliedFilters.dateTo) : '—'
         }`
-      : 'Весь доступный период';
+      : 'За все загруженные турниры';
   const cityTitle = appliedFilters?.city?.name === 'Москва' ? 'Москве' : appliedFilters?.city?.name ?? 'Москве';
   const homeTitle = `${appliedFilters?.format?.name ?? 'Legacy'} в ${cityTitle}`;
 
@@ -51,11 +51,11 @@ export function HomePage() {
             key="mode"
             variant={env.useMocks ? 'warning' : 'accent'}
           >
-            {env.useMocks ? 'Демо-данные' : 'Живые данные'}
+            {env.useMocks ? 'Тестовые данные' : 'Данные из API'}
           </Badge>,
           ...appliedLabels.map((label) => <Badge key={label}>{label}</Badge>),
         ]}
-        description="Смотрим метагейм, результаты колод, лучших игроков и частые матчапы по выбранным фильтрам."
+        description="Собрали метагейм, результаты колод, лучших игроков и частые матчапы по этим фильтрам."
         eyebrow="Статистика по загруженным турнирам"
         title={homeTitle}
       />
@@ -66,11 +66,11 @@ export function HomePage() {
         onReset={resetFilters}
       />
 
-      {homeQuery.isLoading ? <LoadingState description="Загружаем статистику по выбранным фильтрам." /> : null}
+      {homeQuery.isLoading ? <LoadingState description="Собираем статистику по этим фильтрам." /> : null}
 
       {homeQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(homeQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(homeQuery.error, 'Не получилось загрузить статистику. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void homeQuery.refetch();
           }}
@@ -91,21 +91,21 @@ export function HomePage() {
               {
                 title: 'Уникальных игроков',
                 value: homeQuery.data.summary.uniquePlayersCount,
-                subtitle: 'Сколько разных игроков было в турнирах по этим фильтрам',
+                subtitle: 'Сколько разных игроков попало в эту статистику',
               },
-              { title: 'Матчей', value: homeQuery.data.summary.matchesCount, subtitle: 'Все сыгранные матчи в загруженных турнирах' },
+              { title: 'Матчей', value: homeQuery.data.summary.matchesCount, subtitle: 'Все матчи из загруженных турниров' },
               {
                 title: 'Уникальных колод',
                 value: homeQuery.data.summary.uniqueDecksCount,
-                subtitle: 'Сколько разных колод встретилось в турнирах по этим фильтрам',
+                subtitle: 'Сколько разных колод встретилось в этой статистике',
               },
             ]}
           />
 
           {homeQuery.data.summary.tournamentsCount === 0 ? (
             <EmptyState
-              description="Когда появятся загруженные турниры, здесь будет статистика по колодам, игрокам и матчапам."
-              title="Пока нет турниров по выбранным фильтрам"
+              description="Когда появятся загруженные турниры, здесь сразу покажем колоды, игроков и матчапы."
+              title="Пока нет турниров по этим фильтрам"
             />
           ) : (
             <>

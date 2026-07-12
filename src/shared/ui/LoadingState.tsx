@@ -7,7 +7,7 @@ type LoadingStateProps = {
 
 export function LoadingState({
   title = 'Загружаем статистику...',
-  description = 'Собираем данные по турнирам, колодам и игрокам.',
+  description = 'Собираем данные по турнирам, колодам и игрокам. Это обычно занимает пару секунд.',
 }: LoadingStateProps) {
   return (
     <Card className="state-card state-card--loading">

@@ -1,38 +1,37 @@
 # Magic Oculus
 
-Веб-приложение для статистики турниров Magic: The Gathering. Текущая версия собрана как MVP frontend на `React + TypeScript + Vite` и умеет работать как с mock-данными, так и с backend API через env.
+Веб-приложение со статистикой турниров Magic: The Gathering. Текущая версия проекта собрана как frontend MVP на `React + TypeScript + Vite` и умеет работать как на моках, так и с реальным backend API.
 
-## Что уже реализовано
+## Что уже есть
 
-- главная страница с summary, турнирами, метагеймом, performance колод, топом игроков и матчапами;
-- список турниров и детальная страница турнира;
-- список игроков и детальная страница игрока;
-- список колод и детальная страница колоды;
-- экран ручного импорта турнира;
+- публичные страницы со статистикой:
+  - главная;
+  - турниры и страница конкретного турнира;
+  - игроки и страница конкретного игрока;
+  - колоды и страница конкретной колоды;
+- фильтры по городу, клубу, формату, типу турнира и датам;
+- light theme по умолчанию и dark theme через переключатель в шапке;
+- единая token-система цветов в `src/app/styles/globals.css`;
+- понятные loading, empty и error states;
 - mock-режим без backend;
-- фильтры через URL query params;
-- loading, empty и error states;
-- адаптивная верстка для desktop, tablet и mobile.
+- временная mock-авторизация для служебного раздела;
+- защищённый экран добавления турнира `/admin/tournaments/create`.
 
-## Стек
+## Важные текущие ограничения
 
-- React
-- TypeScript
-- Vite
-- React Router
-- TanStack Query
-- Recharts
-- ESLint
-- Vitest
+- публичные страницы доступны без входа;
+- вход сейчас временный и полностью фронтовый;
+- экран добавления турнира пока работает через CSV + текстовый список игроков и колод;
+- поле `aetherhubUrl` уже добавлено, чтобы позже перейти к более простому импорту по ссылке.
 
-## Запуск
+## Быстрый старт
 
 ```bash
 npm install
 npm run dev
 ```
 
-Локальная сборка:
+Локальная production-сборка:
 
 ```bash
 npm run build
@@ -51,7 +50,9 @@ npm run test
 
 Создайте `.env.local` по примеру из `.env.example`.
 
-Mock-режим:
+Примеры сценариев:
+
+Mock-режим с наполненными данными:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
@@ -59,7 +60,7 @@ VITE_USE_MOCKS=true
 VITE_MOCK_SCENARIO=default
 ```
 
-Пустой сценарий для проверки empty states:
+Mock-режим для проверки empty states:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
@@ -74,46 +75,62 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_USE_MOCKS=false
 ```
 
+Временная mock-авторизация для служебного раздела:
+
+```env
+VITE_ADMIN_LOGIN=admin
+VITE_ADMIN_PASSWORD=123456
+VITE_ADMIN_DISPLAY_NAME=Администратор
+```
+
 ## Основные маршруты
 
 - `/`
+- `/home` -> редирект на `/`
 - `/tournaments`
 - `/tournaments/:id`
 - `/players`
 - `/players/:id`
 - `/decks`
 - `/decks/:id`
+- `/login`
 - `/admin/tournaments/create`
+
+## Временный вход для проверки
+
+По умолчанию:
+
+- логин: `admin`
+- пароль: `123456`
+
+Это временный сценарий для frontend-only проверки. После подключения backend-auth этот вход нужно заменить на реальные API.
+
+## Где смотреть документацию
+
+Основная карта документации: [readme/README.md](readme/README.md)
+
+Ключевые документы:
+
+- [readme/BACKEND_API_HANDOFF.md](readme/BACKEND_API_HANDOFF.md)
+- [readme/ROUTES.md](readme/ROUTES.md)
+- [readme/PROJECT_STRUCTURE.md](readme/PROJECT_STRUCTURE.md)
+- [readme/UI_GUIDELINES.md](readme/UI_GUIDELINES.md)
+- [readme/API_INTEGRATION_CHECKLIST.md](readme/API_INTEGRATION_CHECKLIST.md)
+- [readme/TIMEWEB_DEPLOY.md](readme/TIMEWEB_DEPLOY.md)
 
 ## Деплой
 
-Приложение собирается в `dist/` и готово к статическому хостингу.
+Приложение собирается в `dist/` и подходит для статического хостинга.
 
-### Timeweb App Platform через Git
-
-Рекомендуемый вариант для текущего проекта:
+Для Timeweb App Platform текущий рекомендуемый сценарий:
 
 - тип приложения: `Frontend`
 - фреймворк: `React`
+- ветка: `main`
 - Node.js: `22`
 - build command: `npm run build`
 - output directory: `dist`
 
-Подробный сценарий настройки в панели: [readme/TIMEWEB_DEPLOY.md](/Users/nikita/AndroidStudioProjects/mtg_oculus/readme/TIMEWEB_DEPLOY.md)
+Подробности: [readme/TIMEWEB_DEPLOY.md](readme/TIMEWEB_DEPLOY.md)
 
-Если приложение будет работать в mock-режиме, в переменных окружения Timeweb нужно задать:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=true
-VITE_MOCK_SCENARIO=default
-```
-
-Если позже подключим backend:
-
-```env
-VITE_API_BASE_URL=https://your-api-domain/api/v1
-VITE_USE_MOCKS=false
-```
-
-Важно: приложение использует SPA-routing через `React Router`, поэтому на хостинге должен быть включен fallback на `index.html`.
+Важно: приложение использует SPA-routing через `React Router`, поэтому на хостинге должен быть включён fallback на `index.html`.

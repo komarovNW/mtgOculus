@@ -1,187 +1,178 @@
-# Project Structure Guidelines
+# Project Structure
 
-## Цель документа
+Этот документ фиксирует текущую структуру проекта, а не стартовый желаемый шаблон. Если структура кода и документ расходятся, сначала обновляется этот файл, а не создаётся новая параллельная архитектура.
 
-Этот документ описывает рекомендуемую структуру React-проекта для MTG Global Stats MVP. Агент должен использовать эту структуру как ориентир и не создавать хаотичное расположение файлов.
-
-## Рекомендуемая структура
+## Актуальная структура
 
 ```text
 src/
   app/
     App.tsx
-    router/
-      router.tsx
     providers/
+      AuthProvider.tsx
       QueryProvider.tsx
+      auth-context.ts
+      useAuth.ts
+    router/
+      RequirePermission.tsx
+      router.tsx
     styles/
       globals.css
 
-  pages/
-    home/
-      HomePage.tsx
-      components/
-    tournaments/
-      TournamentsPage.tsx
-      components/
-    tournament-detail/
-      TournamentDetailPage.tsx
-      components/
-    players/
-      PlayersPage.tsx
-      components/
-    player-detail/
-      PlayerDetailPage.tsx
-      components/
-    decks/
-      DecksPage.tsx
-      components/
-    deck-detail/
-      DeckDetailPage.tsx
-      components/
-    create-tournament/
-      CreateTournamentPage.tsx
-      components/
-
   entities/
-    tournament/
-      model.ts
-      api.ts
-    player/
-      model.ts
-      api.ts
+    admin-tournament/
     deck/
-      model.ts
-      api.ts
-    city/
-      model.ts
-      api.ts
-    club/
-      model.ts
-      api.ts
-    format/
-      model.ts
-      api.ts
+    dictionaries/
+    player/
+    tournament/
 
-  widgets/
-    app-layout/
-      AppLayout.tsx
-    filters-panel/
-      FiltersPanel.tsx
-    summary-cards/
-      SummaryCards.tsx
-    recent-tournaments/
-      RecentTournamentsTable.tsx
-    deck-metagame/
-      DeckMetagameTable.tsx
-    deck-performance/
-      DeckPerformanceTable.tsx
-    top-players/
-      TopPlayersTable.tsx
-    popular-matchups/
-      PopularMatchupsTable.tsx
+  pages/
+    create-tournament/
+    deck-detail/
+    decks/
+    home/
+    login/
+    not-found/
+    player-detail/
+    players/
+    tournament-detail/
+    tournaments/
 
   shared/
     api/
       client.ts
-      types.ts
       endpoints.ts
+      types.ts
       mocks/
-        home.mock.ts
-        tournaments.mock.ts
-        players.mock.ts
-        decks.mock.ts
-        dictionaries.mock.ts
+    auth/
+      model.ts
+      service.ts
+      storage.ts
     config/
       env.ts
     lib/
-      formatDate.ts
-      formatPercent.ts
-      cn.ts
     ui/
-      Badge/
-      Button/
-      Card/
-      EmptyState/
-      ErrorState/
-      FileInput/
-      Input/
-      LoadingState/
-      PageHeader/
-      Select/
-      StatCard/
-      Table/
-      Tabs/
+
+  test/
+
+  widgets/
+    app-layout/
+    deck-metagame/
+    deck-performance/
+    filters-panel/
+    home-highlights/
+    popular-matchups/
+    recent-tournaments/
+    summary-cards/
+    top-players/
 ```
 
-## Правила организации
+## Зоны ответственности
 
-### `pages`
+### `app/`
 
-В `pages` лежат компоненты верхнего уровня, привязанные к роутам.
+Глобальная сборка приложения:
 
-Пример:
+- `App.tsx` связывает провайдеры и роутер;
+- `providers/` хранит React context и глобальные провайдеры;
+- `router/` описывает все маршруты и route guards;
+- `styles/globals.css` содержит token-систему, обе темы и общие layout-правила.
 
-```text
-/pages/home/HomePage.tsx
-/pages/tournament-detail/TournamentDetailPage.tsx
-```
+### `entities/`
 
-Страница должна собирать данные, вызывать нужные widgets и отображать состояния загрузки/ошибки.
+Доменный слой.
 
-### `widgets`
+Здесь лежат API-функции и небольшие model/helpers для сущностей:
 
-В `widgets` лежат крупные блоки интерфейса, которые могут использоваться на страницах.
+- турниры;
+- игроки;
+- колоды;
+- справочники;
+- admin import турнира.
 
-Примеры:
+### `pages/`
 
-- `SummaryCards`
-- `DeckMetagameTable`
-- `RecentTournamentsTable`
-- `FiltersPanel`
+Route-level компоненты.
 
-### `entities`
+Каждая папка соответствует отдельному экрану приложения:
 
-В `entities` лежит логика доменных сущностей:
+- сбор данных;
+- реакция на loading/error/empty;
+- сборка страницы из widgets и shared UI.
 
-- Tournament;
-- Player;
-- Deck;
-- City;
-- Club;
-- Format.
+### `shared/api/`
 
-Там могут быть типы, API-функции и небольшие helpers.
+Базовый API-слой.
 
-### `shared/ui`
+Ключевые файлы:
 
-В `shared/ui` лежат переиспользуемые UI-компоненты без бизнес-логики.
+- `client.ts` — общий HTTP-клиент и обработка ошибок;
+- `endpoints.ts` — список ручек;
+- `types.ts` — главный набор frontend API-типов;
+- `mocks/` — mock-ответы для разработки без backend.
 
-Компоненты должны быть простыми, типизированными и не знать про MTG-домен.
+`src/shared/api/types.ts` — это фактическая точка опоры для того, какие поля фронт использует на экранах.
 
-### `shared/api`
+### `shared/auth/`
 
-В `shared/api` лежит общий API-клиент, типы ответов и mock-данные.
+Временная фронтовая авторизация:
 
-API layer должен скрывать от страниц, используются реальные данные или моки.
+- модель сессии и прав;
+- mock sign-in;
+- хранение токена и сессии в `localStorage`.
 
-## Импорты
+Это временный слой до подключения реального backend-auth.
 
-Предпочтительно использовать понятные относительные импорты или настроить alias `@` на `src`.
+### `shared/lib/`
 
-Пример:
+Утилиты без бизнес-состояния:
 
-```ts
-import { Button } from '@/shared/ui/Button';
-import { getHomeData } from '@/entities/tournament/api';
-```
+- форматирование дат, процентов и record;
+- работа с путями сущностей;
+- обработка query filters;
+- сбор пользовательских ошибок.
 
-## Что не делать
+### `shared/ui/`
 
-Не складывать все компоненты в одну папку `components`.
+Переиспользуемые UI-компоненты:
 
-Не писать API-запросы прямо внутри UI-компонентов, если их можно вынести в `entities` или `shared/api`.
+- базовые контролы формы;
+- таблицы;
+- карточки;
+- бейджи;
+- tooltips/info-hints;
+- entity links;
+- stat-компоненты;
+- MTG color pips.
 
-Не дублировать типы ответа в разных местах. Общие API-типы должны жить централизованно.
+Компоненты здесь не должны знать, как устроен backend. Они получают уже подготовленные props.
 
-Не делать отдельный стиль для каждого блока, если уже есть базовые компоненты `Card`, `Table`, `Badge`, `StatCard`.
+### `widgets/`
+
+Крупные переиспользуемые блоки экранов:
+
+- фильтры;
+- summary cards;
+- таблицы турниров, игроков, колод и матчапов;
+- layout приложения.
+
+### `test/`
+
+Smoke, unit и routing tests.
+
+Здесь уже есть тесты на:
+
+- форматтеры;
+- построение путей;
+- routing/auth guard;
+- сортировку таблиц;
+- smoke для главной страницы.
+
+## Практическое правило
+
+Если другой разработчик правит backend integration:
+
+- новые API-типы сначала синхронизируются в `src/shared/api/types.ts`;
+- затем обновляются `entities/*/api.ts`;
+- затем проверяются `pages/` и `widgets/`;
+- после этого обновляется `readme/BACKEND_API_HANDOFF.md`, если контракт реально изменился.
