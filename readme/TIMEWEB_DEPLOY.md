@@ -81,32 +81,18 @@ git@github.com:komarovNW/mtgOculus.git
 
 ## Переменные окружения в Timeweb
 
-### Временный запуск на моках
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=true
-VITE_MOCK_SCENARIO=default
-VITE_ADMIN_LOGIN=admin
-VITE_ADMIN_PASSWORD=123456
-VITE_ADMIN_DISPLAY_NAME=Администратор
-```
-
-### Когда появится backend
+### Текущий рабочий вариант
 
 ```env
 VITE_API_BASE_URL=https://your-api-domain/api/v1
-VITE_USE_MOCKS=false
 ```
-
-Если backend-auth ещё не подключён, но нужен доступ к служебному разделу на стенде, временные `VITE_ADMIN_*` переменные тоже должны быть заданы.
 
 ## Что проверить после деплоя
 
 - открывается `/`;
 - работают публичные страницы;
 - работает SPA-routing после прямого открытия detail page;
-- если включён mock-auth, открывается `/login` и пропускает на `/admin/tournaments/create`;
+- открывается `/login` и пропускает на `/admin/tournaments/create` с парой `admin/admin`;
 - тема `Светлая / Тёмная` переключается без визуальных поломок.
 
 ## Откат

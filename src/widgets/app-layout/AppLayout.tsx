@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/app/providers/useAuth';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Badge } from '@/shared/ui/Badge';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 
 const publicLinks = [
@@ -11,9 +9,12 @@ const publicLinks = [
   { to: '/decks', label: 'Колоды' },
 ];
 
+const headerLinks = [...publicLinks, { to: '/admin/tournaments/create', label: 'Добавить турнир' }];
+
 type ThemeMode = 'dark' | 'light';
 
 const THEME_STORAGE_KEY = 'magic-oculus-theme';
+const MOBILE_NAV_BREAKPOINT = 760;
 
 function readInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -30,10 +31,9 @@ function readInitialTheme(): ThemeMode {
 }
 
 export function AppLayout() {
-  const navigate = useNavigate();
-  const { hasPermission, isAuthenticated, signOut, user } = useAuth();
+  const location = useLocation();
   const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
-  const canCreateTournament = hasPermission('tournament:create');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -41,27 +41,76 @@ export function AppLayout() {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  function handleSignOut() {
-    signOut();
-    navigate('/', { replace: true });
-  }
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return undefined;
+    }
+
+    function handleResize() {
+      if (window.innerWidth > MOBILE_NAV_BREAKPOINT) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <div className="app-shell">
       <header className="site-header">
         <div className="site-header__inner">
-          <div className="brand">
-            <div className="brand__eyebrow">Турниры, колоды и статистика</div>
-            <NavLink
-              className="brand__title"
-              to="/"
+          <div className="site-header__top">
+            <div className="brand">
+              <div className="brand__eyebrow">Турниры, колоды и статистика</div>
+              <NavLink
+                className="brand__title"
+                to="/"
+              >
+                Magic Oculus
+              </NavLink>
+            </div>
+            <button
+              aria-controls="site-navigation"
+              aria-expanded={isMobileMenuOpen}
+              aria-label={isMobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              className={cn('site-header__menu-button', isMobileMenuOpen && 'site-header__menu-button--open')}
+              onClick={() => setIsMobileMenuOpen((current) => !current)}
+              type="button"
             >
-              Magic Oculus
-            </NavLink>
+              <span
+                aria-hidden="true"
+                className="site-header__menu-icon"
+              >
+                <span />
+                <span />
+                <span />
+              </span>
+              <span className="site-header__menu-label">Меню</span>
+            </button>
           </div>
-          <div className="site-header__actions">
-            <nav className="site-nav">
-              {publicLinks.map((link) => (
+
+          <div className={cn('site-header__actions', isMobileMenuOpen && 'site-header__actions--open')}>
+            <nav
+              className="site-nav"
+              id="site-navigation"
+            >
+              {headerLinks.map((link) => (
                 <NavLink
                   key={link.to}
                   className={({ isActive }) => `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`}
@@ -71,40 +120,7 @@ export function AppLayout() {
                   {link.label}
                 </NavLink>
               ))}
-              {canCreateTournament ? (
-                <NavLink
-                  className={({ isActive }) => `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`}
-                  to="/admin/tournaments/create"
-                >
-                  Добавить турнир
-                </NavLink>
-              ) : null}
             </nav>
-            <div className="header-session">
-              {isAuthenticated && user ? (
-                <>
-                  <div className="header-session__summary">
-                    <Badge variant="accent">Авторизован</Badge>
-                    <span className="header-session__user">{user.name}</span>
-                  </div>
-                  <button
-                    className="button button--ghost"
-                    onClick={handleSignOut}
-                    type="button"
-                  >
-                    Выйти
-                  </button>
-                </>
-              ) : (
-                <Link
-                  className="button button--ghost section-link"
-                  state={{ from: '/admin/tournaments/create' }}
-                  to="/login"
-                >
-                  Войти
-                </Link>
-              )}
-            </div>
             <div
               aria-label="Переключение темы"
               className="theme-switch"

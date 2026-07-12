@@ -75,7 +75,7 @@ export type RecentTournamentItem = {
   roundsCount: number;
   winner?: {
     player: PlayerShort;
-    deck: DeckShort;
+    deck?: DeckShort | null;
   };
 };
 
@@ -150,7 +150,7 @@ export type TournamentListItem = {
   matchesCount: number;
   winner?: {
     player: PlayerShort;
-    deck: DeckShort;
+    deck?: DeckShort | null;
   };
 };
 

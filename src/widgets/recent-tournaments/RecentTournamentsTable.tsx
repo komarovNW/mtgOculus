@@ -69,18 +69,21 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   {
     id: 'deck',
     header: 'Колода',
-    sortValue: (row) => row.winner?.deck.name,
-    render: (row) =>
-      row.winner?.deck ? (
+    sortValue: (row) => row.winner?.deck?.name,
+    render: (row) => {
+      const deck = row.winner?.deck;
+
+      return deck ? (
         <EntityLink
-          colors={row.winner.deck.colors}
-          id={row.winner.deck.id}
-          name={row.winner.deck.name}
+          colors={deck.colors}
+          id={deck.id}
+          name={deck.name}
           type="deck"
         />
       ) : (
         '—'
-      ),
+      );
+    },
   },
 ];
 
@@ -121,20 +124,23 @@ const compactColumns: TableColumn<RecentTournamentItem>[] = [
     id: 'winner',
     header: 'Победитель',
     sortValue: (row) => row.winner?.player.name,
-    render: (row) =>
-      row.winner ? (
+    render: (row) => {
+      const winner = row.winner;
+      const deck = winner?.deck;
+
+      return winner ? (
         <div className="stacked-cell stacked-cell--compact">
           <EntityLink
-            id={row.winner.player.id}
-            name={row.winner.player.name}
+            id={winner.player.id}
+            name={winner.player.name}
             type="player"
           />
           <span className="muted-text">
-            {row.winner.deck ? (
+            {deck ? (
               <EntityLink
-                colors={row.winner.deck.colors}
-                id={row.winner.deck.id}
-                name={row.winner.deck.name}
+                colors={deck.colors}
+                id={deck.id}
+                name={deck.name}
                 type="deck"
               />
             ) : (
@@ -144,7 +150,8 @@ const compactColumns: TableColumn<RecentTournamentItem>[] = [
         </div>
       ) : (
         '—'
-      ),
+      );
+    },
   },
 ];
 
