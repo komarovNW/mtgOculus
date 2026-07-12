@@ -148,7 +148,7 @@ export function PlayersPage() {
         badges={getAppliedFilterLabels(playersQuery.data?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Здесь проще всего найти сильных и активных игроков, а потом провалиться в их турниры, колоды и матчи."
+        description="Здесь можно найти сильных и активных игроков, а потом открыть их турниры, колоды и матчи."
         eyebrow="Игроки"
         title="Игроки"
       />
@@ -162,13 +162,13 @@ export function PlayersPage() {
       <Card>
         <div className="toolbar-grid">
           <Input
-            label="Поиск игрока"
+            label="Найти игрока"
             onChange={(event) => updateQueryParams({ search: event.target.value || undefined })}
             placeholder="Например, Терехов Александр"
             value={search}
           />
           <Select
-            label="Как упорядочить список"
+            label="Сортировка"
             onChange={(event) => updateQueryParams({ sort: event.target.value })}
             options={sortOptions}
             value={sort}
@@ -176,10 +176,10 @@ export function PlayersPage() {
         </div>
       </Card>
 
-      {playersQuery.isLoading ? <LoadingState description="Загружаем статистику игроков." /> : null}
+      {playersQuery.isLoading ? <LoadingState description="Собираем статистику по игрокам." /> : null}
       {playersQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(playersQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(playersQuery.error, 'Не получилось загрузить список игроков. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void playersQuery.refetch();
           }}
@@ -194,10 +194,10 @@ export function PlayersPage() {
           >
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Как смотреть на игроков</h2>
+                <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала найдите лидеров по нужной метрике, а затем открывайте профиль игрока, если хотите увидеть
-                  турниры, колоды и историю матчей.
+                  Сначала найдите лидеров по нужной метрике, а потом открывайте страницу игрока, если хотите увидеть
+                  его турниры, колоды и последние матчи.
                 </p>
               </div>
             </div>
@@ -207,14 +207,14 @@ export function PlayersPage() {
                 <div className="insights-summary__value">{playersQuery.data.pagination.total}</div>
                 <div className="insights-summary__title">игроков найдено</div>
                 <p className="insights-summary__description">
-                  Сейчас список отсортирован {sortLabelMap[sort]}. Поиск выше помогает быстро найти конкретную фамилию.
+                  Сейчас список отсортирован {sortLabelMap[sort]}. Поиск выше помогает быстро найти нужного игрока.
                 </p>
               </div>
 
               <div className="insights-list">
                 {playersQuery.data.items[0] ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">Сейчас первым идёт</div>
+                    <div className="insight-item__title">Сейчас вверху списка</div>
                     <div className="insight-item__body">
                       <EntityLink
                         id={playersQuery.data.items[0].player.id}
@@ -233,18 +233,17 @@ export function PlayersPage() {
                 ) : null}
 
                 <article className="insight-item">
-                  <div className="insight-item__title">Насколько надёжна выборка</div>
+                  <div className="insight-item__title">Где статистика уже набралась</div>
                   <div className="insight-item__body">
-                    У {playersQuery.data.items.filter((item) => !item.isSmallSample).length} игроков уже достаточно матчей,
-                    чтобы процент побед читался увереннее.
+                    У {playersQuery.data.items.filter((item) => !item.isSmallSample).length} игроков уже достаточно
+                    матчей, чтобы процент побед выглядел надёжнее.
                   </div>
                 </article>
 
                 <article className="insight-item">
                   <div className="insight-item__title">Что делать дальше</div>
                   <div className="insight-item__body">
-                    Откройте профиль игрока, если хотите посмотреть его выступления по турнирам, любимые колоды и недавние
-                    матчи.
+                    Откройте страницу игрока, если хотите посмотреть его турниры, любимые колоды и недавние матчи.
                   </div>
                 </article>
               </div>
@@ -256,8 +255,8 @@ export function PlayersPage() {
               <div>
                 <h2 className="section-header__title">Все игроки</h2>
                 <p className="section-header__description">
-                  Найдено {playersQuery.data.pagination.total} игроков. Нажмите на имя, чтобы открыть профиль и подробную
-                  статистику.
+                  Найдено {playersQuery.data.pagination.total} игроков. Нажмите на имя, чтобы открыть страницу игрока и
+                  подробную статистику.
                 </p>
               </div>
             </div>

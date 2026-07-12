@@ -32,9 +32,9 @@ export function HomeHighlights({
     >
       <div className="section-header">
         <div>
-          <h2 className="section-header__title">Что видно сразу</h2>
+          <h2 className="section-header__title">Главное прямо сейчас</h2>
           <p className="section-header__description">
-            Коротко собрали главное по текущим фильтрам, чтобы было проще понять картину до погружения в таблицы.
+            Коротко собрали главное, чтобы можно было быстро понять картину до подробных таблиц.
           </p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export function HomeHighlights({
       <div className="insights-grid">
         <div className="insights-summary">
           <div className="insights-summary__value">{summary.tournamentsCount}</div>
-          <div className="insights-summary__title">турниров в выборке</div>
+          <div className="insights-summary__title">турниров в статистике</div>
           <p className="insights-summary__description">
             Это {summary.matchesCount} матчей, {summary.uniquePlayersCount} уникальных игроков и {summary.uniqueDecksCount}{' '}
             колод.
@@ -52,7 +52,7 @@ export function HomeHighlights({
         <div className="insights-list">
           {topMetaDeck ? (
             <article className="insight-item">
-              <div className="insight-item__title">Самая частая колода</div>
+              <div className="insight-item__title">Чаще всего встречается</div>
               <div className="insight-item__body">
                 <EntityLink
                   colors={topMetaDeck.deck.colors}
@@ -60,14 +60,14 @@ export function HomeHighlights({
                   name={topMetaDeck.deck.name}
                   type="deck"
                 />{' '}
-                встречается чаще других: {formatPercent(topMetaDeck.metaShare)} поля и {topMetaDeck.playersCount} участий.
+                занимает {formatPercent(topMetaDeck.metaShare)} поля и встретилась {topMetaDeck.playersCount} раз.
               </div>
             </article>
           ) : null}
 
           {bestStableDeck ? (
             <article className="insight-item">
-              <div className="insight-item__title">По результатам выделяется</div>
+              <div className="insight-item__title">По результатам впереди</div>
               <div className="insight-item__body">
                 <EntityLink
                   colors={bestStableDeck.deck.colors}
@@ -90,7 +90,7 @@ export function HomeHighlights({
 
           {topPlayer ? (
             <article className="insight-item">
-              <div className="insight-item__title">Сильнее других выступает</div>
+              <div className="insight-item__title">Лучший результат сейчас у</div>
               <div className="insight-item__body">
                 <EntityLink
                   id={topPlayer.player.id}
@@ -105,7 +105,7 @@ export function HomeHighlights({
 
           {latestTournament ? (
             <article className="insight-item">
-              <div className="insight-item__title">Последнее добавление</div>
+              <div className="insight-item__title">Последний загруженный турнир</div>
               <div className="insight-item__body">
                 <EntityLink
                   id={latestTournament.id}

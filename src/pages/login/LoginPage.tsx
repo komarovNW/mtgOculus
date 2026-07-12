@@ -51,7 +51,7 @@ export function LoginPage() {
       await signIn({ login, password });
       navigate(redirectPath, { replace: true });
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Не получилось выполнить вход. Попробуйте ещё раз.'));
+      setErrorMessage(getErrorMessage(error, 'Не удалось войти. Проверьте логин и пароль и попробуйте ещё раз.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +68,7 @@ export function LoginPage() {
             Служебный вход
           </Badge>,
         ]}
-        description="Сейчас вход нужен только для добавления турниров. Позже этот же доступ можно будет использовать и для других служебных действий."
+        description="Сейчас вход нужен только для загрузки турниров. Позже через этот же доступ можно будет открыть и другие служебные разделы."
         eyebrow="Авторизация"
         title="Войти"
       />
@@ -76,14 +76,14 @@ export function LoginPage() {
       <Card tone="muted">
         <div className="section-header">
           <div>
-            <h2 className="section-header__title">Что откроется после входа</h2>
+            <h2 className="section-header__title">Что будет после входа</h2>
             <p className="section-header__description">
-              После авторизации вы сразу попадёте на экран загрузки турнира и сможете добавить новое событие.
+              Сразу после входа откроется экран добавления турнира, где можно загрузить новое событие.
             </p>
           </div>
         </div>
         <p className="muted-text">
-          Публичная статистика при этом остаётся доступной всем, без входа и дополнительных ограничений.
+          Вся публичная статистика при этом остаётся открытой и доступна без входа.
         </p>
       </Card>
 
@@ -91,7 +91,7 @@ export function LoginPage() {
         <Card tone="muted">
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Войти не получилось</h2>
+              <h2 className="section-header__title">Не удалось войти</h2>
               <p className="section-header__description">{errorMessage}</p>
             </div>
           </div>
@@ -106,8 +106,8 @@ export function LoginPage() {
           }}
         >
           <div className="form-section">
-            <h2 className="form-section__title">Вход для загрузки турниров</h2>
-            <p className="form-section__description">Введите логин и пароль учётной записи, у которой есть доступ к служебному разделу.</p>
+            <h2 className="form-section__title">Вход в служебный раздел</h2>
+            <p className="form-section__description">Введите логин и пароль от учётной записи, у которой есть доступ к загрузке турниров.</p>
           </div>
 
           <div className="auth-form__fields">

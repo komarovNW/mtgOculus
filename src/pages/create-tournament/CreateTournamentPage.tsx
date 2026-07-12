@@ -110,7 +110,7 @@ export function CreateTournamentPage() {
   }
 
   if (citiesQuery.isLoading || formatsQuery.isLoading) {
-    return <LoadingState description="Загружаем города, клубы и форматы для формы." />;
+    return <LoadingState description="Подгружаем города, клубы и форматы для формы." />;
   }
 
   if (citiesQuery.isError || formatsQuery.isError) {
@@ -133,7 +133,7 @@ export function CreateTournamentPage() {
           </Badge>,
           <Badge key="multipart">Ручная загрузка</Badge>,
         ]}
-        description="Соберите турнир из файлов и списка колод участников. Ссылку на Aetherhub можно добавить сразу, чтобы позже перейти на более простой импорт."
+        description="Пока турнир загружается вручную: по двум CSV и списку колод. Ссылку на Aetherhub можно добавить сразу, чтобы позже перейти к импорту по ссылке."
         eyebrow="Импорт турнира"
         title="Добавить турнир"
       />
@@ -141,9 +141,9 @@ export function CreateTournamentPage() {
       <Card tone="muted">
         <div className="section-header">
           <div>
-            <h2 className="section-header__title">Что понадобится</h2>
+            <h2 className="section-header__title">Что подготовить</h2>
             <p className="section-header__description">
-              Сейчас турнир всё ещё собирается по CSV, поэтому перед загрузкой лучше подготовить всё в одном месте.
+              Турнир пока собирается по CSV, поэтому лучше заранее держать всё под рукой.
             </p>
           </div>
         </div>
@@ -160,8 +160,8 @@ export function CreateTournamentPage() {
         <Card tone="muted">
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Нужно поправить форму</h2>
-              <p className="section-header__description">Перед загрузкой проверьте поля ниже. Вот что сейчас не заполнено:</p>
+              <h2 className="section-header__title">Не хватает нескольких полей</h2>
+              <p className="section-header__description">Перед загрузкой проверьте форму. Сейчас не заполнено вот что:</p>
             </div>
           </div>
           <ul className="flat-list">
@@ -174,7 +174,7 @@ export function CreateTournamentPage() {
 
       {importMutation.isError ? (
         <ErrorState
-          description={getErrorMessage(importMutation.error, 'Не получилось импортировать турнир. Проверьте файлы и попробуйте ещё раз.')}
+          description={getErrorMessage(importMutation.error, 'Не удалось загрузить турнир. Проверьте файлы и попробуйте ещё раз.')}
         />
       ) : null}
 
@@ -182,11 +182,11 @@ export function CreateTournamentPage() {
         <Card tone="success">
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Импорт завершён</h2>
+              <h2 className="section-header__title">Турнир загружен</h2>
               <p className="section-header__description">{importMutation.data.message}</p>
             </div>
           </div>
-          <p className="muted-text">Номер турнира: {importMutation.data.tournamentId}</p>
+          <p className="muted-text">ID турнира: {importMutation.data.tournamentId}</p>
           {importMutation.data.warnings?.length ? (
             <ul className="flat-list">
               {importMutation.data.warnings.map((warning) => (
@@ -205,8 +205,8 @@ export function CreateTournamentPage() {
           }}
         >
           <div className="form-grid__full form-section">
-            <h2 className="form-section__title">1. Что это за турнир</h2>
-            <p className="form-section__description">Заполните дату, площадку, формат и ссылку на турнир.</p>
+            <h2 className="form-section__title">1. О турнире</h2>
+            <p className="form-section__description">Заполните дату, площадку, формат и, если есть, ссылку на турнир.</p>
           </div>
 
           <Input
@@ -260,7 +260,7 @@ export function CreateTournamentPage() {
           <div className="form-grid__spacer" />
           <div className="form-grid__full">
             <Input
-              helperText="Пока поле необязательное. Сейчас турнир всё ещё загружается по CSV, но ссылку уже можно добавить."
+              helperText="Поле пока необязательное. Сейчас турнир всё ещё загружается по CSV, но ссылку можно сохранить уже сейчас."
               label="Ссылка на Aetherhub"
               onChange={(event) => setField('aetherhubUrl', event.target.value)}
               placeholder="https://aetherhub.com/..."
@@ -270,8 +270,8 @@ export function CreateTournamentPage() {
           </div>
 
           <div className="form-grid__full form-section">
-            <h2 className="form-section__title">2. Что загрузить из файлов</h2>
-            <p className="form-section__description">Нам нужны отдельные CSV для итогов и для раундов.</p>
+            <h2 className="form-section__title">2. Файлы</h2>
+            <p className="form-section__description">Нужны два отдельных CSV: один с итогами, второй с раундами.</p>
           </div>
 
           <FileInput
@@ -289,7 +289,7 @@ export function CreateTournamentPage() {
 
           <div className="form-grid__full">
             <div className="form-section">
-              <h2 className="form-section__title">3. Кто чем играл</h2>
+              <h2 className="form-section__title">3. Игроки и колоды</h2>
               <p className="form-section__description">
                 Добавьте простой список вида «Игрок -&gt; Колода». Этого достаточно, чтобы собрать участников турнира.
               </p>
@@ -309,7 +309,7 @@ export function CreateTournamentPage() {
               disabled={importMutation.isPending}
               type="submit"
             >
-              {importMutation.isPending ? 'Загружаем турнир...' : 'Загрузить турнир'}
+              {importMutation.isPending ? 'Загружаем...' : 'Загрузить турнир'}
             </Button>
           </div>
         </form>

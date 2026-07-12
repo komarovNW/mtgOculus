@@ -100,7 +100,7 @@ export function InfoHint({ text, className }: InfoHintProps) {
           ref={buttonRef}
           aria-controls={tooltipId}
           aria-expanded={isOpen}
-          aria-label="Показать пояснение"
+          aria-label="Открыть пояснение"
           className="info-hint__button"
           onClick={() => setIsOpen((current) => !current)}
           type="button"

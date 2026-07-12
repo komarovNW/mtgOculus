@@ -236,13 +236,11 @@ function RoundBlock({
       <div className="section-header">
         <div>
           <h3 className="section-header__title">Раунды и паринги</h3>
-          <p className="section-header__description">
-            Открывайте только нужный раунд. Так пары читаются заметно проще, чем в одной длинной таблице.
-          </p>
+          <p className="section-header__description">Выберите нужный раунд и посмотрите пары именно для него.</p>
         </div>
       </div>
 
-      {rounds.length === 0 ? <EmptyState description="Раунды этого турнира ещё не загружены." /> : null}
+      {rounds.length === 0 ? <EmptyState description="По этому турниру пока нет данных по раундам." /> : null}
 
       <div className="accordion-list">
         {rounds.map((round) => {
@@ -267,7 +265,7 @@ function RoundBlock({
                   <Table
                     columns={roundColumns}
                     data={round.matches}
-                    emptyMessage="Матчи раунда недоступны."
+                    emptyMessage="Для этого раунда пока нет пар."
                     getRowKey={(row) => `${round.roundNumber}-${row.tableNumber}`}
                   />
                 </div>
@@ -303,17 +301,17 @@ export function TournamentDetailPage() {
   }, [detailQuery.data?.rounds]);
 
   if (detailQuery.isLoading) {
-    return <LoadingState description="Загружаем данные турнира." />;
+    return <LoadingState description="Собираем данные по турниру." />;
   }
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
       <ErrorState
-        description={getErrorMessage(detailQuery.error, 'Попробуйте обновить страницу и открыть турнир ещё раз.')}
+        description={getErrorMessage(detailQuery.error, 'Не получилось открыть турнир. Попробуйте обновить страницу и зайти ещё раз.')}
         onRetry={() => {
           void detailQuery.refetch();
         }}
-        title="Не удалось открыть страницу турнира"
+        title="Не удалось открыть турнир"
       />
     );
   }
@@ -334,7 +332,7 @@ export function TournamentDetailPage() {
           <Badge key="format">{tournament.format.name}</Badge>,
           <Badge key="club">{tournament.club.name}</Badge>,
         ]}
-        description="Здесь собраны итоговые места, пары по раундам и колоды всех участников в одном месте."
+        description="Здесь собраны итоговые места, пары по раундам и колоды всех участников."
         eyebrow="Турнир"
         title={tournament.title}
       />
@@ -362,15 +360,15 @@ export function TournamentDetailPage() {
       {activeTab === 'standings' ? (
         <Card>
           <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Итоговые стендинги</h2>
-              <p className="section-header__description">Финальные места, очки и тайбрейки по итогам турнира.</p>
+              <div>
+                <h2 className="section-header__title">Итоговые стендинги</h2>
+                <p className="section-header__description">Финальные места, очки и тайбрейки.</p>
+              </div>
             </div>
-          </div>
           <Table
             columns={standingsColumns}
             data={detailQuery.data.standings}
-            emptyMessage="Итоговые стендинги этого турнира ещё не загружены."
+            emptyMessage="Итоговые стендинги для этого турнира пока не загружены."
             getRowKey={(row) => `${row.rank}-${row.player.id}`}
           />
         </Card>
@@ -387,15 +385,15 @@ export function TournamentDetailPage() {
       {activeTab === 'decks' ? (
         <Card>
           <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Список колод</h2>
-              <p className="section-header__description">Игрок, колода, место и итоговый результат по каждому участнику.</p>
+              <div>
+                <h2 className="section-header__title">Список колод</h2>
+                <p className="section-header__description">Игрок, колода, место и итоговый результат каждого участника.</p>
+              </div>
             </div>
-          </div>
           <Table
             columns={playerDeckColumns}
             data={detailQuery.data.playerDecks}
-            emptyMessage="Список колод этого турнира ещё не загружен."
+            emptyMessage="Список колод для этого турнира пока не загружен."
             getRowKey={(row) => row.player.id}
           />
         </Card>
@@ -404,11 +402,11 @@ export function TournamentDetailPage() {
       {activeTab === 'metagame' ? (
         <Card>
           <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Метагейм турнира</h2>
-              <p className="section-header__description">Смотрим, какие колоды пришли на этот турнир и насколько часто они встречались.</p>
+              <div>
+                <h2 className="section-header__title">Метагейм турнира</h2>
+                <p className="section-header__description">Смотрим, какие колоды пришли на турнир и как часто они встречались.</p>
+              </div>
             </div>
-          </div>
           <div className="chart-layout">
             <div className="chart-surface">
               <ResponsiveContainer
@@ -462,7 +460,7 @@ export function TournamentDetailPage() {
             <Table
               columns={metagameColumns}
               data={detailQuery.data.metagame}
-              emptyMessage="Метагейм этого турнира ещё не загружен."
+              emptyMessage="Метагейм этого турнира пока не загружен."
               getRowKey={(row) => row.deck.id}
             />
           </div>

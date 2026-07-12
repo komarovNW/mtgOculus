@@ -1,5 +1,10 @@
 # MTG Global Stats — MVP Web Frontend Brief for AI Agent
 
+> [!WARNING]
+> Архивный документ.
+> Это ранний MVP brief. После появления login page, защищённого admin route, light/dark theme и обновлённого backend handoff он больше не является источником правды.
+> Для текущего состояния проекта используйте `README.md`, `readme/README.md` и `readme/BACKEND_API_HANDOFF.md`.
+
 ## 0. Контекст проекта
 
 Мы делаем MVP публичного веб-сайта со статистикой турниров по Magic: The Gathering.
@@ -1102,4 +1107,3 @@ VITE_USE_MOCKS=false
 - использование player/deck names вместо id для роутинга;
 - захардкоженный backend URL;
 - отсутствие production build.
-

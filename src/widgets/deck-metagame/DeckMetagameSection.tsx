@@ -42,7 +42,7 @@ const columns: TableColumn<DeckMetagameItem>[] = [
   {
     id: 'share',
     header: 'Доля меты',
-    headerTitle: 'Показываем, какую долю поля заняла эта колода в турнирах по выбранным фильтрам.',
+    headerTitle: 'Какую часть поля заняла эта колода по этим фильтрам.',
     defaultSortDirection: 'desc',
     render: (row) => (
       <MetricBar
@@ -90,8 +90,8 @@ export function DeckMetagameSection({
         <div>
           <h2 className="section-header__title">Метагейм по колодам</h2>
           <p className="section-header__description">
-            Показываем колоды, которые чаще всего встречались в турнирах по выбранным фильтрам. На графике и в таблице
-            оставили топ-{limit}, чтобы главный срез читался быстрее.
+            Показываем, какими колодами играли чаще всего. На графике и в таблице оставили топ-{limit}, чтобы всё
+            читалось быстрее.
           </p>
         </div>
         {actionHref ? (
@@ -160,7 +160,7 @@ export function DeckMetagameSection({
         <Table
           columns={columns}
           data={visibleItems}
-          emptyMessage="По этим фильтрам пока нет данных о том, какими колодами играли."
+          emptyMessage="Пока нет данных о том, какими колодами играли по этим фильтрам."
           getRowKey={(row) => row.deck.id}
           getRowClassName={(_, index) => (index < 3 ? 'table__row--top' : undefined)}
         />

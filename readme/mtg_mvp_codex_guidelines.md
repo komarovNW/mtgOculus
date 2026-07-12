@@ -1,5 +1,10 @@
 # Codex Guidelines: MTG Global Stats MVP Frontend
 
+> [!WARNING]
+> Архивный документ.
+> Файл отражает стартовые принципы раннего MVP и частично устарел.
+> Перед реальной работой по проекту сверяйтесь с `README.md`, `readme/README.md`, `readme/ROUTES.md`, `readme/PROJECT_STRUCTURE.md` и `readme/UI_GUIDELINES.md`.
+
 ## 1. Purpose of this document
 
 This document describes how the AI coding agent should work on the MVP frontend for the MTG Global Stats web application.

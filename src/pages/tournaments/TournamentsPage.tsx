@@ -100,7 +100,7 @@ export function TournamentsPage() {
         badges={getAppliedFilterLabels(tournamentsQuery.data?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Здесь удобно найти нужный дейлик или турнир, а потом открыть стендинги, пары и колоды участников."
+        description="Здесь можно быстро найти нужный турнир, а потом открыть стендинги, пары и колоды участников."
         eyebrow="Турниры"
         title="Турниры"
       />
@@ -111,10 +111,10 @@ export function TournamentsPage() {
         onReset={resetFilters}
       />
 
-      {tournamentsQuery.isLoading ? <LoadingState description="Загружаем список турниров." /> : null}
+      {tournamentsQuery.isLoading ? <LoadingState description="Собираем список турниров." /> : null}
       {tournamentsQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(tournamentsQuery.error, 'Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(tournamentsQuery.error, 'Не получилось загрузить список турниров. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
             void tournamentsQuery.refetch();
           }}
@@ -129,10 +129,10 @@ export function TournamentsPage() {
           >
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Как читать этот раздел</h2>
+                <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала смотрите свежие и крупные события, а потом открывайте конкретный турнир, если нужны стендинги,
-                  раунды и метагейм.
+                  Сначала смотрите свежие и крупные события, а потом открывайте нужный турнир, если нужны стендинги,
+                  пары и метагейм.
                 </p>
               </div>
             </div>
@@ -140,17 +140,17 @@ export function TournamentsPage() {
             <div className="insights-grid">
               <div className="insights-summary">
                 <div className="insights-summary__value">{tournamentsQuery.data.pagination.total}</div>
-                <div className="insights-summary__title">турниров в этом списке</div>
+                <div className="insights-summary__title">турниров найдено</div>
                 <p className="insights-summary__description">
-                  Фильтры выше помогут быстро сузить список до нужного клуба, формата или периода.
+                  Фильтры выше помогут быстро оставить только нужный клуб, формат или период.
                 </p>
               </div>
 
               <div className="insights-list">
                 {tournamentsQuery.data.items[0] ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Самый свежий турнир</div>
-                    <div className="insight-item__body">
+                <article className="insight-item">
+                  <div className="insight-item__title">Самый свежий турнир</div>
+                  <div className="insight-item__body">
                       <EntityLink
                         id={tournamentsQuery.data.items[0].id}
                         name={tournamentsQuery.data.items[0].title}
@@ -188,7 +188,7 @@ export function TournamentsPage() {
                 <article className="insight-item">
                   <div className="insight-item__title">Что делать дальше</div>
                   <div className="insight-item__body">
-                    Открывайте турнир по названию, если хотите посмотреть итоговые места, пары по раундам и колоды всех
+                    Откройте турнир по названию, если хотите посмотреть итоговые места, пары по раундам и колоды всех
                     участников.
                   </div>
                 </article>
@@ -211,8 +211,8 @@ export function TournamentsPage() {
               <div>
                 <h2 className="section-header__title">Все турниры</h2>
                 <p className="section-header__description">
-                  Найдено {tournamentsQuery.data.pagination.total} турниров. Нажмите на нужный турнир, чтобы открыть
-                  детали.
+                  Найдено {tournamentsQuery.data.pagination.total} турниров. Нажмите на турнир, чтобы открыть его
+                  страницу.
                 </p>
               </div>
             </div>

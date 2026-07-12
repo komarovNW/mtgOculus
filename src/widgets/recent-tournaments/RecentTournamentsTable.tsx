@@ -173,8 +173,8 @@ export function RecentTournamentsTable({
           <h2 className="section-header__title">Последние турниры</h2>
           <p className="section-header__description">
             {compact
-              ? 'Показываем самые свежие турниры, чтобы быстро понять, что уже загружено в базу.'
-              : 'Здесь собраны самые свежие загруженные турниры.'}
+              ? 'Показываем последние загруженные турниры, чтобы быстро понять, что уже есть в статистике.'
+              : 'Собрали последние загруженные турниры.'}
           </p>
         </div>
         {actionHref ? (
@@ -192,7 +192,7 @@ export function RecentTournamentsTable({
       <Table
         columns={compact ? compactColumns : columns}
         data={visibleItems}
-        emptyMessage="Турниры по этим фильтрам ещё не загружены."
+        emptyMessage="Пока нет турниров по этим фильтрам."
         getRowKey={(row) => row.id}
         layout={compact ? 'auto' : 'fixed'}
         minWidth={compact ? 680 : 880}

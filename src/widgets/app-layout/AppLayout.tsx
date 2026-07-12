@@ -51,7 +51,7 @@ export function AppLayout() {
       <header className="site-header">
         <div className="site-header__inner">
           <div className="brand">
-            <div className="brand__eyebrow">Турниры, колоды и мета</div>
+            <div className="brand__eyebrow">Турниры, колоды и статистика</div>
             <NavLink
               className="brand__title"
               to="/"
@@ -137,8 +137,8 @@ export function AppLayout() {
 
       <footer className="site-footer">
         <div className="site-footer__inner">
-          Magic Oculus показывает статистику турниров, колод, игроков и матчапов по загруженным событиям Magic: The
-          Gathering.
+          Magic Oculus собирает в одном месте результаты турниров, колоды, игроков и матчапы по загруженным событиям
+          Magic: The Gathering.
         </div>
       </footer>
     </div>

@@ -221,17 +221,17 @@ export function DeckDetailPage() {
   });
 
   if (deckQuery.isLoading) {
-    return <LoadingState description="Загружаем статистику колоды." />;
+    return <LoadingState description="Собираем статистику по колоде." />;
   }
 
   if (deckQuery.isError || !deckQuery.data) {
     return (
       <ErrorState
-        description={getErrorMessage(deckQuery.error, 'Попробуйте обновить страницу или открыть колоду ещё раз.')}
+        description={getErrorMessage(deckQuery.error, 'Не получилось открыть страницу колоды. Попробуйте обновить её и зайти ещё раз.')}
         onRetry={() => {
           void deckQuery.refetch();
         }}
-        title="Не удалось открыть страницу колоды"
+        title="Не удалось открыть колоду"
       />
     );
   }
@@ -259,8 +259,8 @@ export function DeckDetailPage() {
         ]}
         description={
           deck.archetype
-            ? `Здесь видно, как колода выступала в турнирах и против каких архетипов играла. Архетип: ${deck.archetype}.`
-            : 'Здесь видно, как колода выступала в турнирах и против каких архетипов играла.'
+            ? `Показываем, как колода выступала в турнирах и против чего чаще всего играла. Архетип: ${deck.archetype}.`
+            : 'Показываем, как колода выступала в турнирах и против чего чаще всего играла.'
         }
         eyebrow="Колода"
         title={deck.name}
@@ -273,7 +273,7 @@ export function DeckDetailPage() {
       />
 
       <SummaryCards
-        description="Короткая сводка по этой колоде на текущем срезе."
+        description="Коротко о результатах этой колоды по этим фильтрам."
         title="Общая статистика колоды"
         items={[
           { title: 'Турниров', value: summary.tournamentsCount },
@@ -297,7 +297,7 @@ export function DeckDetailPage() {
       <Tabs
         activeId={activeTab}
         items={[
-          { id: 'results', label: 'Результаты' },
+          { id: 'results', label: 'Турниры' },
           { id: 'players', label: 'Игроки' },
           { id: 'matchups', label: 'Матчапы' },
         ]}
@@ -314,7 +314,7 @@ export function DeckDetailPage() {
           <Table
             columns={tournamentColumns}
             data={deckQuery.data.tournamentResults}
-            emptyMessage="Результаты этой колоды по выбранным фильтрам ещё не загружены."
+            emptyMessage="С этими фильтрами пока нет результатов этой колоды."
             getRowKey={(row) => `${row.tournament.id}-${row.player.id}`}
           />
         </Card>
@@ -323,15 +323,15 @@ export function DeckDetailPage() {
       {activeTab === 'players' ? (
         <Card>
           <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Кто играл этой колодой</h2>
-              <p className="section-header__description">Игроки, которые чаще всего приносили эту колоду на турниры.</p>
+              <div>
+                <h2 className="section-header__title">Кто играл этой колодой</h2>
+                <p className="section-header__description">Игроки, которые чаще всего приносили эту колоду на турниры.</p>
+              </div>
             </div>
-          </div>
           <Table
             columns={playerColumns}
             data={deckQuery.data.players}
-            emptyMessage="Пока не видно, кто играл этой колодой по выбранным фильтрам."
+            emptyMessage="С этими фильтрами пока не видно, кто играл этой колодой."
             getRowKey={(row) => row.player.id}
           />
         </Card>
@@ -340,15 +340,15 @@ export function DeckDetailPage() {
       {activeTab === 'matchups' ? (
         <Card>
           <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Матчапы колоды</h2>
-              <p className="section-header__description">Смотрим, против каких колод эта колода встречалась чаще всего и как шли матчи.</p>
+              <div>
+                <h2 className="section-header__title">Матчапы колоды</h2>
+                <p className="section-header__description">Смотрим, против каких колод эта колода встречалась чаще всего и как шли матчи.</p>
+              </div>
             </div>
-          </div>
           <Table
             columns={matchupColumns}
             data={deckQuery.data.matchups}
-            emptyMessage="Матчапы этой колоды по выбранным фильтрам ещё не собраны."
+            emptyMessage="С этими фильтрами пока нет матчапов этой колоды."
             getRowKey={(row) => row.opponentDeck.id}
           />
         </Card>

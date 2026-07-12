@@ -50,17 +50,17 @@ const columns: TableColumn<PopularMatchupItem>[] = [
   },
   {
     id: 'record',
-    header: 'Результат матчапа',
+    header: 'Счёт матчапа',
     align: 'right',
     defaultSortDirection: 'desc',
-    headerTitle: 'Сначала победы левой колоды, потом правой, затем ничьи.',
+    headerTitle: 'Сначала победы левой колоды, потом правой, а если были ничьи, показываем их третьим числом.',
     render: (row) => formatRecord(row.deckAWins, row.deckBWins, row.draws),
     sortValue: (row) => getRecordSortValue(row.deckAWins, row.deckBWins, row.draws),
   },
   {
     id: 'distribution',
     header: 'Распределение побед',
-    headerTitle: 'Показываем, как делятся победы между этими двумя колодами.',
+    headerTitle: 'Как победы распределились между этими двумя колодами.',
     defaultSortDirection: 'desc',
     render: (row) => {
       const drawRate = row.matchesCount > 0 ? (row.draws / row.matchesCount) * 100 : 0;
@@ -111,15 +111,15 @@ export function PopularMatchupsTable({
         <div>
           <h2 className="section-header__title">Частые матчапы</h2>
           <p className="section-header__description">
-            Пары колод, которые чаще всего встречались между собой. Сначала показываем самые частые встречи, а детали
-            можно раскрыть ниже.
+            Пары колод, которые чаще всего встречались между собой. Сначала показываем самые частые встречи, а ниже
+            можно раскрыть весь список.
           </p>
         </div>
       </div>
       <Table
         columns={columns}
         data={visibleItems}
-        emptyMessage="Когда по этим фильтрам накопятся встречи между колодами, здесь появятся матчапы."
+        emptyMessage="Когда по этим фильтрам накопятся встречи между колодами, здесь покажем матчапы."
         getRowKey={(row) => `${row.deckA.id}-${row.deckB.id}`}
         getRowClassName={(_, index) => (index < 3 ? 'table__row--top' : undefined)}
       />
@@ -134,7 +134,7 @@ export function PopularMatchupsTable({
               ? 'Свернуть список'
               : hiddenItemsCount > 0
                 ? `Показать ещё ${hiddenItemsCount}`
-                : 'Показать все матчапы'}
+                : 'Показать все'}
           </Button>
         </div>
       ) : null}

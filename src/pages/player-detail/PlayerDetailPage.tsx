@@ -188,7 +188,7 @@ const matchColumns: TableColumn<PlayerMatchItem>[] = [
   },
   {
     id: 'playerDeck',
-    header: 'Колода игрока',
+    header: 'Колода',
     sortValue: (row) => row.playerDeck?.name,
     render: (row) =>
       row.playerDeck ? (
@@ -232,9 +232,9 @@ const matchColumns: TableColumn<PlayerMatchItem>[] = [
   },
   {
     id: 'result',
-    header: 'Исход',
+    header: 'Результат',
     align: 'center',
-    headerTitle: 'Показываем итог матча именно для игрока на этой странице.',
+    headerTitle: 'Результат матча именно для игрока на этой странице.',
     sortValue: (row) => {
       if (row.result === 'win') {
         return 3;
@@ -257,7 +257,7 @@ const matchColumns: TableColumn<PlayerMatchItem>[] = [
     header: 'Счёт',
     align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: 'Сначала счёт игрока на этой странице, потом счёт оппонента. Например, 2-1 означает победу игрока.',
+    headerTitle: 'Сначала счёт игрока на этой странице, потом счёт оппонента. Например, 2-1 значит, что игрок выиграл матч.',
     render: (row) => <div className="table__score-cell">{formatRecord(row.playerScore, row.opponentScore)}</div>,
     sortValue: (row) => getRecordSortValue(row.playerScore, row.opponentScore),
   },
@@ -333,13 +333,13 @@ export function PlayerDetailPage() {
   });
 
   if (playerQuery.isLoading) {
-    return <LoadingState description="Загружаем статистику игрока." />;
+    return <LoadingState description="Собираем статистику по игроку." />;
   }
 
   if (playerQuery.isError || !playerQuery.data) {
     return (
       <ErrorState
-        description={getErrorMessage(playerQuery.error, 'Попробуйте обновить страницу или открыть профиль игрока ещё раз.')}
+        description={getErrorMessage(playerQuery.error, 'Не получилось открыть страницу игрока. Попробуйте обновить её и зайти ещё раз.')}
         onRetry={() => {
           void playerQuery.refetch();
         }}
@@ -375,7 +375,7 @@ export function PlayerDetailPage() {
               ]
             : []),
         ]}
-        description="Все выступления игрока по текущим фильтрам: турниры, колоды и матчи."
+        description="Все результаты игрока по этим фильтрам: турниры, колоды и матчи."
         eyebrow="Игрок"
         title={player.name}
       />
@@ -387,7 +387,7 @@ export function PlayerDetailPage() {
       />
 
       <SummaryCards
-        description="Короткая сводка по игроку на текущем срезе."
+        description="Коротко о результатах игрока по этим фильтрам."
         title="Общая статистика"
         items={[
           { title: 'Турниров', value: summary.tournamentsCount },
@@ -412,7 +412,7 @@ export function PlayerDetailPage() {
         items={[
           { id: 'tournaments', label: 'Турниры' },
           { id: 'decks', label: 'Колоды' },
-          { id: 'matches', label: 'Матчи' },
+          { id: 'matches', label: 'Последние матчи' },
         ]}
         onChange={setActiveTab}
       />
@@ -427,7 +427,7 @@ export function PlayerDetailPage() {
           <Table
             columns={tournamentColumns}
             data={playerQuery.data.tournaments}
-            emptyMessage="Турниры этого игрока по выбранным фильтрам ещё не загружены."
+            emptyMessage="С этими фильтрами пока нет турниров этого игрока."
             getRowKey={(row) => row.tournament.id}
           />
         </Card>
@@ -443,7 +443,7 @@ export function PlayerDetailPage() {
           <Table
             columns={deckColumns}
             data={playerQuery.data.decks}
-            emptyMessage="Пока не видно, какими колодами играл этот игрок по выбранным фильтрам."
+            emptyMessage="С этими фильтрами пока не видно, какими колодами играл этот игрок."
             getRowKey={(row) => row.deck.id}
           />
         </Card>
@@ -454,12 +454,12 @@ export function PlayerDetailPage() {
           <Card>
             <div className="section-header">
               <div>
-              <h2 className="section-header__title">История матчей</h2>
-                <p className="section-header__description">Матчи собраны по турнирам, чтобы историю игрока было легче читать.</p>
+                <h2 className="section-header__title">Последние матчи</h2>
+                <p className="section-header__description">Матчи сгруппированы по турнирам, чтобы историю игрока было легче читать.</p>
               </div>
             </div>
             {matchGroups.length === 0 ? (
-              <EmptyState description="Матчи этого игрока по выбранным фильтрам ещё не загружены." />
+              <EmptyState description="С этими фильтрами пока нет матчей этого игрока." />
             ) : null}
           </Card>
 
@@ -483,7 +483,7 @@ export function PlayerDetailPage() {
               <Table
                 columns={matchColumns}
                 data={group.items}
-                emptyMessage="Матчи этого турнира ещё не загружены."
+                emptyMessage="Пока нет матчей по этому турниру."
                 getRowKey={(row) => `${row.tournament.id}-${row.roundNumber}-${row.tableNumber}`}
               />
             </Card>

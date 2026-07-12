@@ -22,7 +22,7 @@ export function ErrorState({
             variant="secondary"
             onClick={onRetry}
           >
-            Попробовать снова
+            Попробовать ещё раз
           </Button>
         </div>
       ) : null}
