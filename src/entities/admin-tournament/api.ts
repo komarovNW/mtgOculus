@@ -1,7 +1,6 @@
 import { apiPostForm } from '@/shared/api/client';
+import { mapCreateTournamentResponse, type BackendCreateTournamentSuccess } from '@/shared/api/backend-mappers';
 import { endpoints } from '@/shared/api/endpoints';
-import { env } from '@/shared/config/env';
-import { createTournamentMock } from '@/shared/api/mocks/admin-tournament.mock';
 import type { CreateTournamentPayload, CreateTournamentResponse } from '@/shared/api/types';
 
 function payloadToFormData(payload: CreateTournamentPayload) {
@@ -11,7 +10,9 @@ function payloadToFormData(payload: CreateTournamentPayload) {
   formData.set('clubId', payload.clubId);
   formData.set('tournamentType', payload.tournamentType);
   formData.set('formatId', payload.formatId);
-  formData.set('aetherhubUrl', payload.aetherhubUrl ?? '');
+  if (payload.aetherhubUrl) {
+    formData.set('aetherhubUrl', payload.aetherhubUrl);
+  }
   formData.set('finalStandingsFile', payload.finalStandingsFile);
   formData.set('allRoundsFile', payload.allRoundsFile);
   formData.set('playerDecksText', payload.playerDecksText);
@@ -20,7 +21,8 @@ function payloadToFormData(payload: CreateTournamentPayload) {
 }
 
 export function createTournament(payload: CreateTournamentPayload) {
-  return env.useMocks
-    ? createTournamentMock(payload)
-    : apiPostForm<CreateTournamentResponse>(endpoints.importTournament, payloadToFormData(payload));
+  // Tournament import is temporarily sent without auth.
+  return apiPostForm<BackendCreateTournamentSuccess>(endpoints.importTournament, payloadToFormData(payload)).then(
+    mapCreateTournamentResponse,
+  );
 }

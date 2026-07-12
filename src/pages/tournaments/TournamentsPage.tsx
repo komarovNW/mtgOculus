@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/app/providers/useAuth';
 import { Link } from 'react-router-dom';
 import { getTournaments } from '@/entities/tournament/api';
 import type { TournamentListItem } from '@/shared/api/types';
@@ -86,9 +85,7 @@ const columns: TableColumn<TournamentListItem>[] = [
 ];
 
 export function TournamentsPage() {
-  const { hasPermission } = useAuth();
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
-  const canCreateTournament = hasPermission('tournament:create');
   const tournamentsQuery = useQuery({
     queryKey: ['tournaments', apiFilters],
     queryFn: () => getTournaments({ ...apiFilters, page: 1, limit: 50 }),
@@ -198,10 +195,9 @@ export function TournamentsPage() {
             <div className="insights-actions">
               <Link
                 className="button button--primary section-link"
-                state={canCreateTournament ? undefined : { from: '/admin/tournaments/create' }}
-                to={canCreateTournament ? '/admin/tournaments/create' : '/login'}
+                to="/admin/tournaments/create"
               >
-                {canCreateTournament ? 'Добавить турнир' : 'Войти, чтобы добавить турнир'}
+                Добавить турнир
               </Link>
             </div>
           </Card>

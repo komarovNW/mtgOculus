@@ -68,7 +68,7 @@ export function LoginPage() {
             Служебный вход
           </Badge>,
         ]}
-        description="Сейчас вход нужен только для загрузки турниров. Позже через этот же доступ можно будет открыть и другие служебные разделы."
+        description="Сейчас вход нужен только для загрузки турниров. Доступ хранится как Basic auth и используется в защищённых запросах."
         eyebrow="Авторизация"
         title="Войти"
       />
@@ -83,7 +83,7 @@ export function LoginPage() {
           </div>
         </div>
         <p className="muted-text">
-          Вся публичная статистика при этом остаётся открытой и доступна без входа.
+          Вся публичная статистика при этом остаётся открытой и доступна без входа. Для служебного входа сейчас используется пара `admin / admin`.
         </p>
       </Card>
 
@@ -107,7 +107,7 @@ export function LoginPage() {
         >
           <div className="form-section">
             <h2 className="form-section__title">Вход в служебный раздел</h2>
-            <p className="form-section__description">Введите логин и пароль от учётной записи, у которой есть доступ к загрузке турниров.</p>
+            <p className="form-section__description">Введите логин и пароль учётной записи, которую backend принимает по Basic auth.</p>
           </div>
 
           <div className="auth-form__fields">

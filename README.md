@@ -1,6 +1,6 @@
 # Magic Oculus
 
-Веб-приложение со статистикой турниров Magic: The Gathering. Текущая версия проекта собрана как frontend MVP на `React + TypeScript + Vite` и умеет работать как на моках, так и с реальным backend API.
+Веб-приложение со статистикой турниров Magic: The Gathering. Текущая версия проекта собрана как frontend MVP на `React + TypeScript + Vite` и работает с реальным backend API.
 
 ## Что уже есть
 
@@ -13,14 +13,13 @@
 - light theme по умолчанию и dark theme через переключатель в шапке;
 - единая token-система цветов в `src/app/styles/globals.css`;
 - понятные loading, empty и error states;
-- mock-режим без backend;
-- временная mock-авторизация для служебного раздела;
+- Basic auth для служебного раздела загрузки турниров;
 - защищённый экран добавления турнира `/admin/tournaments/create`.
 
 ## Важные текущие ограничения
 
 - публичные страницы доступны без входа;
-- вход сейчас временный и полностью фронтовый;
+- вход в служебный раздел сейчас рассчитан на Basic auth c парой `admin/admin`;
 - экран добавления турнира пока работает через CSV + текстовый список игроков и колод;
 - поле `aetherhubUrl` уже добавлено, чтобы позже перейти к более простому импорту по ссылке.
 
@@ -50,37 +49,10 @@ npm run test
 
 Создайте `.env.local` по примеру из `.env.example`.
 
-Примеры сценариев:
-
-Mock-режим с наполненными данными:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=true
-VITE_MOCK_SCENARIO=default
-```
-
-Mock-режим для проверки empty states:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=true
-VITE_MOCK_SCENARIO=empty
-```
-
 Работа с backend:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=false
-```
-
-Временная mock-авторизация для служебного раздела:
-
-```env
-VITE_ADMIN_LOGIN=admin
-VITE_ADMIN_PASSWORD=123456
-VITE_ADMIN_DISPLAY_NAME=Администратор
 ```
 
 ## Основные маршруты
@@ -101,9 +73,9 @@ VITE_ADMIN_DISPLAY_NAME=Администратор
 По умолчанию:
 
 - логин: `admin`
-- пароль: `123456`
+- пароль: `admin`
 
-Это временный сценарий для frontend-only проверки. После подключения backend-auth этот вход нужно заменить на реальные API.
+Эти данные используются для Basic auth и отправляются как `Authorization: Basic ...` в защищённых запросах.
 
 ## Где смотреть документацию
 

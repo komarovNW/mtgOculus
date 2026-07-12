@@ -11,11 +11,14 @@
   - запуск;
   - env;
   - основные маршруты;
-  - временная mock-авторизация;
+  - Basic auth для служебного раздела;
   - ссылки на остальные docs.
 - `readme/BACKEND_API_HANDOFF.md`
   - главный контракт между фронтом и будущим backend;
   - текущие ожидания по данным, ручкам, auth, ошибкам, сортировкам и импорту турнира.
+- `readme/BACKEND_STATS_GAPS.md`
+  - короткий checklist того, чего ещё не хватает backend именно для текущего показа статистики;
+  - разделение на must have / nice to have / not needed now.
 - `readme/ROUTES.md`
   - все текущие маршруты;
   - какие страницы публичные;
@@ -31,10 +34,9 @@
   - требования к таблицам, карточкам, графикам и текстам.
 - `readme/ENV_EXAMPLE.md`
   - все env-переменные;
-  - mock/backend сценарии;
-  - временные auth-переменные.
+  - базовая конфигурация backend.
 - `readme/API_INTEGRATION_CHECKLIST.md`
-  - что проверить при переходе с моков на реальный backend.
+  - что проверить при интеграции с backend.
 - `readme/TIMEWEB_DEPLOY.md`
   - как настроен и обновляется деплой на Timeweb;
   - когда срабатывает автодеплой после push.
@@ -68,5 +70,6 @@
 
 1. Прочитать `README.md`.
 2. Прочитать `readme/BACKEND_API_HANDOFF.md`.
-3. Прочитать `readme/API_INTEGRATION_CHECKLIST.md`.
-4. При необходимости свериться с `src/shared/api/types.ts` и страницами в `src/pages/`.
+3. Прочитать `readme/BACKEND_STATS_GAPS.md`.
+4. Прочитать `readme/API_INTEGRATION_CHECKLIST.md`.
+5. При необходимости свериться с `src/shared/api/types.ts` и страницами в `src/pages/`.

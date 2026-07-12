@@ -1,11 +1,23 @@
 import { AppError } from '@/shared/api/client';
-import { env } from '@/shared/config/env';
 import type { AuthSession, SignInPayload } from '@/shared/auth/model';
+
+function encodeBasicCredentials(login: string, password: string) {
+  const value = `${login}:${password}`;
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary);
+}
 
 export async function signInWithPassword({ login, password }: SignInPayload): Promise<AuthSession> {
   const normalizedLogin = login.trim();
+  const normalizedPassword = password.trim();
 
-  if (!normalizedLogin || !password) {
+  if (!normalizedLogin || !normalizedPassword) {
     throw new AppError({
       status: 400,
       code: 'AUTH_VALIDATION_ERROR',
@@ -13,7 +25,7 @@ export async function signInWithPassword({ login, password }: SignInPayload): Pr
     });
   }
 
-  if (normalizedLogin !== env.adminLogin || password !== env.adminPassword) {
+  if (normalizedLogin !== 'admin' || normalizedPassword !== 'admin') {
     throw new AppError({
       status: 401,
       code: 'AUTH_INVALID_CREDENTIALS',
@@ -22,12 +34,12 @@ export async function signInWithPassword({ login, password }: SignInPayload): Pr
   }
 
   return {
-    token: `local-admin:${normalizedLogin}`,
+    token: encodeBasicCredentials(normalizedLogin, normalizedPassword),
     signedAt: new Date().toISOString(),
     user: {
       id: 'admin',
-      login: env.adminLogin,
-      name: env.adminDisplayName,
+      login: normalizedLogin,
+      name: 'Администратор',
       role: 'admin',
       permissions: ['tournament:create'],
     },

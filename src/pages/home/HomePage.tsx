@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { env } from '@/shared/config/env';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { formatDate } from '@/shared/lib/formatDate';
@@ -47,12 +46,6 @@ export function HomePage() {
     <div className="page-stack">
       <PageHeader
         badges={[
-          <Badge
-            key="mode"
-            variant={env.useMocks ? 'warning' : 'accent'}
-          >
-            {env.useMocks ? 'Тестовые данные' : 'Данные из API'}
-          </Badge>,
           ...appliedLabels.map((label) => <Badge key={label}>{label}</Badge>),
         ]}
         description="Собрали метагейм, результаты колод, лучших игроков и частые матчапы по этим фильтрам."

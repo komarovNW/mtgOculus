@@ -1,8 +1,10 @@
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createTournament } from '@/entities/admin-tournament/api';
 import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
-import type { CreateTournamentPayload, TournamentType } from '@/shared/api/types';
+import { AppError } from '@/shared/api/client';
+import type { ApiErrorDetail, CreateTournamentPayload, TournamentType } from '@/shared/api/types';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
@@ -39,6 +41,48 @@ const initialState: FormState = {
   playerDecksText: '',
 };
 
+const importSourceLabels: Record<string, string> = {
+  finalStandingsFile: 'CSV итоговых стендингов',
+  allRoundsFile: 'CSV всех раундов',
+  playerDecksText: 'Список игроков и колод',
+  aetherhubUrl: 'Ссылка на Aetherhub',
+  metadata: 'Данные турнира',
+  body: 'Форма',
+  cityId: 'Город',
+  clubId: 'Клуб',
+  date: 'Дата турнира',
+  tournamentType: 'Тип турнира',
+  formatId: 'Формат',
+};
+
+function formatImportIssue(detail: ApiErrorDetail) {
+  const sourceLabel = detail.source ? importSourceLabels[detail.source] : undefined;
+  const fieldLabel = detail.field ? importSourceLabels[detail.field] : undefined;
+  const label = sourceLabel ?? fieldLabel;
+
+  return label ? `${label}: ${detail.message}` : detail.message;
+}
+
+function dedupeIssueMessages(items: string[]) {
+  return [...new Set(items)];
+}
+
+function getImportErrorDetails(error: unknown) {
+  if (!(error instanceof AppError) || !error.details?.length) {
+    return [];
+  }
+
+  return dedupeIssueMessages(error.details.map(formatImportIssue));
+}
+
+function getImportWarningDetails(error: unknown) {
+  if (!(error instanceof AppError) || !error.warnings?.length) {
+    return [];
+  }
+
+  return dedupeIssueMessages(error.warnings.map(formatImportIssue));
+}
+
 export function CreateTournamentPage() {
   const [formState, setFormState] = useState<FormState>(initialState);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -60,6 +104,9 @@ export function CreateTournamentPage() {
   const importMutation = useMutation({
     mutationFn: (payload: CreateTournamentPayload) => createTournament(payload),
   });
+
+  const importErrorDetails = importMutation.isError ? getImportErrorDetails(importMutation.error) : [];
+  const importWarningDetails = importMutation.isError ? getImportWarningDetails(importMutation.error) : [];
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setFormState((current) => ({
@@ -155,47 +202,6 @@ export function CreateTournamentPage() {
           <li>Список игроков и колод в простом текстовом виде.</li>
         </ul>
       </Card>
-
-      {validationErrors.length > 0 ? (
-        <Card tone="muted">
-          <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Не хватает нескольких полей</h2>
-              <p className="section-header__description">Перед загрузкой проверьте форму. Сейчас не заполнено вот что:</p>
-            </div>
-          </div>
-          <ul className="flat-list">
-            {validationErrors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {importMutation.isError ? (
-        <ErrorState
-          description={getErrorMessage(importMutation.error, 'Не удалось загрузить турнир. Проверьте файлы и попробуйте ещё раз.')}
-        />
-      ) : null}
-
-      {importMutation.isSuccess ? (
-        <Card tone="success">
-          <div className="section-header">
-            <div>
-              <h2 className="section-header__title">Турнир загружен</h2>
-              <p className="section-header__description">{importMutation.data.message}</p>
-            </div>
-          </div>
-          <p className="muted-text">ID турнира: {importMutation.data.tournamentId}</p>
-          {importMutation.data.warnings?.length ? (
-            <ul className="flat-list">
-              {importMutation.data.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          ) : null}
-        </Card>
-      ) : null}
 
       <Card>
         <form
@@ -314,6 +320,96 @@ export function CreateTournamentPage() {
           </div>
         </form>
       </Card>
+
+      {validationErrors.length > 0 ? (
+        <Card tone="muted">
+          <div className="section-header">
+            <div>
+              <h2 className="section-header__title">Не хватает нескольких полей</h2>
+              <p className="section-header__description">Перед загрузкой проверьте форму. Сейчас не заполнено вот что:</p>
+            </div>
+          </div>
+          <ul className="flat-list">
+            {validationErrors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      {importMutation.isError ? (
+        <Card className="state-card state-card--error">
+          <h2 className="state-card__title">Турнир не загружен</h2>
+          <p className="state-card__description">
+            {importErrorDetails.length
+              ? 'Мы нашли ошибки в данных импорта. Исправьте их и попробуйте загрузить турнир ещё раз.'
+              : getErrorMessage(importMutation.error, 'Не удалось загрузить турнир. Проверьте файлы и попробуйте ещё раз.')}
+          </p>
+
+          {importErrorDetails.length ? (
+            <ul className="flat-list">
+              {importErrorDetails.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          {importWarningDetails.length ? (
+            <>
+              <p className="muted-text">Также пришли предупреждения, которые могут помочь понять, что именно пошло не так:</p>
+              <ul className="flat-list">
+                {importWarningDetails.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </Card>
+      ) : null}
+
+      {importMutation.isSuccess ? (
+        <Card tone="success">
+          <div className="section-header">
+            <div>
+              <h2 className="section-header__title">Турнир загружен</h2>
+              <p className="section-header__description">
+                {importMutation.data.message} Турнир добавлен в базу и теперь должен появиться в общем списке.
+              </p>
+            </div>
+          </div>
+          <ul className="flat-list">
+            <li>ID турнира: {importMutation.data.tournamentId}</li>
+            <li>После загрузки его можно открыть в списке турниров и проверить итоговые места, пары и колоды.</li>
+            {formState.aetherhubUrl.trim() ? <li>Ссылка на Aetherhub была передана вместе с импортом.</li> : null}
+          </ul>
+
+          <div className="form-actions">
+            <Link
+              className="button button--primary section-link"
+              to={`/tournaments/${importMutation.data.tournamentId}`}
+            >
+              Открыть турнир
+            </Link>
+            <Link
+              className="button button--ghost section-link"
+              to="/tournaments"
+            >
+              Ко всем турнирам
+            </Link>
+          </div>
+
+          {importMutation.data.warnings?.length ? (
+            <>
+              <p className="muted-text">Турнир загружен, но есть несколько предупреждений, на которые стоит обратить внимание:</p>
+              <ul className="flat-list">
+                {importMutation.data.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </Card>
+      ) : null}
     </div>
   );
 }
