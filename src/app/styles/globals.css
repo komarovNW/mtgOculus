@@ -1057,13 +1057,73 @@ textarea {
 }
 
 .input-format-guide {
-  display: grid;
-  gap: 12px;
   margin: 16px 0;
-  padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--card-muted);
+  overflow: hidden;
+}
+
+.input-format-guide__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 0.18s ease;
+}
+
+.input-format-guide__summary::-webkit-details-marker {
+  display: none;
+}
+
+.input-format-guide__summary:hover {
+  background: var(--color-control-hover);
+}
+
+.input-format-guide__summary:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.input-format-guide__summary-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.input-format-guide__summary-copy span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 400;
+}
+
+.input-format-guide__summary-action {
+  flex: 0 0 auto;
+  color: var(--accent-bright);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.input-format-guide__summary-action--close,
+.input-format-guide[open] .input-format-guide__summary-action--open {
+  display: none;
+}
+
+.input-format-guide[open] .input-format-guide__summary-action--close {
+  display: inline;
+}
+
+.input-format-guide[open] .input-format-guide__summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.input-format-guide__body {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
 }
 
 .input-format-guide__title,
@@ -1242,6 +1302,22 @@ textarea {
     calc(100% - 12px) calc(50% - 1px);
   background-repeat: no-repeat;
   background-size: 6px 6px;
+}
+
+.field__control:disabled {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.field__control--select:disabled {
+  padding-right: 14px;
+  background-image: none;
+}
+
+.field__control:disabled:hover {
+  background-color: var(--color-surface-muted);
 }
 
 .field__control--textarea {

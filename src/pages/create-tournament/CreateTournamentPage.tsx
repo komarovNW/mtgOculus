@@ -298,31 +298,41 @@ export function CreateTournamentPage() {
               </p>
             </div>
 
-            <div className="input-format-guide">
-              <h3 className="input-format-guide__title">Поддерживаемые форматы ввода</h3>
-              <p className="input-format-guide__description">
-                Ничего переключать не нужно: парсер сам выбирает режим. Не смешивайте два формата в одном списке.
-              </p>
+            <details className="input-format-guide">
+              <summary className="input-format-guide__summary">
+                <span className="input-format-guide__summary-copy">
+                  <strong>Как подготовить список игроков и колод</strong>
+                  <span>Нажмите, чтобы раскрыть полное описание и примеры</span>
+                </span>
+                <span className="input-format-guide__summary-action input-format-guide__summary-action--open">Раскрыть</span>
+                <span className="input-format-guide__summary-action input-format-guide__summary-action--close">Скрыть</span>
+              </summary>
 
-              <div className="input-mode-grid">
-                <section className="input-mode-card">
-                  <h4>1. С именами игроков</h4>
-                  <div className="input-format-guide__format">
-                    <code>Имя игрока - Название колоды</code>
-                  </div>
-                  <p>
-                    Используйте дефис или тире с пробелами с обеих сторон. Режим включается, если такой разделитель
-                    есть минимум у половины строк. Порядок строк не важен: колода привязывается по имени игрока.
-                  </p>
-                  <div className="input-format-guide__example">
-                    <div className="input-format-guide__example-title">Корректный пример</div>
-                    <pre>{'Терехов Александр - Lands\nРадченко Фёдор — UW Phelia\nИванов Иван - Grixis Reanimator'}</pre>
-                  </div>
-                  <p>
-                    Если имя отличается незначительно, импорт попробует найти близкое совпадение и покажет
-                    предупреждение. Лишний игрок, повтор игрока или отсутствие колоды у участника заблокируют импорт.
-                  </p>
-                </section>
+              <div className="input-format-guide__body">
+                <h3 className="input-format-guide__title">Поддерживаемые форматы ввода</h3>
+                <p className="input-format-guide__description">
+                  Ничего переключать не нужно: парсер сам выбирает режим. Не смешивайте два формата в одном списке.
+                </p>
+
+                <div className="input-mode-grid">
+                  <section className="input-mode-card">
+                    <h4>1. С именами игроков</h4>
+                    <div className="input-format-guide__format">
+                      <code>Имя игрока - Название колоды</code>
+                    </div>
+                    <p>
+                      Используйте дефис или тире с пробелами с обеих сторон. Режим включается, если такой разделитель
+                      есть минимум у половины строк. Порядок строк не важен: колода привязывается по имени игрока.
+                    </p>
+                    <div className="input-format-guide__example">
+                      <div className="input-format-guide__example-title">Корректный пример</div>
+                      <pre>{'Терехов Александр - Lands\nРадченко Фёдор — UW Phelia\nИванов Иван - Grixis Reanimator'}</pre>
+                    </div>
+                    <p>
+                      Если имя отличается незначительно, импорт попробует найти близкое совпадение и покажет
+                      предупреждение. Лишний игрок, повтор игрока или отсутствие колоды у участника заблокируют импорт.
+                    </p>
+                  </section>
 
                 <section className="input-mode-card">
                   <h4>2. Только колоды — по порядку мест</h4>
@@ -342,42 +352,43 @@ export function CreateTournamentPage() {
                     привязку вручную: сервер всегда выдаёт предупреждение для этого режима.
                   </p>
                 </section>
-              </div>
+                </div>
 
-              <div className="input-numbering-note">
-                <strong>Нумерация необязательна.</strong> Можно начинать строки с <code>1.</code> или <code>1)</code>, но
-                тогда номера должны идти строго подряд: <code>1, 2, 3 … N</code>. Не используйте пропуски, повторы или
-                перестановки.
-              </div>
+                <div className="input-numbering-note">
+                  <strong>Нумерация необязательна.</strong> Можно начинать строки с <code>1.</code> или <code>1)</code>, но
+                  тогда номера должны идти строго подряд: <code>1, 2, 3 … N</code>. Не используйте пропуски, повторы или
+                  перестановки.
+                </div>
 
-              <div className="input-separator-warning">
-                <strong>Если в строке указано ФИО, между именем игрока и колодой обязательно должен стоять дефис.</strong>
-                Без дефиса парсер посчитает всю строку названием колоды.
-                <div className="input-separator-warning__examples">
-                  <div>
-                    <span>Нельзя:</span> <code>Дорофеев Александр White Weenie</code>
-                  </div>
-                  <div>
-                    <span>Правильно:</span> <code>Дорофеев Александр - White Weenie</code>
+                <div className="input-separator-warning">
+                  <strong>Если в строке указано ФИО, между именем игрока и колодой обязательно должен стоять дефис.</strong>
+                  Без дефиса парсер посчитает всю строку названием колоды.
+                  <div className="input-separator-warning__examples">
+                    <div>
+                      <span>Нельзя:</span> <code>Дорофеев Александр White Weenie</code>
+                    </div>
+                    <div>
+                      <span>Правильно:</span> <code>Дорофеев Александр - White Weenie</code>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <h4 className="input-format-guide__subtitle">Так добавлять нельзя</h4>
-              <ul className="flat-list input-format-guide__rules">
-                <li>
-                  <strong>Используйте одно и то же название для одинаковых колод.</strong> Например, не смешивайте
-                  варианты «Grixis Reanimator», «Grixis Rean» и «Гриксис Реаниматор»: статистика может посчитать их
-                  разными колодами.
-                </li>
-                <li>Не добавляйте заголовок таблицы, пояснения или посторонние строки.</li>
-                <li>Не смешивайте строки «Игрок - Колода» со списком только из названий колод.</li>
-                <li>В режиме с именами не оставляйте имя игрока или название колоды пустыми.</li>
-                <li>Не указывайте одного игрока несколько раз и не объединяйте нескольких игроков в одной строке.</li>
-                <li>В режиме по местам не меняйте порядок колод относительно финальных мест в Aetherhub.</li>
-                <li>Пустые строки между участниками можно оставлять — они будут пропущены.</li>
-              </ul>
-            </div>
+                <h4 className="input-format-guide__subtitle">Так добавлять нельзя</h4>
+                <ul className="flat-list input-format-guide__rules">
+                  <li>
+                    <strong>Используйте одно и то же название для одинаковых колод.</strong> Например, не смешивайте
+                    варианты «Grixis Reanimator», «Grixis Rean» и «Гриксис Реаниматор»: статистика может посчитать их
+                    разными колодами.
+                  </li>
+                  <li>Не добавляйте заголовок таблицы, пояснения или посторонние строки.</li>
+                  <li>Не смешивайте строки «Игрок - Колода» со списком только из названий колод.</li>
+                  <li>В режиме с именами не оставляйте имя игрока или название колоды пустыми.</li>
+                  <li>Не указывайте одного игрока несколько раз и не объединяйте нескольких игроков в одной строке.</li>
+                  <li>В режиме по местам не меняйте порядок колод относительно финальных мест в Aetherhub.</li>
+                  <li>Пустые строки между участниками можно оставлять — они будут пропущены.</li>
+                </ul>
+              </div>
+            </details>
             <Textarea
               helperText="Если указываете ФИО, обязательно поставьте дефис: «Игрок - Колода». Без дефиса вся строка будет считаться названием колоды."
               label="Список игроков и колод"
