@@ -1056,6 +1056,79 @@ textarea {
   line-height: 1.5;
 }
 
+.aetherhub-club-directory {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.aetherhub-club-directory__title,
+.aetherhub-club-directory__description {
+  margin: 0;
+}
+
+.aetherhub-club-directory__title {
+  font-size: 1rem;
+}
+
+.aetherhub-club-directory__description {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.aetherhub-club-directory__links {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.aetherhub-club-directory__link {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--color-link);
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.aetherhub-club-directory__link:hover {
+  border-color: var(--color-accent-border);
+  background: var(--color-control-hover);
+}
+
+.aetherhub-club-directory__link span {
+  font-weight: 700;
+}
+
+.aetherhub-club-directory__link small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.aetherhub-club-directory__link--disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+  opacity: 0.72;
+}
+
+.aetherhub-club-directory__link--disabled:hover {
+  border-color: var(--line);
+  background: var(--panel);
+}
+
 .input-format-guide {
   margin: 16px 0;
   border: 1px solid var(--line);

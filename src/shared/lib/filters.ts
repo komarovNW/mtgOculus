@@ -13,6 +13,15 @@ export const defaultFilters: DashboardFilters = {
   dateTo: '',
 };
 
+export const emptyFilters: DashboardFilters = {
+  cityId: '',
+  clubId: '',
+  formatId: '',
+  tournamentType: '',
+  dateFrom: '',
+  dateTo: '',
+};
+
 export function readDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
   return {
     cityId: searchParams.has('cityId') ? (searchParams.get('cityId') ?? '') : defaultFilters.cityId,
@@ -57,6 +66,21 @@ export function toApiFilters(filters: DashboardFilters) {
   };
 }
 
+export function getDashboardFilterSearch(search: string) {
+  const source = new URLSearchParams(search);
+  const filters = new URLSearchParams();
+
+  FILTER_KEYS.forEach((key) => {
+    if (source.has(key)) {
+      filters.set(key, source.get(key) ?? '');
+    }
+  });
+
+  const value = filters.toString();
+
+  return value ? `?${value}` : '';
+}
+
 export function useDashboardFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => readDashboardFilters(searchParams), [searchParams]);
@@ -86,17 +110,7 @@ export function useDashboardFilters() {
   }
 
   function resetFilters() {
-    const next = new URLSearchParams(searchParams);
-
-    FILTER_KEYS.forEach((key) => {
-      if (defaultFilters[key]) {
-        next.set(key, defaultFilters[key]);
-      } else {
-        next.delete(key);
-      }
-    });
-
-    setSearchParams(next);
+    setSearchParams(writeDashboardFilters(searchParams, emptyFilters));
   }
 
   return {

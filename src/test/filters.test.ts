@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   defaultFilters,
+  emptyFilters,
+  getDashboardFilterSearch,
   readDashboardFilters,
   toApiFilters,
   writeDashboardFilters,
@@ -28,5 +30,29 @@ describe('dashboard filters', () => {
     expect(filters.formatId).toBe('');
     expect(toApiFilters(filters).cityId).toBeUndefined();
     expect(toApiFilters(filters).formatId).toBeUndefined();
+  });
+
+  it('keeps dashboard filters but removes page-specific query parameters', () => {
+    expect(
+      getDashboardFilterSearch('?cityId=spb&formatId=&tournamentType=daily&page=3&sort=name'),
+    ).toBe('?cityId=spb&formatId=&tournamentType=daily');
+  });
+
+  it('clears every API filter when reset values are written', () => {
+    const params = writeDashboardFilters(
+      new URLSearchParams('?cityId=moscow&clubId=club&formatId=legacy&tournamentType=daily&dateFrom=2026-01-01'),
+      emptyFilters,
+    );
+    const filters = readDashboardFilters(params);
+
+    expect(filters).toEqual(emptyFilters);
+    expect(toApiFilters(filters)).toEqual({
+      cityId: undefined,
+      clubId: undefined,
+      formatId: undefined,
+      tournamentType: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
   });
 });
