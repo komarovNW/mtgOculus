@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { DeckMetagameItem } from '@/shared/api/types';
+import { formatChartDeckName } from '@/shared/lib/formatChartDeckName';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { MetricBar } from '@/shared/ui/MetricBar';
+import { MetagameChartTooltip } from '@/shared/ui/MetagameChartTooltip';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 
 const columns: TableColumn<DeckMetagameItem>[] = [
@@ -82,6 +84,7 @@ export function DeckMetagameSection({
   const chartData = visibleItems.map((item) => ({
     name: item.deck.name,
     metaShare: Number(item.metaShare.toFixed(1)),
+    decksCount: item.playersCount,
   }));
 
   return (
@@ -133,20 +136,13 @@ export function DeckMetagameSection({
                 dataKey="name"
                 tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
                 tickLine={false}
+                tickFormatter={formatChartDeckName}
                 type="category"
                 width={110}
               />
               <Tooltip
-                contentStyle={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '14px',
-                  boxShadow: 'var(--color-shadow-soft)',
-                }}
+                content={<MetagameChartTooltip />}
                 cursor={{ fill: 'var(--color-accent-soft)' }}
-                formatter={(value: number) => `${value.toFixed(1)}%`}
-                itemStyle={{ color: 'var(--color-text-primary)' }}
-                labelStyle={{ color: 'var(--color-text-primary)' }}
               />
               <Bar
                 dataKey="metaShare"

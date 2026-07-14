@@ -402,6 +402,7 @@ export function PlayerDetailPage() {
           {
             title: 'Любимая колода',
             value: favoriteDeck?.name ?? '—',
+            valueSize: 'compact',
             subtitle: `Разных колод по этим фильтрам: ${summary.uniqueDecksCount}`,
           },
         ]}

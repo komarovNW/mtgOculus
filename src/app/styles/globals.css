@@ -560,6 +560,10 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
+.summary-grid > * {
+  min-width: 0;
+}
+
 .stat-card {
   min-height: 136px;
   display: flex;
@@ -653,14 +657,21 @@ textarea {
 }
 
 .stat-card__value {
+  min-width: 0;
   font-size: clamp(1.8rem, 2.5vw, 2.4rem);
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
 }
 
 .stat-card__subtitle {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.stat-card__value--compact {
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
 }
 
 .entity-link {
@@ -1030,6 +1041,159 @@ textarea {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.create-tournament-guide strong {
+  color: var(--text);
+}
+
+.directory-help {
+  padding: 12px 14px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.input-format-guide {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.input-format-guide__title,
+.input-format-guide__description,
+.input-format-guide__example-title,
+.input-format-guide pre {
+  margin: 0;
+}
+
+.input-format-guide__title {
+  font-size: 1rem;
+}
+
+.input-format-guide__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.96rem;
+}
+
+.input-format-guide__description,
+.input-format-guide__rules {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.input-format-guide__rules strong {
+  color: var(--text);
+}
+
+.input-format-guide__format,
+.input-format-guide pre {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+}
+
+.input-format-guide__example {
+  display: grid;
+  gap: 8px;
+}
+
+.input-mode-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.input-mode-card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.input-mode-card h4,
+.input-mode-card p {
+  margin: 0;
+}
+
+.input-mode-card h4 {
+  font-size: 0.94rem;
+}
+
+.input-mode-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.input-numbering-note,
+.input-mode-status {
+  padding: 12px 14px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: 12px;
+  background: var(--color-accent-soft);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.input-separator-warning {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--line));
+  border-radius: 12px;
+  background: var(--warning-soft);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.input-separator-warning__examples {
+  display: grid;
+  gap: 6px;
+}
+
+.input-separator-warning__examples span {
+  font-weight: 700;
+}
+
+.input-mode-status {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.input-mode-status--error {
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: var(--danger-soft);
+}
+
+.input-format-guide__example-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.input-format-guide pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  .input-mode-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .field {
@@ -1489,6 +1653,31 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--panel);
+  font-family: inherit;
+}
+
+.chart-surface .recharts-wrapper,
+.chart-surface .recharts-surface,
+.chart-tooltip {
+  font-family: inherit;
+}
+
+.chart-tooltip {
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--color-shadow-soft);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.chart-tooltip__title {
+  margin-bottom: 4px;
+  font-weight: 700;
 }
 
 .tabs {

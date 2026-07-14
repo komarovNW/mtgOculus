@@ -28,9 +28,15 @@ export function HomePage() {
 
   const appliedLabels = getAppliedFilterLabels(homeQuery.data?.appliedFilters);
   const appliedFilters = homeQuery.data?.appliedFilters;
+  const formatLabel = filters.formatId
+    ? (appliedFilters?.format?.name ?? (filters.formatId === 'legacy' ? 'Legacy' : 'Выбранный формат'))
+    : 'Все форматы';
+  const cityLabel = filters.cityId
+    ? (appliedFilters?.city?.name ?? (filters.cityId === 'moscow' ? 'Москва' : 'Выбранный город'))
+    : 'Все города';
   const sliceLabel = [
-    appliedFilters?.format?.name ?? 'Legacy',
-    appliedFilters?.city?.name ?? 'Москва',
+    formatLabel,
+    cityLabel,
     appliedFilters?.club?.name ?? 'Все клубы',
   ].join(' · ');
   const periodLabel =
@@ -39,8 +45,15 @@ export function HomePage() {
           appliedFilters?.dateTo ? formatDate(appliedFilters.dateTo) : '—'
         }`
       : 'За все загруженные турниры';
-  const cityTitle = appliedFilters?.city?.name === 'Москва' ? 'Москве' : appliedFilters?.city?.name ?? 'Москве';
-  const homeTitle = `${appliedFilters?.format?.name ?? 'Legacy'} в ${cityTitle}`;
+  const selectedCityName = appliedFilters?.city?.name ?? (filters.cityId === 'moscow' ? 'Москва' : undefined);
+  const cityTitle = selectedCityName === 'Москва' ? 'Москве' : selectedCityName;
+  const homeTitle = !filters.formatId && !filters.cityId
+    ? 'Все форматы · все города'
+    : !filters.formatId
+      ? `Все форматы в ${cityTitle ?? 'выбранном городе'}`
+      : !filters.cityId
+        ? `${formatLabel} · все города`
+        : `${formatLabel} в ${cityTitle ?? 'выбранном городе'}`;
 
   return (
     <div className="page-stack">
