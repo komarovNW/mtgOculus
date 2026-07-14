@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 
-const publicLinks = [
+type HeaderLink = {
+  to: string;
+  label: string;
+  end?: boolean;
+  preserveFilters?: boolean;
+};
+
+const publicLinks: HeaderLink[] = [
   { to: '/', label: 'Главная', end: true },
   { to: '/tournaments', label: 'Турниры' },
   { to: '/players', label: 'Игроки' },
   { to: '/decks', label: 'Колоды' },
 ];
 
-const headerLinks = [...publicLinks, { to: '/admin/tournaments/create', label: 'Добавить турнир' }];
+const headerLinks: HeaderLink[] = [
+  ...publicLinks,
+  { to: '/admin/tournaments/create', label: 'Добавить турнир', preserveFilters: false },
+];
 
 type ThemeMode = 'dark' | 'light';
 
@@ -32,6 +43,7 @@ function readInitialTheme(): ThemeMode {
 
 export function AppLayout() {
   const location = useLocation();
+  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
   const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -80,7 +92,7 @@ export function AppLayout() {
               <div className="brand__eyebrow">Турниры, колоды и статистика</div>
               <NavLink
                 className="brand__title"
-                to="/"
+                to={{ pathname: '/', search: dashboardFilterSearch }}
               >
                 Magic Oculus
               </NavLink>
@@ -115,7 +127,10 @@ export function AppLayout() {
                   key={link.to}
                   className={({ isActive }) => `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`}
                   end={link.end}
-                  to={link.to}
+                  to={{
+                    pathname: link.to,
+                    search: link.preserveFilters === false ? '' : dashboardFilterSearch,
+                  }}
                 >
                   {link.label}
                 </NavLink>

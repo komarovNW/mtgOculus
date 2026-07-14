@@ -49,6 +49,29 @@ const importSourceLabels: Record<string, string> = {
   formatId: 'Формат',
 };
 
+const aetherhubClubLinks = [
+  {
+    city: 'Москва',
+    club: 'Единорог',
+    href: 'https://aetherhub.com/User/Edinorog',
+  },
+  {
+    city: 'Москва',
+    club: 'Голдфиш',
+    href: 'https://aetherhub.com/User/goldfish',
+  },
+  {
+    city: 'Санкт-Петербург',
+    club: 'Pair of Dice',
+    href: 'https://aetherhub.com/User/Andysays',
+  },
+  {
+    city: 'Москва',
+    club: 'Портал',
+    href: 'https://aetherhub.com/User/PhillipRus',
+  },
+];
+
 function formatImportIssue(detail: ApiErrorDetail) {
   const sourceLabel = detail.source ? importSourceLabels[detail.source] : undefined;
   const fieldLabel = detail.field ? importSourceLabels[detail.field] : undefined;
@@ -287,6 +310,39 @@ export function CreateTournamentPage() {
               type="url"
               value={formState.aetherhubUrl}
             />
+
+            <div className="aetherhub-club-directory">
+              <div>
+                <h3 className="aetherhub-club-directory__title">Где найти турнир на Aetherhub</h3>
+                <p className="aetherhub-club-directory__description">
+                  Откройте страницу нужного клуба, найдите свой турнир и вставьте ссылку на него в поле выше.
+                </p>
+              </div>
+              <div className="aetherhub-club-directory__links">
+                {aetherhubClubLinks.map((item) =>
+                  item.href ? (
+                    <a
+                      key={`${item.city}-${item.club}`}
+                      className="aetherhub-club-directory__link"
+                      href={item.href}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span>{item.club}</span>
+                      <small>{item.city} · открыть Aetherhub ↗</small>
+                    </a>
+                  ) : (
+                    <div
+                      key={`${item.city}-${item.club}`}
+                      className="aetherhub-club-directory__link aetherhub-club-directory__link--disabled"
+                    >
+                      <span>{item.club}</span>
+                      <small>{item.city} · ссылка появится позже</small>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="form-grid__full">
