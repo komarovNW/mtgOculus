@@ -6,11 +6,11 @@ import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
 import { AppError } from '@/shared/api/client';
 import type { ApiErrorDetail, CreateTournamentPayload, TournamentType } from '@/shared/api/types';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
+import { analyzePlayerDecksInput } from '@/shared/lib/playerDecksInput';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { ErrorState } from '@/shared/ui/ErrorState';
-import { FileInput } from '@/shared/ui/FileInput';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
@@ -24,8 +24,6 @@ type FormState = {
   tournamentType: TournamentType;
   formatId: string;
   aetherhubUrl: string;
-  finalStandingsFile: File | null;
-  allRoundsFile: File | null;
   playerDecksText: string;
 };
 
@@ -36,14 +34,10 @@ const initialState: FormState = {
   tournamentType: 'daily',
   formatId: 'legacy',
   aetherhubUrl: '',
-  finalStandingsFile: null,
-  allRoundsFile: null,
   playerDecksText: '',
 };
 
 const importSourceLabels: Record<string, string> = {
-  finalStandingsFile: 'CSV итоговых стендингов',
-  allRoundsFile: 'CSV всех раундов',
   playerDecksText: 'Список игроков и колод',
   aetherhubUrl: 'Ссылка на Aetherhub',
   metadata: 'Данные турнира',
@@ -107,6 +101,7 @@ export function CreateTournamentPage() {
 
   const importErrorDetails = importMutation.isError ? getImportErrorDetails(importMutation.error) : [];
   const importWarningDetails = importMutation.isError ? getImportWarningDetails(importMutation.error) : [];
+  const playerDecksInputAnalysis = analyzePlayerDecksInput(formState.playerDecksText);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setFormState((current) => ({
@@ -123,9 +118,12 @@ export function CreateTournamentPage() {
     if (!formState.clubId) errors.push('Выберите клуб.');
     if (!formState.tournamentType) errors.push('Выберите тип турнира.');
     if (!formState.formatId) errors.push('Выберите формат.');
-    if (!formState.finalStandingsFile) errors.push('Добавьте CSV с итоговыми стендингами.');
-    if (!formState.allRoundsFile) errors.push('Добавьте CSV со всеми раундами.');
-    if (!formState.playerDecksText.trim()) errors.push('Добавьте список игроков и колод.');
+    if (!formState.aetherhubUrl.trim()) errors.push('Добавьте ссылку на турнир в Aetherhub.');
+    if (!formState.playerDecksText.trim()) {
+      errors.push('Добавьте список игроков и колод.');
+    } else {
+      errors.push(...playerDecksInputAnalysis.errors);
+    }
 
     setValidationErrors(errors);
 
@@ -146,9 +144,7 @@ export function CreateTournamentPage() {
         clubId: formState.clubId,
         tournamentType: formState.tournamentType,
         formatId: formState.formatId,
-        aetherhubUrl: formState.aetherhubUrl.trim() || undefined,
-        finalStandingsFile: formState.finalStandingsFile!,
-        allRoundsFile: formState.allRoundsFile!,
+        aetherhubUrl: formState.aetherhubUrl.trim(),
         playerDecksText: formState.playerDecksText,
       });
     } catch {
@@ -180,7 +176,7 @@ export function CreateTournamentPage() {
           </Badge>,
           <Badge key="multipart">Ручная загрузка</Badge>,
         ]}
-        description="Пока турнир загружается вручную: по двум CSV и списку колод. Ссылку на Aetherhub можно добавить сразу, чтобы позже перейти к импорту по ссылке."
+        description="Турнир загружается по ссылке на Aetherhub и списку игроков и колод. Все обязательные поля отмечены в инструкции ниже."
         eyebrow="Импорт турнира"
         title="Добавить турнир"
       />
@@ -188,19 +184,32 @@ export function CreateTournamentPage() {
       <Card tone="muted">
         <div className="section-header">
           <div>
-            <h2 className="section-header__title">Что подготовить</h2>
+            <h2 className="section-header__title">Как добавить турнир</h2>
             <p className="section-header__description">
-              Турнир пока собирается по CSV, поэтому лучше заранее держать всё под рукой.
+              Заполните форму по шагам. После успешной загрузки появится ссылка на страницу созданного турнира.
             </p>
           </div>
         </div>
-        <ul className="flat-list">
-          <li>Дата, город, клуб, тип турнира и формат.</li>
-          <li>Ссылка на Aetherhub, если она уже есть.</li>
-          <li>CSV с итоговыми стендингами.</li>
-          <li>CSV со всеми раундами.</li>
-          <li>Список игроков и колод в простом текстовом виде.</li>
-        </ul>
+        <ol className="flat-list create-tournament-guide">
+          <li>
+            <strong>Укажите данные турнира.</strong> Выберите дату, город, клуб, тип и формат. Все эти поля обязательны.
+          </li>
+          <li>
+            <strong>Добавьте ссылку на Aetherhub.</strong> Это обязательное поле: без ссылки турнир нельзя сохранить.
+          </li>
+          <li>
+            <strong>Вставьте список колод.</strong> Используйте один из двух форматов ниже: с именами игроков или только
+            названия колод по порядку мест.
+          </li>
+          <li>
+            <strong>Нажмите «Загрузить турнир».</strong> Если в данных есть ошибка, форма покажет, что именно нужно
+            исправить. Не закрывайте страницу до завершения загрузки.
+          </li>
+          <li>
+            <strong>Проверьте результат.</strong> После сохранения откройте турнир по появившейся ссылке и проверьте
+            участников и названия колод.
+          </li>
+        </ol>
       </Card>
 
       <Card>
@@ -212,7 +221,7 @@ export function CreateTournamentPage() {
         >
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">1. О турнире</h2>
-            <p className="form-section__description">Заполните дату, площадку, формат и, если есть, ссылку на турнир.</p>
+            <p className="form-section__description">Заполните дату, площадку, формат и обязательную ссылку на турнир.</p>
           </div>
 
           <Input
@@ -264,50 +273,130 @@ export function CreateTournamentPage() {
             value={formState.formatId}
           />
           <div className="form-grid__spacer" />
+          <div className="form-grid__full directory-help">
+            Не нашли нужный город, клуб или формат? Напишите <strong>komarovNV</strong> — он добавит недостающее значение
+            в список.
+          </div>
           <div className="form-grid__full">
             <Input
-              helperText="Поле пока необязательное. Сейчас турнир всё ещё загружается по CSV, но ссылку можно сохранить уже сейчас."
+              helperText="Обязательное поле. Вставьте полную ссылку на страницу турнира в Aetherhub."
               label="Ссылка на Aetherhub"
               onChange={(event) => setField('aetherhubUrl', event.target.value)}
-              placeholder="https://aetherhub.com/..."
+              placeholder="https://aetherhub.com/Tourney/RoundTourney/100523"
+              required
               type="url"
               value={formState.aetherhubUrl}
             />
           </div>
 
-          <div className="form-grid__full form-section">
-            <h2 className="form-section__title">2. Файлы</h2>
-            <p className="form-section__description">Нужны два отдельных CSV: один с итогами, второй с раундами.</p>
-          </div>
-
-          <FileInput
-            accept=".csv,text/csv"
-            helperText={formState.finalStandingsFile?.name}
-            label="CSV итоговых стендингов"
-            onChange={(event) => setField('finalStandingsFile', event.target.files?.[0] ?? null)}
-          />
-          <FileInput
-            accept=".csv,text/csv"
-            helperText={formState.allRoundsFile?.name}
-            label="CSV всех раундов"
-            onChange={(event) => setField('allRoundsFile', event.target.files?.[0] ?? null)}
-          />
-
           <div className="form-grid__full">
             <div className="form-section">
-              <h2 className="form-section__title">3. Игроки и колоды</h2>
+              <h2 className="form-section__title">2. Игроки и колоды</h2>
               <p className="form-section__description">
-                Добавьте простой список вида «Игрок -&gt; Колода». Этого достаточно, чтобы собрать участников турнира.
+                Список обязателен. Одна непустая строка соответствует одной колоде; режим привязки определяется
+                автоматически по содержимому.
               </p>
             </div>
+
+            <div className="input-format-guide">
+              <h3 className="input-format-guide__title">Поддерживаемые форматы ввода</h3>
+              <p className="input-format-guide__description">
+                Ничего переключать не нужно: парсер сам выбирает режим. Не смешивайте два формата в одном списке.
+              </p>
+
+              <div className="input-mode-grid">
+                <section className="input-mode-card">
+                  <h4>1. С именами игроков</h4>
+                  <div className="input-format-guide__format">
+                    <code>Имя игрока - Название колоды</code>
+                  </div>
+                  <p>
+                    Используйте дефис или тире с пробелами с обеих сторон. Режим включается, если такой разделитель
+                    есть минимум у половины строк. Порядок строк не важен: колода привязывается по имени игрока.
+                  </p>
+                  <div className="input-format-guide__example">
+                    <div className="input-format-guide__example-title">Корректный пример</div>
+                    <pre>{'Терехов Александр - Lands\nРадченко Фёдор — UW Phelia\nИванов Иван - Grixis Reanimator'}</pre>
+                  </div>
+                  <p>
+                    Если имя отличается незначительно, импорт попробует найти близкое совпадение и покажет
+                    предупреждение. Лишний игрок, повтор игрока или отсутствие колоды у участника заблокируют импорт.
+                  </p>
+                </section>
+
+                <section className="input-mode-card">
+                  <h4>2. Только колоды — по порядку мест</h4>
+                  <div className="input-format-guide__format">
+                    <code>Название колоды</code>
+                  </div>
+                  <p>
+                    Если разделитель встречается менее чем у половины строк, имена не используются. Первая колода
+                    назначается игроку на первом месте в Aetherhub, вторая — игроку на втором месте и так далее.
+                  </p>
+                  <div className="input-format-guide__example">
+                    <div className="input-format-guide__example-title">Корректный пример</div>
+                    <pre>{'Lands\nUW Phelia\nGrixis Reanimator'}</pre>
+                  </div>
+                  <p>
+                    Количество строк должно точно совпадать с количеством игроков. После импорта обязательно сверьте
+                    привязку вручную: сервер всегда выдаёт предупреждение для этого режима.
+                  </p>
+                </section>
+              </div>
+
+              <div className="input-numbering-note">
+                <strong>Нумерация необязательна.</strong> Можно начинать строки с <code>1.</code> или <code>1)</code>, но
+                тогда номера должны идти строго подряд: <code>1, 2, 3 … N</code>. Не используйте пропуски, повторы или
+                перестановки.
+              </div>
+
+              <div className="input-separator-warning">
+                <strong>Если в строке указано ФИО, между именем игрока и колодой обязательно должен стоять дефис.</strong>
+                Без дефиса парсер посчитает всю строку названием колоды.
+                <div className="input-separator-warning__examples">
+                  <div>
+                    <span>Нельзя:</span> <code>Дорофеев Александр White Weenie</code>
+                  </div>
+                  <div>
+                    <span>Правильно:</span> <code>Дорофеев Александр - White Weenie</code>
+                  </div>
+                </div>
+              </div>
+
+              <h4 className="input-format-guide__subtitle">Так добавлять нельзя</h4>
+              <ul className="flat-list input-format-guide__rules">
+                <li>
+                  <strong>Используйте одно и то же название для одинаковых колод.</strong> Например, не смешивайте
+                  варианты «Grixis Reanimator», «Grixis Rean» и «Гриксис Реаниматор»: статистика может посчитать их
+                  разными колодами.
+                </li>
+                <li>Не добавляйте заголовок таблицы, пояснения или посторонние строки.</li>
+                <li>Не смешивайте строки «Игрок - Колода» со списком только из названий колод.</li>
+                <li>В режиме с именами не оставляйте имя игрока или название колоды пустыми.</li>
+                <li>Не указывайте одного игрока несколько раз и не объединяйте нескольких игроков в одной строке.</li>
+                <li>В режиме по местам не меняйте порядок колод относительно финальных мест в Aetherhub.</li>
+                <li>Пустые строки между участниками можно оставлять — они будут пропущены.</li>
+              </ul>
+            </div>
             <Textarea
-              helperText="По одной строке: Имя игрока -> Колода"
+              helperText="Если указываете ФИО, обязательно поставьте дефис: «Игрок - Колода». Без дефиса вся строка будет считаться названием колоды."
               label="Список игроков и колод"
               onChange={(event) => setField('playerDecksText', event.target.value)}
-              placeholder={'Терехов Александр -> Lands\nРадченко Фёдор -> UW Phelia'}
+              placeholder={'Терехов Александр - Lands\nРадченко Фёдор - UW Phelia'}
               rows={8}
               value={formState.playerDecksText}
             />
+            {formState.playerDecksText.trim() ? (
+              <div className={playerDecksInputAnalysis.errors.length ? 'input-mode-status input-mode-status--error' : 'input-mode-status'}>
+                <strong>Распознан режим:</strong>{' '}
+                {playerDecksInputAnalysis.mode === 'named' ? 'с именами игроков' : 'только колоды по порядку мест'}.
+                {playerDecksInputAnalysis.errors.length
+                  ? ` Проверьте список: ${playerDecksInputAnalysis.errors.join(' ')}`
+                  : playerDecksInputAnalysis.warnings.length
+                    ? ` Обратите внимание: ${playerDecksInputAnalysis.warnings.join(' ')}`
+                    : ' Формат выглядит корректно.'}
+              </div>
+            ) : null}
           </div>
 
           <div className="form-actions">
@@ -343,7 +432,7 @@ export function CreateTournamentPage() {
           <p className="state-card__description">
             {importErrorDetails.length
               ? 'Мы нашли ошибки в данных импорта. Исправьте их и попробуйте загрузить турнир ещё раз.'
-              : getErrorMessage(importMutation.error, 'Не удалось загрузить турнир. Проверьте файлы и попробуйте ещё раз.')}
+              : getErrorMessage(importMutation.error, 'Не удалось загрузить турнир. Проверьте данные и попробуйте ещё раз.')}
           </p>
 
           {importErrorDetails.length ? (
@@ -380,7 +469,7 @@ export function CreateTournamentPage() {
           <ul className="flat-list">
             <li>ID турнира: {importMutation.data.tournamentId}</li>
             <li>После загрузки его можно открыть в списке турниров и проверить итоговые места, пары и колоды.</li>
-            {formState.aetherhubUrl.trim() ? <li>Ссылка на Aetherhub была передана вместе с импортом.</li> : null}
+            <li>Ссылка на Aetherhub была передана вместе с импортом.</li>
           </ul>
 
           <div className="form-actions">

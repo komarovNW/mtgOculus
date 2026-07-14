@@ -6,6 +6,7 @@ import { getTournamentDetails } from '@/entities/tournament/api';
 import type { TournamentMetagameItem, TournamentPlayerDeckItem, TournamentRound, TournamentStandingItem } from '@/shared/api/types';
 import { cn } from '@/shared/lib/cn';
 import { formatDate } from '@/shared/lib/formatDate';
+import { formatChartDeckName } from '@/shared/lib/formatChartDeckName';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import { MATCH_RECORD_HINT, getRecordSortValue, getRecordSortValueFromString } from '@/shared/lib/formatRecord';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
@@ -16,6 +17,7 @@ import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { MetagameChartTooltip } from '@/shared/ui/MetagameChartTooltip';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { Tabs } from '@/shared/ui/Tabs';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
@@ -320,6 +322,7 @@ export function TournamentDetailPage() {
   const metagameChartData = detailQuery.data.metagame.slice(0, 8).map((item) => ({
     name: item.deck.name,
     metaShare: Number(item.metaShare.toFixed(1)),
+    decksCount: item.playersCount,
   }));
 
   return (
@@ -433,20 +436,13 @@ export function TournamentDetailPage() {
                     dataKey="name"
                     tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
                     tickLine={false}
+                    tickFormatter={formatChartDeckName}
                     type="category"
                     width={110}
                   />
                   <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '14px',
-                      boxShadow: 'var(--color-shadow-soft)',
-                    }}
+                    content={<MetagameChartTooltip />}
                     cursor={{ fill: 'var(--color-accent-soft)' }}
-                    formatter={(value: number) => `${value.toFixed(1)}%`}
-                    itemStyle={{ color: 'var(--color-text-primary)' }}
-                    labelStyle={{ color: 'var(--color-text-primary)' }}
                   />
                   <Bar
                     dataKey="metaShare"

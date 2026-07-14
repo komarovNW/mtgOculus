@@ -1,7 +1,7 @@
 import { apiPostForm } from '@/shared/api/client';
 import { mapCreateTournamentResponse, type BackendCreateTournamentSuccess } from '@/shared/api/backend-mappers';
 import { endpoints } from '@/shared/api/endpoints';
-import type { CreateTournamentPayload, CreateTournamentResponse } from '@/shared/api/types';
+import type { CreateTournamentPayload } from '@/shared/api/types';
 
 function payloadToFormData(payload: CreateTournamentPayload) {
   const formData = new FormData();
@@ -10,11 +10,7 @@ function payloadToFormData(payload: CreateTournamentPayload) {
   formData.set('clubId', payload.clubId);
   formData.set('tournamentType', payload.tournamentType);
   formData.set('formatId', payload.formatId);
-  if (payload.aetherhubUrl) {
-    formData.set('aetherhubUrl', payload.aetherhubUrl);
-  }
-  formData.set('finalStandingsFile', payload.finalStandingsFile);
-  formData.set('allRoundsFile', payload.allRoundsFile);
+  formData.set('aetherhubUrl', payload.aetherhubUrl);
   formData.set('playerDecksText', payload.playerDecksText);
 
   return formData;

@@ -10,6 +10,7 @@ type SummaryCardsProps = {
     value: string | number;
     subtitle?: string;
     titleHint?: string;
+    valueSize?: 'default' | 'compact';
   }>;
 };
 
@@ -34,6 +35,7 @@ export function SummaryCards({ title, description, className, items }: SummaryCa
             titleHint={item.titleHint}
             tone={index === 0 ? 'accent' : 'default'}
             value={item.value}
+            valueSize={item.valueSize}
           />
         ))}
       </div>

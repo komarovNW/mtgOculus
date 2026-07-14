@@ -15,13 +15,35 @@ export const defaultFilters: DashboardFilters = {
 
 export function readDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
   return {
-    cityId: searchParams.get('cityId') || defaultFilters.cityId,
+    cityId: searchParams.has('cityId') ? (searchParams.get('cityId') ?? '') : defaultFilters.cityId,
     clubId: searchParams.get('clubId') || '',
-    formatId: searchParams.get('formatId') || defaultFilters.formatId,
+    formatId: searchParams.has('formatId') ? (searchParams.get('formatId') ?? '') : defaultFilters.formatId,
     tournamentType: (searchParams.get('tournamentType') || '') as DashboardFilters['tournamentType'],
     dateFrom: searchParams.get('dateFrom') || '',
     dateTo: searchParams.get('dateTo') || '',
   };
+}
+
+export function writeDashboardFilters(searchParams: URLSearchParams, filters: DashboardFilters) {
+  const next = new URLSearchParams(searchParams);
+
+  FILTER_KEYS.forEach((key) => {
+    const value = filters[key];
+
+    if (!value) {
+      if (key === 'cityId' || key === 'formatId') {
+        next.set(key, '');
+      } else {
+        next.delete(key);
+      }
+    } else if (value !== defaultFilters[key] || key === 'cityId' || key === 'formatId') {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
+  });
+
+  return next;
 }
 
 export function toApiFilters(filters: DashboardFilters) {
@@ -56,27 +78,11 @@ export function useDashboardFilters() {
   function setFilters(values: Partial<DashboardFilters>) {
     const nextFilters = { ...filters, ...values };
 
-    if (values.cityId && values.cityId !== filters.cityId) {
+    if (values.cityId !== undefined && values.cityId !== filters.cityId) {
       nextFilters.clubId = '';
     }
 
-    const next = new URLSearchParams(searchParams);
-
-    FILTER_KEYS.forEach((key) => {
-      const value = nextFilters[key];
-
-      if (!value) {
-        next.delete(key);
-      } else if (value !== defaultFilters[key]) {
-        next.set(key, value);
-      } else if (key === 'cityId' || key === 'formatId') {
-        next.set(key, value);
-      } else {
-        next.delete(key);
-      }
-    });
-
-    setSearchParams(next);
+    setSearchParams(writeDashboardFilters(searchParams, nextFilters));
   }
 
   function resetFilters() {
@@ -102,4 +108,3 @@ export function useDashboardFilters() {
     resetFilters,
   };
 }
-
