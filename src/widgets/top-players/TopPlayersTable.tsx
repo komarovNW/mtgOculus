@@ -94,14 +94,6 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
     sortValue: (row) => row.matchWinRate,
   },
   {
-    id: 'bestRank',
-    header: 'Лучший результат',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
-  },
-  {
     id: 'deck',
     header: 'Любимая колода',
     sortValue: (row) => row.mostPlayedDeck?.name,
@@ -175,14 +167,6 @@ const compactColumns: TableColumn<RankedTopPlayerItem>[] = [
     sortValue: (row) => row.matchWinRate,
   },
   {
-    id: 'bestRank',
-    header: 'Лучшее место',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
-  },
-  {
     id: 'deck',
     header: 'Любимая колода',
     sortValue: (row) => row.mostPlayedDeck?.name,
@@ -231,8 +215,8 @@ export function TopPlayersTable({
           <h2 className="section-header__title">Игроки с лучшими результатами</h2>
           <p className="section-header__description">
             {showSpotlight
-              ? 'Сверху выделили три самых заметных результата, а ниже оставили короткий список для сравнения.'
-              : 'Смотрим, кто чаще всего доходит до верхних мест и хорошо держит процент побед.'}
+              ? 'Сравниваем винрейт только у игроков с 20+ матчами минимум в 5 турнирах.'
+              : 'Сравниваем игроков по проценту побед и результату матчей.'}
           </p>
         </div>
         {actionHref ? (
@@ -288,10 +272,6 @@ export function TopPlayersTable({
                   <span>{MATCH_RECORD_LABEL}</span>
                   <strong>{formatRecord(item.matchWins, item.matchLosses, item.matchDraws)}</strong>
                 </div>
-                <div className="spotlight-card__stat">
-                  <span>Лучшее место</span>
-                  <strong>{item.bestRank ?? '—'}</strong>
-                </div>
               </div>
 
               <div className="spotlight-card__deck">
@@ -316,7 +296,7 @@ export function TopPlayersTable({
         <Table
           columns={showSpotlight ? compactColumns : columns}
           data={tableItems}
-          emptyMessage="Пока нет игроков по этим фильтрам."
+          emptyMessage="Пока нет игроков с 20+ матчами минимум в 5 турнирах по этим фильтрам."
           getRowKey={(row) => row.player.id}
           getRowClassName={(row) => (row.homeRank <= 3 ? 'table__row--top' : undefined)}
         />
@@ -324,7 +304,7 @@ export function TopPlayersTable({
         <Table
           columns={columns}
           data={visibleItems}
-          emptyMessage="Пока нет игроков по этим фильтрам."
+          emptyMessage="Пока нет игроков с 20+ матчами минимум в 5 турнирах по этим фильтрам."
           getRowKey={(row) => row.player.id}
           getRowClassName={(row) => (row.homeRank <= 3 ? 'table__row--top' : undefined)}
         />

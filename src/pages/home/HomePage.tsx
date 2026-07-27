@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { getPlayers } from '@/entities/player/api';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { getEstablishedDeckPerformance } from '@/shared/lib/establishedDecks';
+import { getEstablishedPlayers } from '@/shared/lib/establishedPlayers';
 import { formatDate } from '@/shared/lib/formatDate';
 import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
@@ -25,6 +27,17 @@ export function HomePage() {
   const homeQuery = useQuery({
     queryKey: ['home', apiFilters],
     queryFn: () => getHomeData(apiFilters),
+  });
+  const establishedPlayersQuery = useQuery({
+    queryKey: ['home', 'established-players', apiFilters],
+    queryFn: () =>
+      getPlayers({
+        ...apiFilters,
+        sort: 'matchesCount',
+        order: 'desc',
+        page: 1,
+        limit: 100,
+      }),
   });
 
   const appliedLabels = getAppliedFilterLabels(homeQuery.data?.appliedFilters);
@@ -136,12 +149,28 @@ export function HomePage() {
                 )}
                 limit={10}
               />
-              <TopPlayersTable
-                actionHref="/players"
-                items={homeQuery.data.topPlayers}
-                limit={10}
-                showSpotlight
-              />
+              {establishedPlayersQuery.isLoading ? (
+                <LoadingState description="Собираем результаты активных игроков." />
+              ) : null}
+              {establishedPlayersQuery.isError ? (
+                <ErrorState
+                  description={getErrorMessage(
+                    establishedPlayersQuery.error,
+                    'Не получилось загрузить результаты активных игроков.',
+                  )}
+                  onRetry={() => {
+                    void establishedPlayersQuery.refetch();
+                  }}
+                />
+              ) : null}
+              {establishedPlayersQuery.isSuccess ? (
+                <TopPlayersTable
+                  actionHref="/players"
+                  items={getEstablishedPlayers(establishedPlayersQuery.data.items)}
+                  limit={10}
+                  showSpotlight
+                />
+              ) : null}
               <PopularMatchupsTable
                 expandable
                 initialLimit={5}
