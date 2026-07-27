@@ -7,7 +7,6 @@ import {
 import { endpoints } from '@/shared/api/endpoints';
 import type { AppliedFilters, CitiesResponse, ClubsResponse, DashboardFilters, FormatsResponse } from '@/shared/api/types';
 
-// Mock adapters are kept in src/shared/api/mocks for possible future local scenarios.
 export function getCities() {
   return apiGet<BackendCity[]>(endpoints.cities).then((items) => ({
     items: items.map((item) => ({

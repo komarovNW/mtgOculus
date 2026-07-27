@@ -18,6 +18,10 @@ import {
 } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
+import {
+  getPlayerFavoriteFormat,
+  getPlayerOpponentStats,
+} from '@/shared/lib/playerStats';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -349,7 +353,8 @@ export function PlayerDetailPage() {
   }
 
   const { player, summary } = playerQuery.data;
-  const matchGroups = groupMatchesByTournament(playerQuery.data.recentMatches ?? []);
+  const matches = playerQuery.data.recentMatches ?? [];
+  const matchGroups = groupMatchesByTournament(matches);
   const favoriteDeck =
     [...playerQuery.data.decks].sort(
       (left, right) =>
@@ -357,6 +362,8 @@ export function PlayerDetailPage() {
         right.matchesCount - left.matchesCount ||
         left.deck.name.localeCompare(right.deck.name, 'en', { sensitivity: 'base' }),
     )[0]?.deck ?? null;
+  const favoriteFormat = getPlayerFavoriteFormat(matches);
+  const { mostFrequentOpponent } = getPlayerOpponentStats(matches);
 
   return (
     <div className="page-stack">
@@ -404,6 +411,26 @@ export function PlayerDetailPage() {
             value: favoriteDeck?.name ?? '—',
             valueSize: 'compact',
             subtitle: `Разных колод по этим фильтрам: ${summary.uniqueDecksCount}`,
+          },
+          {
+            title: 'Любимый формат',
+            value: favoriteFormat?.format.name ?? 'Нет данных',
+            valueSize: 'compact',
+            subtitle: favoriteFormat
+              ? `Матчей: ${favoriteFormat.matchesCount} · турниров: ${favoriteFormat.tournamentsCount}`
+              : 'Пока нет матчей с известным форматом.',
+          },
+          {
+            title: 'Частый оппонент',
+            value: mostFrequentOpponent?.opponent.name ?? 'Нет данных',
+            valueSize: 'compact',
+            subtitle: mostFrequentOpponent
+              ? `${mostFrequentOpponent.matchesCount} ${getMatchesWord(mostFrequentOpponent.matchesCount)} · ${formatRecord(
+                  mostFrequentOpponent.matchWins,
+                  mostFrequentOpponent.matchLosses,
+                  mostFrequentOpponent.matchDraws,
+                )}`
+              : 'Пока нет матчей с известными оппонентами.',
           },
         ]}
       />

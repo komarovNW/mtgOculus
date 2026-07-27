@@ -1,108 +1,176 @@
 # Magic Oculus
 
-Веб-приложение со статистикой турниров Magic: The Gathering. Текущая версия проекта собрана как frontend MVP на `React + TypeScript + Vite` и работает с реальным backend API.
+Magic Oculus — публичный аналитический сервис по сыгранным турнирам Magic: The
+Gathering. Сайт помогает смотреть результаты событий, метагейм, статистику
+игроков, колод и матчапов.
 
-## Что уже есть
+Репозиторий содержит frontend на React. Данные загружаются из отдельного backend
+API; backend-кода в этом репозитории нет.
 
-- публичные страницы со статистикой:
-  - главная;
-  - турниры и страница конкретного турнира;
-  - игроки и страница конкретного игрока;
-  - колоды и страница конкретной колоды;
-- фильтры по городу, клубу, формату, типу турнира и датам;
-- light theme по умолчанию и dark theme через переключатель в шапке;
-- единая token-система цветов в `src/app/styles/globals.css`;
-- понятные loading, empty и error states;
-- Basic auth для служебного раздела загрузки турниров;
-- защищённый экран добавления турнира `/admin/tournaments/create`.
+Публичная версия:
+[komarovnw-mtgoculus-c126.twc1.net](https://komarovnw-mtgoculus-c126.twc1.net/).
 
-## Важные текущие ограничения
+## Что умеет приложение
 
-- публичные страницы доступны без входа;
-- вход в служебный раздел сейчас рассчитан на Basic auth c парой `admin/admin`;
-- экран добавления турнира пока работает через CSV + текстовый список игроков и колод;
-- поле `aetherhubUrl` уже добавлено, чтобы позже перейти к более простому импорту по ссылке.
+- показывает общую статистику по выбранному городу, клубу, формату, типу события
+  и периоду;
+- разделяет регулярные дейлики и крупные турниры;
+- показывает стендинги, раунды, колоды и метагейм конкретного события;
+- позволяет искать игроков и колоды, сортировать списки и дозагружать страницы;
+- показывает результаты, любимую колоду, любимый формат и частого оппонента
+  игрока;
+- показывает результаты колоды, игроков на ней и матчапы;
+- содержит раздел `Дайджест` для будущих ежемесячных статей по статистике;
+- показывает текущую версию и историю изменений на странице `Что нового`;
+- поддерживает светлую и тёмную темы.
 
-## Быстрый старт
+Это не deck builder, не каталог карт и не система регистрации на турниры.
+
+## Текущий статус
+
+- Все статистические страницы публичны.
+- Текущая готовящаяся версия — `0.2.0`; `0.1.0` отмечена как первый публичный
+  релиз.
+- Публичный импорт событий отключён. Он не должен возвращаться, пока backend не
+  потребует настоящую авторизацию и отдельное право на запись.
+- `/digest` пока является статическим placeholder: статей, CMS и API для него
+  ещё нет.
+- Frontend работает с реальным API; локальные mock-данные и mock-auth удалены.
+- Списки загружаются по 50 элементов через кнопку `Показать ещё`.
+- Часть показателей блока `Быстрый ориентир` пока рассчитывается по уже
+  загруженным страницам. Backend-задача описана в
+  [BACKEND_LIST_INSIGHTS.md](readme/BACKEND_LIST_INSIGHTS.md).
+
+Рабочие задачи проекта находятся в
+[GitHub Project](https://github.com/users/komarovNW/projects/6).
+
+## Технологии
+
+- React 18;
+- TypeScript;
+- Vite;
+- React Router;
+- TanStack Query;
+- Recharts;
+- Vitest и Testing Library;
+- обычный CSS с общей системой design tokens.
+
+## Запуск локально
+
+Требуется Node.js 22 и npm.
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Локальная production-сборка:
+Vite покажет локальный адрес в терминале. В текущей конфигурации backend по
+умолчанию ожидается по адресу:
 
-```bash
-npm run build
-npm run preview
+```text
+http://localhost:8000/api/v1
 ```
 
-Проверки:
-
-```bash
-npm run lint
-npm run typecheck
-npm run test
-```
-
-## Переменные окружения
-
-Создайте `.env.local` по примеру из `.env.example`.
-
-Работа с backend:
+Чтобы использовать другой backend, измените `.env.local`:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_API_BASE_URL=https://api.example.com/api/v1
+```
+
+Без доступного backend страницы не смогут загрузить данные.
+
+## Команды
+
+```bash
+npm run dev        # локальная разработка
+npm run typecheck  # проверка TypeScript
+npm run lint       # ESLint
+npm run test       # тесты
+npm run build      # production-сборка
+npm run preview    # локальный просмотр production-сборки
+```
+
+Перед передачей изменений рекомендуется выполнить:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
 ```
 
 ## Основные маршруты
 
-- `/`
-- `/home` -> редирект на `/`
-- `/tournaments`
-- `/tournaments/:id`
-- `/players`
-- `/players/:id`
-- `/decks`
-- `/decks/:id`
-- `/login`
-- `/admin/tournaments/create`
+| Маршрут | Назначение |
+|---|---|
+| `/` | Общая статистика |
+| `/digest` | Дайджест; пока placeholder будущих ежемесячных статей |
+| `/changelog` | Текущая версия и история изменений |
+| `/dailies` | Регулярные дейлики |
+| `/tournaments` | Крупные турниры |
+| `/tournaments/:id` | Детали дейлика или турнира |
+| `/players` | Список игроков |
+| `/players/:id` | Статистика игрока |
+| `/decks` | Список колод |
+| `/decks/:id` | Статистика колоды |
 
-## Временный вход для проверки
+`/home` перенаправляет на `/`. Удалённые `/login` и
+`/admin/tournaments/create` показывают 404.
 
-По умолчанию:
+Полное описание маршрутов: [ROUTES.md](readme/ROUTES.md).
 
-- логин: `admin`
-- пароль: `admin`
+## Структура проекта
 
-Эти данные используются для Basic auth и отправляются как `Authorization: Basic ...` в защищённых запросах.
+```text
+src/
+  app/       # провайдеры, маршруты, глобальные стили
+  entities/  # API-функции доменных сущностей
+  pages/     # страницы маршрутов
+  shared/    # API-клиент, типы, утилиты и UI-компоненты
+  widgets/   # крупные блоки страниц
+  test/      # тесты
+```
 
-## Где смотреть документацию
+Подробности: [PROJECT_STRUCTURE.md](readme/PROJECT_STRUCTURE.md).
 
-Основная карта документации: [readme/README.md](readme/README.md)
+История версий хранится в `src/shared/config/releases.ts`. Первая запись должна
+совпадать с версией в `package.json`; это проверяется тестом.
 
-Ключевые документы:
+## Документация
 
-- [readme/BACKEND_API_HANDOFF.md](readme/BACKEND_API_HANDOFF.md)
-- [readme/ROUTES.md](readme/ROUTES.md)
-- [readme/PROJECT_STRUCTURE.md](readme/PROJECT_STRUCTURE.md)
-- [readme/UI_GUIDELINES.md](readme/UI_GUIDELINES.md)
-- [readme/API_INTEGRATION_CHECKLIST.md](readme/API_INTEGRATION_CHECKLIST.md)
-- [readme/TIMEWEB_DEPLOY.md](readme/TIMEWEB_DEPLOY.md)
+Начните с [карты документации](readme/README.md). В ней документы разделены по
+аудитории:
+
+- продукт и дизайн;
+- frontend;
+- backend;
+- деплой.
+
+Для дизайнера подготовлена отдельная короткая точка входа:
+[DESIGNER_START.md](readme/DESIGNER_START.md).
+
+Правила работы с публичным репозиторием и обязательный backend security gate:
+[SECURITY.md](readme/SECURITY.md).
+
+Текущий список требований к корректности статистики и пагинации:
+[BACKEND_DATA_ACCURACY.md](readme/BACKEND_DATA_ACCURACY.md).
+
+Главные технические источники правды:
+
+1. текущий код;
+2. типы raw backend-ответов в `src/shared/api/backend-mappers.ts`;
+3. frontend-типы в `src/shared/api/types.ts`;
+4. [BACKEND_API_HANDOFF.md](readme/BACKEND_API_HANDOFF.md);
+5. остальные документы.
+
+Если документация расходится с кодом, нужно исправить документацию в той же
+задаче.
 
 ## Деплой
 
-Приложение собирается в `dist/` и подходит для статического хостинга.
+Production-сборка создаётся в `dist/`. Для прямого открытия вложенных маршрутов
+хостинг должен перенаправлять неизвестные пути на `index.html`.
 
-Для Timeweb App Platform текущий рекомендуемый сценарий:
-
-- тип приложения: `Frontend`
-- фреймворк: `React`
-- ветка: `main`
-- Node.js: `22`
-- build command: `npm run build`
-- output directory: `dist`
-
-Подробности: [readme/TIMEWEB_DEPLOY.md](readme/TIMEWEB_DEPLOY.md)
-
-Важно: приложение использует SPA-routing через `React Router`, поэтому на хостинге должен быть включён fallback на `index.html`.
+Текущая инструкция для Timeweb:
+[TIMEWEB_DEPLOY.md](readme/TIMEWEB_DEPLOY.md).

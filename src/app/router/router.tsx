@@ -1,8 +1,10 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '@/widgets/app-layout/AppLayout';
-import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
+import { ChangelogPage } from '@/pages/changelog/ChangelogPage';
+import { DailiesPage } from '@/pages/dailies/DailiesPage';
 import { DeckDetailPage } from '@/pages/deck-detail/DeckDetailPage';
 import { DecksPage } from '@/pages/decks/DecksPage';
+import { DigestPage } from '@/pages/digest/DigestPage';
 import { HomePage } from '@/pages/home/HomePage';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
 import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
@@ -22,6 +24,18 @@ export const router = createBrowserRouter([
       {
         path: 'home',
         element: <Navigate to="/" replace />,
+      },
+      {
+        path: 'dailies',
+        element: <DailiesPage />,
+      },
+      {
+        path: 'digest',
+        element: <DigestPage />,
+      },
+      {
+        path: 'changelog',
+        element: <ChangelogPage />,
       },
       {
         path: 'tournaments',
@@ -59,19 +73,6 @@ export const router = createBrowserRouter([
           {
             path: ':id',
             element: <DeckDetailPage />,
-          },
-        ],
-      },
-      {
-        path: 'login',
-        element: <Navigate to="/admin/tournaments/create" replace />,
-      },
-      {
-        path: 'admin',
-        children: [
-          {
-            path: 'tournaments/create',
-            element: <CreateTournamentPage />,
           },
         ],
       },

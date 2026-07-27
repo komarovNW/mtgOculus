@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { getDecks } from '@/entities/deck/api';
 import type { DeckListItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
@@ -16,11 +16,14 @@ import {
 } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
+import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { Input } from '@/shared/ui/Input';
 import { LoadingState } from '@/shared/ui/LoadingState';
+import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
@@ -114,16 +117,24 @@ const sortOptions = [
 
 export function DecksPage() {
   const { filters, apiFilters, setFilters, resetFilters, searchParams, updateQueryParams } = useDashboardFilters();
+  const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'playersCount_desc';
-  const decksQuery = useQuery({
-    queryKey: ['decks', apiFilters, sort],
-    queryFn: () => getDecks({ ...apiFilters, sort, page: 1, limit: 50 }),
+  const decksQuery = useInfiniteQuery({
+    queryKey: ['decks', apiFilters, search, sort],
+    queryFn: ({ pageParam }) =>
+      getDecks({ ...apiFilters, search: search || undefined, sort, page: pageParam, limit: LIST_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam,
   });
+  const firstPage = decksQuery.data?.pages[0];
+  const decks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const totalCount = firstPage?.pagination.total ?? 0;
+  const hasInitialData = Boolean(firstPage);
 
   return (
     <div className="page-stack">
       <PageHeader
-        badges={getAppliedFilterLabels(decksQuery.data?.appliedFilters).map((label) => (
+        badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
         description="Здесь удобно сравнивать популярность колод, их результаты и быстро переходить к турнирам и матчапам."
@@ -139,6 +150,12 @@ export function DecksPage() {
 
       <Card>
         <div className="toolbar-grid">
+          <Input
+            label="Найти колоду"
+            onChange={(event) => updateQueryParams({ search: event.target.value || undefined })}
+            placeholder="Например, Mono Red Aggro"
+            value={search}
+          />
           <Select
             label="Сортировка"
             onChange={(event) => updateQueryParams({ sort: event.target.value })}
@@ -148,8 +165,8 @@ export function DecksPage() {
         </div>
       </Card>
 
-      {decksQuery.isLoading ? <LoadingState description="Собираем статистику по колодам." /> : null}
-      {decksQuery.isError ? (
+      {!hasInitialData && decksQuery.isLoading ? <LoadingState description="Собираем статистику по колодам." /> : null}
+      {!hasInitialData && decksQuery.isError ? (
         <ErrorState
           description={getErrorMessage(decksQuery.error, 'Не получилось загрузить список колод. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
@@ -158,7 +175,7 @@ export function DecksPage() {
         />
       ) : null}
 
-      {decksQuery.isSuccess ? (
+      {firstPage ? (
         <>
           <Card
             className="insights-card"
@@ -176,20 +193,20 @@ export function DecksPage() {
 
             <div className="insights-grid">
               <div className="insights-summary">
-                <div className="insights-summary__value">{decksQuery.data.pagination.total}</div>
+                <div className="insights-summary__value">{totalCount}</div>
                 <div className="insights-summary__title">колод найдено</div>
                 <p className="insights-summary__description">
-                  Сортировку можно менять в один клик: отдельно по популярности, результатам или лучшему месту.
+                  Сортировку можно менять в один клик, а поиск выше помогает быстро найти нужную колоду.
                 </p>
               </div>
 
               <div className="insights-list">
-                {decksQuery.data.items.length > 0 ? (
+                {decks.length > 0 ? (
                   <article className="insight-item">
                     <div className="insight-item__title">Самая популярная колода</div>
                     <div className="insight-item__body">
                       {(() => {
-                        const popularDeck = [...decksQuery.data.items].sort(
+                        const popularDeck = [...decks].sort(
                           (left, right) => right.playersCount - left.playersCount || right.matchesCount - left.matchesCount,
                         )[0];
 
@@ -209,18 +226,18 @@ export function DecksPage() {
                   </article>
                 ) : null}
 
-                {decksQuery.data.items.length > 0 ? (
+                {decks.length > 0 ? (
                   <article className="insight-item">
                     <div className="insight-item__title">По результатам впереди</div>
                     <div className="insight-item__body">
                       {(() => {
                         const bestStableDeck =
-                          [...decksQuery.data.items]
+                          [...decks]
                             .filter((item) => !item.isSmallSample)
                             .sort(
                               (left, right) =>
                                 right.matchWinRate - left.matchWinRate || right.matchesCount - left.matchesCount,
-                            )[0] ?? decksQuery.data.items[0];
+                            )[0] ?? decks[0];
 
                         return (
                           <>
@@ -241,7 +258,7 @@ export function DecksPage() {
                 <article className="insight-item">
                   <div className="insight-item__title">Где статистика уже набралась</div>
                   <div className="insight-item__body">
-                    У {decksQuery.data.items.filter((item) => !item.isSmallSample).length} колод уже хватает матчей,
+                    У {decks.filter((item) => !item.isSmallSample).length} колод уже хватает матчей,
                     чтобы процент побед выглядел надёжнее.
                   </div>
                 </article>
@@ -254,17 +271,27 @@ export function DecksPage() {
               <div>
                 <h2 className="section-header__title">Все колоды</h2>
                 <p className="section-header__description">
-                  Найдено {decksQuery.data.pagination.total} колод. Нажмите на колоду, чтобы открыть турниры, игроков и
+                  Найдено {totalCount} колод. Нажмите на колоду, чтобы открыть турниры, игроков и
                   матчапы.
                 </p>
               </div>
             </div>
             <Table
               columns={columns}
-              data={decksQuery.data.items}
-              emptyMessage="По этим фильтрам пока нет колод."
+              data={decks}
+              emptyMessage={search ? 'По этому запросу колоды не найдены.' : 'По этим фильтрам пока нет колод.'}
               getRowKey={(row) => row.deck.id}
               minWidth={1100}
+            />
+            <LoadMorePagination
+              hasMore={decksQuery.hasNextPage}
+              isError={decksQuery.isFetchNextPageError}
+              isLoading={decksQuery.isFetchingNextPage}
+              loadedCount={decks.length}
+              onLoadMore={() => {
+                void decksQuery.fetchNextPage();
+              }}
+              totalCount={totalCount}
             />
           </Card>
         </>

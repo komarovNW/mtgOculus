@@ -11,7 +11,7 @@ import {
 } from '@/shared/api/backend-mappers';
 import { endpoints } from '@/shared/api/endpoints';
 import { resolveAppliedFilters } from '@/entities/dictionaries/api';
-import type { DashboardFilters, HomeResponse, TournamentDetailsResponse, TournamentListQuery, TournamentListResponse } from '@/shared/api/types';
+import type { DashboardFilters, TournamentListQuery } from '@/shared/api/types';
 
 export function getHomeData(filters: Partial<DashboardFilters>) {
   return apiGet<BackendHomeResponse>(endpoints.home, filters).then(async (response) => {

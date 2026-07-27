@@ -19,13 +19,22 @@ describe('AppLayout navigation', () => {
       'href',
       '/tournaments?cityId=spb&formatId=',
     );
+    expect(screen.getByRole('link', { name: 'Дейлики' })).toHaveAttribute(
+      'href',
+      '/dailies?cityId=spb&formatId=',
+    );
     expect(screen.getByRole('link', { name: 'Колоды' })).toHaveAttribute(
       'href',
       '/decks?cityId=spb&formatId=',
     );
-    expect(screen.getByRole('link', { name: 'Добавить турнир' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Дайджест' })).toHaveAttribute(
       'href',
-      '/admin/tournaments/create',
+      '/digest',
+    );
+    expect(screen.queryByRole('link', { name: 'Добавить' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'v0.2.0 · Что нового' })).toHaveAttribute(
+      'href',
+      '/changelog',
     );
   });
 });

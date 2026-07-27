@@ -2,12 +2,6 @@ export type TournamentType = 'daily' | 'tournament';
 
 export type QueryValue = string | number | boolean | undefined | null;
 
-export type ApiErrorDetail = {
-  field?: string;
-  message: string;
-  source?: string;
-};
-
 export type City = {
   id: string;
   name: string;
@@ -330,6 +324,7 @@ export type PlayerDetailsResponse = {
 };
 
 export type DecksListQuery = Partial<DashboardFilters> & {
+  search?: string;
   page?: number;
   limit?: number;
   sort?: string;
@@ -428,21 +423,4 @@ export type ClubsResponse = {
 
 export type FormatsResponse = {
   items: Format[];
-};
-
-export type CreateTournamentPayload = {
-  date: string;
-  cityId: string;
-  clubId: string;
-  tournamentType: TournamentType;
-  formatId: string;
-  aetherhubUrl: string;
-  playerDecksText: string;
-};
-
-export type CreateTournamentResponse = {
-  success: true;
-  tournamentId: string;
-  message: string;
-  warnings?: string[];
 };

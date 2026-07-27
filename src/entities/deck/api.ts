@@ -8,7 +8,7 @@ import {
 } from '@/shared/api/backend-mappers';
 import { endpoints } from '@/shared/api/endpoints';
 import { resolveAppliedFilters } from '@/entities/dictionaries/api';
-import type { DashboardFilters, DeckDetailsResponse, DecksListQuery, DecksListResponse } from '@/shared/api/types';
+import type { DashboardFilters, DecksListQuery } from '@/shared/api/types';
 
 export function getDecks(query: DecksListQuery) {
   const page = query.page ?? 1;
@@ -21,6 +21,7 @@ export function getDecks(query: DecksListQuery) {
     tournamentType: query.tournamentType,
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
+    search: query.search,
     sort: query.sort,
     page,
     page_size: pageSize,

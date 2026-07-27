@@ -2,6 +2,12 @@
 
 Актуально для проекта `Magic Oculus`.
 
+Production:
+
+```text
+https://komarovnw-mtgoculus-c126.twc1.net/
+```
+
 Репозиторий:
 
 ```text
@@ -89,10 +95,14 @@ VITE_API_BASE_URL=https://your-api-domain/api/v1
 
 ## Что проверить после деплоя
 
-- открывается `/`;
+- открывается `https://komarovnw-mtgoculus-c126.twc1.net/`;
+- напрямую открывается `/digest`;
+- напрямую открывается `/changelog`, а версия в футере совпадает с релизом;
 - работают публичные страницы;
 - работает SPA-routing после прямого открытия detail page;
-- открывается `/login` и пропускает на `/admin/tournaments/create` с парой `admin/admin`;
+- `/login` и `/admin/tournaments/create` показывают 404;
+- write endpoint импорта на backend отключён либо отвечает `401/403` без
+  валидной авторизации;
 - тема `Светлая / Тёмная` переключается без визуальных поломок.
 
 ## Откат

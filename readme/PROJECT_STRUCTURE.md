@@ -1,178 +1,122 @@
-# Project Structure
+# Структура frontend
 
-Этот документ фиксирует текущую структуру проекта, а не стартовый желаемый шаблон. Если структура кода и документ расходятся, сначала обновляется этот файл, а не создаётся новая параллельная архитектура.
+Magic Oculus использует упрощённое разделение по слоям. Оно помогает понимать,
+где искать данные, страницу или переиспользуемый компонент.
 
-## Актуальная структура
+## Дерево
 
 ```text
 src/
   app/
-    App.tsx
-    providers/
-      AuthProvider.tsx
-      QueryProvider.tsx
-      auth-context.ts
-      useAuth.ts
-    router/
-      RequirePermission.tsx
-      router.tsx
-    styles/
-      globals.css
-
+    providers/       # React Query
+    router/          # React Router
+    styles/          # глобальные стили и темы
   entities/
-    admin-tournament/
     deck/
     dictionaries/
     player/
     tournament/
-
   pages/
-    create-tournament/
-    deck-detail/
-    decks/
-    home/
-    login/
-    not-found/
-    player-detail/
-    players/
-    tournament-detail/
-    tournaments/
-
+    digest/          # статический placeholder будущих статей
+    ...              # остальные компоненты маршрутов
   shared/
     api/
+      backend-mappers.ts
       client.ts
       endpoints.ts
       types.ts
-      mocks/
-    auth/
-      model.ts
-      service.ts
-      storage.ts
     config/
-      env.ts
+      releases.ts     # версия и публичная история изменений
     lib/
     ui/
-
   test/
-
   widgets/
-    app-layout/
-    deck-metagame/
-    deck-performance/
-    filters-panel/
-    home-highlights/
-    popular-matchups/
-    recent-tournaments/
-    summary-cards/
-    top-players/
 ```
 
-## Зоны ответственности
+## Слои
 
 ### `app/`
 
 Глобальная сборка приложения:
 
-- `App.tsx` связывает провайдеры и роутер;
-- `providers/` хранит React context и глобальные провайдеры;
-- `router/` описывает все маршруты и route guards;
-- `styles/globals.css` содержит token-систему, обе темы и общие layout-правила.
+- провайдер TanStack Query;
+- маршруты;
+- общие стили, CSS variables, светлая и тёмная темы.
 
 ### `entities/`
 
-Доменный слой.
+API-функции по доменным сущностям. Здесь query params переводятся в backend
+запросы, а raw-ответы проходят через mapper.
 
-Здесь лежат API-функции и небольшие model/helpers для сущностей:
+Порядок потока данных:
 
-- турниры;
-- игроки;
-- колоды;
-- справочники;
-- admin import турнира.
+```text
+page → entities/*/api.ts → shared/api/client.ts → backend
+                                      ↓
+                         shared/api/backend-mappers.ts
+                                      ↓
+                           frontend model из types.ts
+```
 
 ### `pages/`
 
-Route-level компоненты.
+Компоненты, привязанные к маршрутам. Страница:
 
-Каждая папка соответствует отдельному экрану приложения:
+- читает URL и фильтры;
+- запускает запросы;
+- обрабатывает loading, empty и error;
+- собирает интерфейс из shared UI и widgets.
 
-- сбор данных;
-- реакция на loading/error/empty;
-- сборка страницы из widgets и shared UI.
+`dailies/` переиспользует общий экран событий, но фиксирует тип `daily`.
+
+`digest/` пока не загружает данные и не имеет слоя в `entities/`: это статическая
+страница, зарезервированная под будущие ежемесячные статьи.
+
+`changelog/` читает локальную историю версий и не обращается к backend.
 
 ### `shared/api/`
 
-Базовый API-слой.
+- `client.ts` — GET-запросы и нормализация ошибок;
+- `endpoints.ts` — все API paths;
+- `backend-mappers.ts` — фактические типы raw backend-ответов и преобразования;
+- `types.ts` — модели, которыми пользуется UI.
 
-Ключевые файлы:
-
-- `client.ts` — общий HTTP-клиент и обработка ошибок;
-- `endpoints.ts` — список ручек;
-- `types.ts` — главный набор frontend API-типов;
-- `mocks/` — mock-ответы для разработки без backend.
-
-`src/shared/api/types.ts` — это фактическая точка опоры для того, какие поля фронт использует на экранах.
-
-### `shared/auth/`
-
-Временная фронтовая авторизация:
-
-- модель сессии и прав;
-- mock sign-in;
-- хранение токена и сессии в `localStorage`.
-
-Это временный слой до подключения реального backend-auth.
+При изменении backend-контракта сначала обновляются raw-типы и mapper, а не
+страницы.
 
 ### `shared/lib/`
 
-Утилиты без бизнес-состояния:
+Чистые утилиты:
 
-- форматирование дат, процентов и record;
-- работа с путями сущностей;
-- обработка query filters;
-- сбор пользовательских ошибок.
+- фильтры и URL;
+- форматирование;
+- пагинация;
+- статистика игрока;
+- построение ссылок сущностей.
 
 ### `shared/ui/`
 
-Переиспользуемые UI-компоненты:
-
-- базовые контролы формы;
-- таблицы;
-- карточки;
-- бейджи;
-- tooltips/info-hints;
-- entity links;
-- stat-компоненты;
-- MTG color pips.
-
-Компоненты здесь не должны знать, как устроен backend. Они получают уже подготовленные props.
+Небизнесовые компоненты: кнопки, карточки, таблицы, select/input, состояния,
+ссылки сущностей, tooltips, mana pips и `LoadMorePagination`.
 
 ### `widgets/`
 
-Крупные переиспользуемые блоки экранов:
-
-- фильтры;
-- summary cards;
-- таблицы турниров, игроков, колод и матчапов;
-- layout приложения.
+Крупные составные блоки: layout, фильтры и секции главной страницы.
 
 ### `test/`
 
-Smoke, unit и routing tests.
+Unit, routing и component tests. Тесты находятся в одном каталоге и запускаются
+через Vitest.
 
-Здесь уже есть тесты на:
+## Практические правила
 
-- форматтеры;
-- построение путей;
-- routing/auth guard;
-- сортировку таблиц;
-- smoke для главной страницы.
-
-## Практическое правило
-
-Если другой разработчик правит backend integration:
-
-- новые API-типы сначала синхронизируются в `src/shared/api/types.ts`;
-- затем обновляются `entities/*/api.ts`;
-- затем проверяются `pages/` и `widgets/`;
-- после этого обновляется `readme/BACKEND_API_HANDOFF.md`, если контракт реально изменился.
+- Новый маршрут добавляется в `src/app/router/router.tsx`.
+- Новый API path добавляется в `src/shared/api/endpoints.ts`.
+- Raw backend-ответ описывается в `backend-mappers.ts`.
+- UI получает нормализованные типы из `types.ts`.
+- Повторяющийся простой компонент идёт в `shared/ui`.
+- Повторяющийся доменный блок страницы идёт в `widgets`.
+- Изменение пользовательского поведения сопровождается обновлением
+  соответствующего документа в `readme/`.
+- Новый релиз добавляется первым в `src/shared/config/releases.ts`; его версия
+  должна совпадать с `package.json`.

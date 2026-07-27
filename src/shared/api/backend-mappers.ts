@@ -2,7 +2,6 @@ import type {
   AppliedFilters,
   City,
   Club,
-  CreateTournamentResponse,
   DeckDetailsResponse,
   DeckListItem,
   DeckMatchupItem,
@@ -348,18 +347,6 @@ type BackendHomeResponse = {
     deckAWinRate: number;
     isSmallSample: boolean;
   }>;
-};
-
-type BackendImportIssue = {
-  code: string;
-  message: string;
-  source?: string;
-};
-
-type BackendCreateTournamentSuccess = {
-  success: true;
-  tournament: BackendTournamentListItem;
-  warnings?: BackendImportIssue[];
 };
 
 const UNKNOWN_CITY_NAME = 'Неизвестный город';
@@ -790,20 +777,10 @@ export function mapDeckDetailsResponse(
 
 export { mapAppliedFilters };
 
-export function mapCreateTournamentResponse(raw: BackendCreateTournamentSuccess): CreateTournamentResponse {
-  return {
-    success: true,
-    tournamentId: String(raw.tournament.id),
-    message: `Турнир «${raw.tournament.title}» загружен.`,
-    warnings: raw.warnings?.map((warning) => warning.message),
-  };
-}
-
 export type {
   BackendAppliedFilters,
   BackendCity,
   BackendClub,
-  BackendCreateTournamentSuccess,
   BackendDeck,
   BackendDeckDetailsResponse,
   BackendDecksListResponse,
@@ -815,5 +792,4 @@ export type {
   BackendPlayersListResponse,
   BackendTournamentDetailsResponse,
   BackendTournamentListItem,
-  BackendImportIssue,
 };

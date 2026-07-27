@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPlayers } from '@/entities/player/api';
 import type { PlayerListItem, PlayersListQuery } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
@@ -14,12 +14,14 @@ import {
 } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
+import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { Input } from '@/shared/ui/Input';
 import { LoadingState } from '@/shared/ui/LoadingState';
+import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
@@ -129,23 +131,29 @@ export function PlayersPage() {
     name: 'по имени',
   };
 
-  const playersQuery = useQuery({
+  const playersQuery = useInfiniteQuery({
     queryKey: ['players', apiFilters, search, sort],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       getPlayers({
         ...apiFilters,
         search: search || undefined,
         sort,
         order,
-        page: 1,
-        limit: 50,
+        page: pageParam,
+        limit: LIST_PAGE_SIZE,
       }),
+    initialPageParam: 1,
+    getNextPageParam,
   });
+  const firstPage = playersQuery.data?.pages[0];
+  const players = playersQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const totalCount = firstPage?.pagination.total ?? 0;
+  const hasInitialData = Boolean(firstPage);
 
   return (
     <div className="page-stack">
       <PageHeader
-        badges={getAppliedFilterLabels(playersQuery.data?.appliedFilters).map((label) => (
+        badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
         description="Здесь можно найти сильных и активных игроков, а потом открыть их турниры, колоды и матчи."
@@ -176,8 +184,8 @@ export function PlayersPage() {
         </div>
       </Card>
 
-      {playersQuery.isLoading ? <LoadingState description="Собираем статистику по игрокам." /> : null}
-      {playersQuery.isError ? (
+      {!hasInitialData && playersQuery.isLoading ? <LoadingState description="Собираем статистику по игрокам." /> : null}
+      {!hasInitialData && playersQuery.isError ? (
         <ErrorState
           description={getErrorMessage(playersQuery.error, 'Не получилось загрузить список игроков. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
@@ -186,7 +194,7 @@ export function PlayersPage() {
         />
       ) : null}
 
-      {playersQuery.isSuccess ? (
+      {firstPage ? (
         <>
           <Card
             className="insights-card"
@@ -204,7 +212,7 @@ export function PlayersPage() {
 
             <div className="insights-grid">
               <div className="insights-summary">
-                <div className="insights-summary__value">{playersQuery.data.pagination.total}</div>
+                <div className="insights-summary__value">{totalCount}</div>
                 <div className="insights-summary__title">игроков найдено</div>
                 <p className="insights-summary__description">
                   Сейчас список отсортирован {sortLabelMap[sort]}. Поиск выше помогает быстро найти нужного игрока.
@@ -212,20 +220,20 @@ export function PlayersPage() {
               </div>
 
               <div className="insights-list">
-                {playersQuery.data.items[0] ? (
+                {players[0] ? (
                   <article className="insight-item">
                     <div className="insight-item__title">Сейчас вверху списка</div>
                     <div className="insight-item__body">
                       <EntityLink
-                        id={playersQuery.data.items[0].player.id}
-                        name={playersQuery.data.items[0].player.name}
+                        id={players[0].player.id}
+                        name={players[0].player.name}
                         type="player"
                       />{' '}
-                      с {formatPercent(playersQuery.data.items[0].matchWinRate)} побед и результатом{' '}
+                      с {formatPercent(players[0].matchWinRate)} побед и результатом{' '}
                       {formatRecord(
-                        playersQuery.data.items[0].matchWins,
-                        playersQuery.data.items[0].matchLosses,
-                        playersQuery.data.items[0].matchDraws,
+                        players[0].matchWins,
+                        players[0].matchLosses,
+                        players[0].matchDraws,
                       )}
                       .
                     </div>
@@ -235,7 +243,7 @@ export function PlayersPage() {
                 <article className="insight-item">
                   <div className="insight-item__title">Где статистика уже набралась</div>
                   <div className="insight-item__body">
-                    У {playersQuery.data.items.filter((item) => !item.isSmallSample).length} игроков уже достаточно
+                    У {players.filter((item) => !item.isSmallSample).length} игроков уже достаточно
                     матчей, чтобы процент побед выглядел надёжнее.
                   </div>
                 </article>
@@ -255,17 +263,27 @@ export function PlayersPage() {
               <div>
                 <h2 className="section-header__title">Все игроки</h2>
                 <p className="section-header__description">
-                  Найдено {playersQuery.data.pagination.total} игроков. Нажмите на имя, чтобы открыть страницу игрока и
+                  Найдено {totalCount} игроков. Нажмите на имя, чтобы открыть страницу игрока и
                   подробную статистику.
                 </p>
               </div>
             </div>
             <Table
               columns={columns}
-              data={playersQuery.data.items}
+              data={players}
               emptyMessage="По этим фильтрам пока нет игроков."
               getRowKey={(row) => row.player.id}
               minWidth={1120}
+            />
+            <LoadMorePagination
+              hasMore={playersQuery.hasNextPage}
+              isError={playersQuery.isFetchNextPageError}
+              isLoading={playersQuery.isFetchingNextPage}
+              loadedCount={players.length}
+              onLoadMore={() => {
+                void playersQuery.fetchNextPage();
+              }}
+              totalCount={totalCount}
             />
           </Card>
         </>

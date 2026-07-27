@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { currentAppVersion } from '@/shared/config/releases';
 import { cn } from '@/shared/lib/cn';
 import { getDashboardFilterSearch } from '@/shared/lib/filters';
 
@@ -10,16 +11,13 @@ type HeaderLink = {
   preserveFilters?: boolean;
 };
 
-const publicLinks: HeaderLink[] = [
+const headerLinks: HeaderLink[] = [
   { to: '/', label: 'Главная', end: true },
+  { to: '/digest', label: 'Дайджест', preserveFilters: false },
+  { to: '/dailies', label: 'Дейлики' },
   { to: '/tournaments', label: 'Турниры' },
   { to: '/players', label: 'Игроки' },
   { to: '/decks', label: 'Колоды' },
-];
-
-const headerLinks: HeaderLink[] = [
-  ...publicLinks,
-  { to: '/admin/tournaments/create', label: 'Добавить турнир', preserveFilters: false },
 ];
 
 type ThemeMode = 'dark' | 'light';
@@ -168,8 +166,16 @@ export function AppLayout() {
 
       <footer className="site-footer">
         <div className="site-footer__inner">
-          Magic Oculus собирает в одном месте результаты турниров, колоды, игроков и матчапы по загруженным событиям
-          Magic: The Gathering.
+          <span>
+            Magic Oculus собирает в одном месте результаты турниров, колоды, игроков и матчапы по загруженным
+            событиям Magic: The Gathering.
+          </span>
+          <Link
+            className="site-footer__version"
+            to="/changelog"
+          >
+            v{currentAppVersion} · Что нового
+          </Link>
         </div>
       </footer>
     </div>

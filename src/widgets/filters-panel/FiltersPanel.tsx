@@ -12,9 +12,10 @@ type FiltersPanelProps = {
   filters: DashboardFilters;
   onChange: (values: Partial<DashboardFilters>) => void;
   onReset: () => void;
+  showTournamentType?: boolean;
 };
 
-export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) {
+export function FiltersPanel({ filters, onChange, onReset, showTournamentType = true }: FiltersPanelProps) {
   const citiesQuery = useQuery({
     queryKey: ['dictionaries', 'cities'],
     queryFn: getCities,
@@ -61,7 +62,7 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
 
   const activeExtraFiltersCount = [
     filters.clubId !== defaultFilters.clubId,
-    filters.tournamentType !== defaultFilters.tournamentType,
+    showTournamentType && filters.tournamentType !== defaultFilters.tournamentType,
     filters.dateFrom !== defaultFilters.dateFrom,
     filters.dateTo !== defaultFilters.dateTo,
     filters.cityId !== defaultFilters.cityId,
@@ -109,14 +110,16 @@ export function FiltersPanel({ filters, onChange, onReset }: FiltersPanelProps) 
           options={formatOptions}
           value={filters.formatId}
         />
-        <Select
-          label="Тип турнира"
-          onChange={(event) =>
-            onChange({ tournamentType: event.target.value as DashboardFilters['tournamentType'] })
-          }
-          options={tournamentTypeOptions}
-          value={filters.tournamentType}
-        />
+        {showTournamentType ? (
+          <Select
+            label="Тип турнира"
+            onChange={(event) =>
+              onChange({ tournamentType: event.target.value as DashboardFilters['tournamentType'] })
+            }
+            options={tournamentTypeOptions}
+            value={filters.tournamentType}
+          />
+        ) : null}
         <Input
           label="Дата от"
           onChange={(event) => onChange({ dateFrom: event.target.value })}

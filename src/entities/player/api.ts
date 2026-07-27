@@ -8,7 +8,7 @@ import {
 } from '@/shared/api/backend-mappers';
 import { endpoints } from '@/shared/api/endpoints';
 import { resolveAppliedFilters } from '@/entities/dictionaries/api';
-import type { DashboardFilters, PlayerDetailsResponse, PlayersListQuery, PlayersListResponse } from '@/shared/api/types';
+import type { DashboardFilters, PlayersListQuery } from '@/shared/api/types';
 
 export function getPlayers(query: PlayersListQuery) {
   const page = query.page ?? 1;

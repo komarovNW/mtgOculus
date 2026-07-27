@@ -1,16 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { getTournaments } from '@/entities/tournament/api';
-import type { TournamentListItem } from '@/shared/api/types';
+import type { TournamentListItem, TournamentType } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { formatDate } from '@/shared/lib/formatDate';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
+import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadingState } from '@/shared/ui/LoadingState';
+import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
@@ -84,41 +85,74 @@ const columns: TableColumn<TournamentListItem>[] = [
   },
 ];
 
-export function TournamentsPage() {
+const scopedColumns = columns.filter((column) => column.id !== 'type');
+
+type TournamentsPageProps = {
+  eventType?: TournamentType;
+};
+
+export function TournamentsPage({ eventType = 'tournament' }: TournamentsPageProps) {
+  const isDaily = eventType === 'daily';
+  const eventNoun = isDaily ? 'дейлик' : 'турнир';
+  const eventPlural = isDaily ? 'дейлики' : 'турниры';
+  const eventNounPlural = isDaily ? 'дейликов' : 'турниров';
+  const eventTitle = isDaily ? 'Дейлики' : 'Турниры';
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
-  const tournamentsQuery = useQuery({
-    queryKey: ['tournaments', apiFilters],
-    queryFn: () => getTournaments({ ...apiFilters, page: 1, limit: 50 }),
+  const tournamentsQuery = useInfiniteQuery({
+    queryKey: ['tournaments', apiFilters, eventType],
+    queryFn: ({ pageParam }) =>
+      getTournaments({
+        ...apiFilters,
+        tournamentType: eventType,
+        page: pageParam,
+        limit: LIST_PAGE_SIZE,
+      }),
+    initialPageParam: 1,
+    getNextPageParam,
   });
+  const firstPage = tournamentsQuery.data?.pages[0];
+  const tournaments = tournamentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const totalCount = firstPage?.pagination.total ?? 0;
+  const hasInitialData = Boolean(firstPage);
 
   return (
     <div className="page-stack">
       <PageHeader
-        badges={getAppliedFilterLabels(tournamentsQuery.data?.appliedFilters).map((label) => (
+        badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Здесь можно быстро найти нужный турнир, а потом открыть стендинги, пары и колоды участников."
-        eyebrow="Турниры"
-        title="Турниры"
+        description={
+          isDaily
+            ? 'Здесь собраны регулярные дейлики: можно открыть стендинги, пары и колоды участников.'
+            : 'Здесь собраны крупные турниры: можно открыть стендинги, пары и колоды участников.'
+        }
+        eyebrow={eventTitle}
+        title={eventTitle}
       />
 
       <FiltersPanel
         filters={filters}
         onChange={setFilters}
         onReset={resetFilters}
+        showTournamentType={false}
       />
 
-      {tournamentsQuery.isLoading ? <LoadingState description="Собираем список турниров." /> : null}
-      {tournamentsQuery.isError ? (
+      {!hasInitialData && tournamentsQuery.isLoading ? (
+        <LoadingState description={`Собираем список ${eventNounPlural}.`} />
+      ) : null}
+      {!hasInitialData && tournamentsQuery.isError ? (
         <ErrorState
-          description={getErrorMessage(tournamentsQuery.error, 'Не получилось загрузить список турниров. Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(
+            tournamentsQuery.error,
+            `Не получилось загрузить список ${eventNounPlural}. Попробуйте обновить страницу или изменить фильтры.`,
+          )}
           onRetry={() => {
             void tournamentsQuery.refetch();
           }}
         />
       ) : null}
 
-      {tournamentsQuery.isSuccess ? (
+      {firstPage ? (
         <>
           <Card
             className="insights-card"
@@ -128,42 +162,42 @@ export function TournamentsPage() {
               <div>
                 <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала смотрите свежие и крупные события, а потом открывайте нужный турнир, если нужны стендинги,
-                  пары и метагейм.
+                  Сначала смотрите свежие и крупные события, а потом открывайте нужный {eventNoun}, если нужны
+                  стендинги, пары и метагейм.
                 </p>
               </div>
             </div>
 
             <div className="insights-grid">
               <div className="insights-summary">
-                <div className="insights-summary__value">{tournamentsQuery.data.pagination.total}</div>
-                <div className="insights-summary__title">турниров найдено</div>
+                <div className="insights-summary__value">{totalCount}</div>
+                <div className="insights-summary__title">{eventNounPlural} найдено</div>
                 <p className="insights-summary__description">
                   Фильтры выше помогут быстро оставить только нужный клуб, формат или период.
                 </p>
               </div>
 
               <div className="insights-list">
-                {tournamentsQuery.data.items[0] ? (
+                {tournaments[0] ? (
                 <article className="insight-item">
-                  <div className="insight-item__title">Самый свежий турнир</div>
+                  <div className="insight-item__title">Самый свежий {eventNoun}</div>
                   <div className="insight-item__body">
                       <EntityLink
-                        id={tournamentsQuery.data.items[0].id}
-                        name={tournamentsQuery.data.items[0].title}
+                        id={tournaments[0].id}
+                        name={tournaments[0].title}
                         type="tournament"
                       />{' '}
-                      на {tournamentsQuery.data.items[0].playersCount} игроков.
+                      на {tournaments[0].playersCount} игроков.
                     </div>
                   </article>
                 ) : null}
 
-                {tournamentsQuery.data.items.length > 0 ? (
+                {tournaments.length > 0 ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">Самый большой турнир в списке</div>
+                    <div className="insight-item__title">Самый большой {eventNoun} в списке</div>
                     <div className="insight-item__body">
                       {(() => {
-                        const biggestTournament = [...tournamentsQuery.data.items].sort(
+                        const biggestTournament = [...tournaments].sort(
                           (left, right) => right.playersCount - left.playersCount || right.matchesCount - left.matchesCount,
                         )[0];
 
@@ -185,40 +219,41 @@ export function TournamentsPage() {
                 <article className="insight-item">
                   <div className="insight-item__title">Что делать дальше</div>
                   <div className="insight-item__body">
-                    Откройте турнир по названию, если хотите посмотреть итоговые места, пары по раундам и колоды всех
-                    участников.
+                    Откройте {eventNoun} по названию, если хотите посмотреть итоговые места, пары по раундам и колоды
+                    всех участников.
                   </div>
                 </article>
               </div>
             </div>
 
-            <div className="insights-actions">
-              <Link
-                className="button button--primary section-link"
-                to="/admin/tournaments/create"
-              >
-                Добавить турнир
-              </Link>
-            </div>
           </Card>
 
           <Card>
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Все турниры</h2>
+                <h2 className="section-header__title">Все {eventPlural}</h2>
                 <p className="section-header__description">
-                  Найдено {tournamentsQuery.data.pagination.total} турниров. Нажмите на турнир, чтобы открыть его
-                  страницу.
+                  Найдено {totalCount} {eventNounPlural}. Нажмите на {eventNoun}, чтобы открыть его страницу.
                 </p>
               </div>
             </div>
             <Table
-              columns={columns}
-              data={tournamentsQuery.data.items}
-              emptyMessage="По этим фильтрам пока нет загруженных турниров."
+              columns={scopedColumns}
+              data={tournaments}
+              emptyMessage={`По этим фильтрам пока нет загруженных ${eventNounPlural}.`}
               getRowKey={(row) => row.id}
               layout="fixed"
               minWidth={880}
+            />
+            <LoadMorePagination
+              hasMore={tournamentsQuery.hasNextPage}
+              isError={tournamentsQuery.isFetchNextPageError}
+              isLoading={tournamentsQuery.isFetchingNextPage}
+              loadedCount={tournaments.length}
+              onLoadMore={() => {
+                void tournamentsQuery.fetchNextPage();
+              }}
+              totalCount={totalCount}
             />
           </Card>
         </>
