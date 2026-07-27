@@ -116,3 +116,21 @@ export async function apiGet<T>(
 
   return (await response.json()) as T;
 }
+
+export async function apiPostForm<T>(
+  path: string,
+  body: FormData,
+  options?: RequestOptions,
+): Promise<T> {
+  const response = await fetch(buildUrl(path), {
+    method: 'POST',
+    body,
+    signal: options?.signal,
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as T;
+}

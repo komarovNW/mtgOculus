@@ -12,6 +12,7 @@ src/
     router/          # React Router
     styles/          # глобальные стили и темы
   entities/
+    admin-tournament/
     deck/
     dictionaries/
     player/
@@ -76,7 +77,7 @@ page → entities/*/api.ts → shared/api/client.ts → backend
 
 ### `shared/api/`
 
-- `client.ts` — GET-запросы и нормализация ошибок;
+- `client.ts` — GET-запросы, публичный multipart POST и нормализация ошибок;
 - `endpoints.ts` — все API paths;
 - `backend-mappers.ts` — фактические типы raw backend-ответов и преобразования;
 - `types.ts` — модели, которыми пользуется UI.
@@ -92,6 +93,7 @@ page → entities/*/api.ts → shared/api/client.ts → backend
 - форматирование;
 - пагинация;
 - статистика игрока;
+- проверка списка игроков и колод;
 - построение ссылок сущностей.
 
 ### `shared/ui/`

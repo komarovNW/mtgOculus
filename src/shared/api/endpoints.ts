@@ -9,4 +9,5 @@ export const endpoints = {
   cities: '/cities',
   clubsByCity: (cityId: string) => `/cities/${cityId}/clubs`,
   formats: '/formats',
+  importTournament: '/admin/tournaments/import',
 } as const;

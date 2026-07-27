@@ -31,7 +31,10 @@ describe('AppLayout navigation', () => {
       'href',
       '/digest',
     );
-    expect(screen.queryByRole('link', { name: 'Добавить' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Добавить' })).toHaveAttribute(
+      'href',
+      '/admin/tournaments/create',
+    );
     expect(screen.getByRole('link', { name: 'v0.2.0 · Что нового' })).toHaveAttribute(
       'href',
       '/changelog',

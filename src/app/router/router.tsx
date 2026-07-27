@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '@/widgets/app-layout/AppLayout';
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage';
+import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
 import { DailiesPage } from '@/pages/dailies/DailiesPage';
 import { DeckDetailPage } from '@/pages/deck-detail/DeckDetailPage';
 import { DecksPage } from '@/pages/decks/DecksPage';
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
       {
         path: 'changelog',
         element: <ChangelogPage />,
+      },
+      {
+        path: 'admin/tournaments/create',
+        element: <CreateTournamentPage />,
       },
       {
         path: 'tournaments',
