@@ -118,9 +118,9 @@ export function HomePage() {
               <HomeHighlights
                 deckMetagame={homeQuery.data.deckMetagame}
                 deckPerformance={homeQuery.data.deckPerformance}
+                popularMatchups={homeQuery.data.popularMatchups}
                 recentTournaments={homeQuery.data.recentTournaments}
                 summary={homeQuery.data.summary}
-                topPlayers={homeQuery.data.topPlayers}
               />
               <DeckMetagameSection
                 actionHref="/decks"

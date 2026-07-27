@@ -1,15 +1,22 @@
-import type { DeckMetagameItem, DeckPerformanceItem, HomeSummary, RecentTournamentItem, TopPlayerItem } from '@/shared/api/types';
+import type {
+  DeckMetagameItem,
+  DeckPerformanceItem,
+  HomeSummary,
+  PopularMatchupItem,
+  RecentTournamentItem,
+} from '@/shared/api/types';
 import { formatPercent } from '@/shared/lib/formatPercent';
-import { SMALL_SAMPLE_HINT, formatRecord } from '@/shared/lib/formatRecord';
-import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
+
+const MIN_DECK_MATCHES = 30;
+const MIN_DECK_TOURNAMENTS = 10;
 
 type HomeHighlightsProps = {
   summary: HomeSummary;
   deckMetagame: DeckMetagameItem[];
   deckPerformance: DeckPerformanceItem[];
-  topPlayers: TopPlayerItem[];
+  popularMatchups: PopularMatchupItem[];
   recentTournaments: RecentTournamentItem[];
 };
 
@@ -17,12 +24,33 @@ export function HomeHighlights({
   summary,
   deckMetagame,
   deckPerformance,
-  topPlayers,
+  popularMatchups,
   recentTournaments,
 }: HomeHighlightsProps) {
   const topMetaDeck = deckMetagame[0];
-  const bestStableDeck = deckPerformance.find((item) => !item.isSmallSample) ?? deckPerformance[0];
-  const topPlayer = topPlayers[0];
+  const metagameByDeckId = new Map(
+    deckMetagame.map((item) => [item.deck.id, item]),
+  );
+  const bestEstablishedDeck = [...deckPerformance]
+    .filter((item) => {
+      const metagame = metagameByDeckId.get(item.deck.id);
+
+      return (
+        item.matchesCount >= MIN_DECK_MATCHES &&
+        (metagame?.tournamentsCount ?? 0) >= MIN_DECK_TOURNAMENTS
+      );
+    })
+    .sort(
+      (left, right) =>
+        right.matchWinRate - left.matchWinRate ||
+        right.matchesCount - left.matchesCount,
+    )[0];
+  const bestEstablishedDeckMetagame = bestEstablishedDeck
+    ? metagameByDeckId.get(bestEstablishedDeck.deck.id)
+    : undefined;
+  const mostPopularMatchup = [...popularMatchups].sort(
+    (left, right) => right.matchesCount - left.matchesCount,
+  )[0];
   const latestTournament = recentTournaments[0];
 
   return (
@@ -34,7 +62,8 @@ export function HomeHighlights({
         <div>
           <h2 className="section-header__title">Главное прямо сейчас</h2>
           <p className="section-header__description">
-            Коротко собрали главное, чтобы можно было быстро понять картину до подробных таблиц.
+            Коротко собрали главное. Результаты колод сравниваем только после 30 матчей
+            минимум в 10 турнирах.
           </p>
         </div>
       </div>
@@ -65,40 +94,43 @@ export function HomeHighlights({
             </article>
           ) : null}
 
-          {bestStableDeck ? (
+          {bestEstablishedDeck && bestEstablishedDeckMetagame ? (
             <article className="insight-item">
-              <div className="insight-item__title">По результатам впереди</div>
+              <div className="insight-item__title">
+                Лучший результат на достаточной выборке
+              </div>
               <div className="insight-item__body">
                 <EntityLink
-                  colors={bestStableDeck.deck.colors}
-                  id={bestStableDeck.deck.id}
-                  name={bestStableDeck.deck.name}
+                  colors={bestEstablishedDeck.deck.colors}
+                  id={bestEstablishedDeck.deck.id}
+                  name={bestEstablishedDeck.deck.name}
                   type="deck"
                 />{' '}
-                с {formatPercent(bestStableDeck.matchWinRate)} побед за {bestStableDeck.matchesCount} матчей.
-                {bestStableDeck.isSmallSample ? (
-                  <Badge
-                    title={SMALL_SAMPLE_HINT}
-                    variant="warning"
-                  >
-                    Малая выборка
-                  </Badge>
-                ) : null}
+                с {formatPercent(bestEstablishedDeck.matchWinRate)} побед за{' '}
+                {bestEstablishedDeck.matchesCount} матчей в{' '}
+                {bestEstablishedDeckMetagame.tournamentsCount} турнирах.
               </div>
             </article>
           ) : null}
 
-          {topPlayer ? (
+          {mostPopularMatchup ? (
             <article className="insight-item">
-              <div className="insight-item__title">Лучший результат сейчас у</div>
+              <div className="insight-item__title">Самый частый матчап</div>
               <div className="insight-item__body">
                 <EntityLink
-                  id={topPlayer.player.id}
-                  name={topPlayer.player.name}
-                  type="player"
+                  colors={mostPopularMatchup.deckA.colors}
+                  id={mostPopularMatchup.deckA.id}
+                  name={mostPopularMatchup.deckA.name}
+                  type="deck"
                 />{' '}
-                с {formatPercent(topPlayer.matchWinRate)} побед и результатом{' '}
-                {formatRecord(topPlayer.matchWins, topPlayer.matchLosses, topPlayer.matchDraws)}.
+                против{' '}
+                <EntityLink
+                  colors={mostPopularMatchup.deckB.colors}
+                  id={mostPopularMatchup.deckB.id}
+                  name={mostPopularMatchup.deckB.name}
+                  type="deck"
+                />{' '}
+                — {mostPopularMatchup.matchesCount} матчей.
               </div>
             </article>
           ) : null}
