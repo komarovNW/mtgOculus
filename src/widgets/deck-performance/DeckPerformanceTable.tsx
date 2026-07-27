@@ -73,14 +73,6 @@ const columns: TableColumn<DeckPerformanceItem>[] = [
     ),
     sortValue: (row) => row.matchWinRate,
   },
-  {
-    id: 'best',
-    header: 'Лучшее место',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
-  },
 ];
 
 type DeckPerformanceTableProps = {
@@ -107,7 +99,7 @@ export function DeckPerformanceTable({
           <p className="section-header__description">
             {limit
               ? 'Сравниваем процент побед только у колод с 30+ матчами минимум в 10 турнирах.'
-              : 'Сравниваем колоды по проценту побед, результату матчей и лучшим финишам.'}
+              : 'Сравниваем колоды по проценту побед и результату матчей.'}
           </p>
         </div>
         {actionHref ? (
