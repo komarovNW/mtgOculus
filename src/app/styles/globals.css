@@ -1012,6 +1012,263 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.form-grid__spacer {
+  display: block;
+}
+
+.form-section {
+  display: grid;
+  gap: 6px;
+}
+
+.form-section__title {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.form-section__description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.create-tournament-guide strong {
+  color: var(--text);
+}
+
+.directory-help {
+  padding: 12px 14px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.aetherhub-club-directory {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.aetherhub-club-directory__title,
+.aetherhub-club-directory__description {
+  margin: 0;
+}
+
+.aetherhub-club-directory__title {
+  font-size: 1rem;
+}
+
+.aetherhub-club-directory__description {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.aetherhub-club-directory__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.aetherhub-club-link {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.aetherhub-club-link:hover {
+  border-color: var(--color-accent-border);
+  background: var(--color-surface-hover);
+}
+
+.aetherhub-club-link strong {
+  color: var(--color-link);
+}
+
+.aetherhub-club-link span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input-format-guide {
+  margin: 2px 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.input-format-guide summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 0.18s ease;
+}
+
+.input-format-guide summary::-webkit-details-marker {
+  display: none;
+}
+
+.input-format-guide summary:hover {
+  background: var(--color-surface-hover);
+}
+
+.input-format-guide summary:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.input-format-guide summary > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.input-format-guide summary small {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.input-format-guide__action {
+  flex: 0 0 auto;
+  color: var(--color-link);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.input-format-guide__action::after {
+  content: 'Раскрыть';
+}
+
+.input-format-guide[open] .input-format-guide__action::after {
+  content: 'Скрыть';
+}
+
+.input-format-guide[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.input-format-guide__body {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.input-format-guide__title,
+.input-format-guide__subtitle,
+.input-format-guide__description {
+  margin: 0;
+}
+
+.input-format-guide__title {
+  font-size: 1.05rem;
+}
+
+.input-format-guide__subtitle {
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.input-format-guide__description {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.input-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.input-mode-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+}
+
+.input-mode-card h4,
+.input-mode-card p,
+.input-mode-card pre {
+  margin: 0;
+}
+
+.input-mode-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.input-mode-format,
+.input-mode-card pre {
+  display: block;
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--color-control-bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre;
+}
+
+.input-numbering-note,
+.input-mode-status {
+  padding: 13px 14px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  line-height: 1.55;
+}
+
+.input-mode-status {
+  display: grid;
+  gap: 4px;
+}
+
+.input-mode-status span {
+  color: var(--muted);
+}
+
+.input-separator-warning {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 48%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  line-height: 1.5;
+}
+
+.input-separator-warning p {
+  margin: 0;
+}
+
 .filters-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
@@ -1827,6 +2084,19 @@ textarea {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid__spacer {
+    display: none;
+  }
+
+  .aetherhub-club-directory__grid,
+  .input-mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-format-guide summary {
+    align-items: flex-start;
   }
 
   .spotlight-card__stats {
