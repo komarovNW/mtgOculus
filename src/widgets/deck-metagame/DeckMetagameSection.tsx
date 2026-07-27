@@ -56,14 +56,6 @@ const columns: TableColumn<DeckMetagameItem>[] = [
     ),
     sortValue: (row) => row.metaShare,
   },
-  {
-    id: 'best',
-    header: 'Лучшее место',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
-  },
 ];
 
 type DeckMetagameSectionProps = {
