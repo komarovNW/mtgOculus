@@ -5,12 +5,10 @@ import type {
   PopularMatchupItem,
   RecentTournamentItem,
 } from '@/shared/api/types';
+import { getEstablishedDeckPerformance } from '@/shared/lib/establishedDecks';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
-
-const MIN_DECK_MATCHES = 30;
-const MIN_DECK_TOURNAMENTS = 10;
 
 type HomeHighlightsProps = {
   summary: HomeSummary;
@@ -31,20 +29,10 @@ export function HomeHighlights({
   const metagameByDeckId = new Map(
     deckMetagame.map((item) => [item.deck.id, item]),
   );
-  const bestEstablishedDeck = [...deckPerformance]
-    .filter((item) => {
-      const metagame = metagameByDeckId.get(item.deck.id);
-
-      return (
-        item.matchesCount >= MIN_DECK_MATCHES &&
-        (metagame?.tournamentsCount ?? 0) >= MIN_DECK_TOURNAMENTS
-      );
-    })
-    .sort(
-      (left, right) =>
-        right.matchWinRate - left.matchWinRate ||
-        right.matchesCount - left.matchesCount,
-    )[0];
+  const bestEstablishedDeck = getEstablishedDeckPerformance(
+    deckPerformance,
+    deckMetagame,
+  )[0];
   const bestEstablishedDeckMetagame = bestEstablishedDeck
     ? metagameByDeckId.get(bestEstablishedDeck.deck.id)
     : undefined;

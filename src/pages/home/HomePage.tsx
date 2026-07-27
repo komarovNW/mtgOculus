@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
+import { getEstablishedDeckPerformance } from '@/shared/lib/establishedDecks';
 import { formatDate } from '@/shared/lib/formatDate';
 import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
@@ -129,7 +130,10 @@ export function HomePage() {
               />
               <DeckPerformanceTable
                 actionHref="/decks"
-                items={homeQuery.data.deckPerformance}
+                items={getEstablishedDeckPerformance(
+                  homeQuery.data.deckPerformance,
+                  homeQuery.data.deckMetagame,
+                )}
                 limit={10}
               />
               <TopPlayersTable
