@@ -18,7 +18,8 @@ export const releases: AppRelease[] = [
     title: 'Больше данных и понятнее структура',
     description:
       'Большое обновление статистики, навигации и документации. Версия собрана из изменений, подготовленных после первого публичного релиза.',
-    status: 'upcoming',
+    status: 'released',
+    releasedAt: '2026-07-27',
     sections: [
       {
         title: 'Новое',
