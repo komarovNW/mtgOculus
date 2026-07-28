@@ -33,6 +33,11 @@ import {
   isEstablishedPlayerDeck,
   sortPlayerMatches,
 } from '@/shared/lib/playerDetailInsights';
+import {
+  getPlayerOpponentList,
+  OPPONENT_WIN_RATE_MIN_MATCHES,
+  type PlayerOpponentStat,
+} from '@/shared/lib/playerStats';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
@@ -42,6 +47,7 @@ import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { Tabs } from '@/shared/ui/Tabs';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
@@ -171,6 +177,62 @@ const deckColumns: TableColumn<PlayerDeckItem>[] = [
 
 const PLAYER_MATCH_GROUP_PAGE_SIZE = 10;
 
+type PlayerDeckSort = 'matches' | 'winrate';
+
+const playerDeckSortOptions = [
+  { value: 'matches', label: 'По числу матчей' },
+  { value: 'winrate', label: 'По винрейту' },
+];
+
+const opponentColumns: TableColumn<PlayerOpponentStat>[] = [
+  {
+    id: 'opponent',
+    header: 'Оппонент',
+    sortValue: (row) => row.opponent.name,
+    render: (row) => (
+      <div className="entity-cell">
+        <EntityLink
+          id={row.opponent.id}
+          name={row.opponent.name}
+          type="player"
+        />
+        {row.matchesCount < OPPONENT_WIN_RATE_MIN_MATCHES ? (
+          <Badge
+            title={`Для устойчивого сравнения с оппонентом нужно минимум ${OPPONENT_WIN_RATE_MIN_MATCHES} матчей.`}
+            variant="warning"
+          >
+            Малая выборка
+          </Badge>
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    id: 'matches',
+    header: 'Встреч',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.matchesCount,
+    sortValue: (row) => row.matchesCount,
+  },
+  {
+    id: 'record',
+    header: MATCH_RECORD_LABEL,
+    align: 'right',
+    headerTitle: MATCH_RECORD_HINT,
+    render: (row) =>
+      formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
+  },
+  {
+    id: 'winrate',
+    header: WIN_RATE_LABEL,
+    align: 'right',
+    headerTitle:
+      'Процент побед именно этого игрока во встречах с указанным оппонентом. Маленькая выборка помечена отдельно.',
+    render: (row) => formatPercent(row.matchWinRate),
+  },
+];
+
 const matchColumns: TableColumn<PlayerMatchItem>[] = [
   {
     id: 'round',
@@ -296,9 +358,12 @@ function getMatchesWord(value: number) {
 export function PlayerDetailPage() {
   const { id = '' } = useParams();
   const [activeTab, setActiveTab] = useState('tournaments');
+  const [deckSort, setDeckSort] = useState<PlayerDeckSort>('matches');
   const [visibleTournamentsCount, setVisibleTournamentsCount] =
     useState(LIST_PAGE_SIZE);
   const [visibleDecksCount, setVisibleDecksCount] = useState(LIST_PAGE_SIZE);
+  const [visibleOpponentsCount, setVisibleOpponentsCount] =
+    useState(LIST_PAGE_SIZE);
   const [visibleMatchGroupsCount, setVisibleMatchGroupsCount] = useState(
     PLAYER_MATCH_GROUP_PAGE_SIZE,
   );
@@ -319,6 +384,7 @@ export function PlayerDetailPage() {
   useEffect(() => {
     setVisibleTournamentsCount(LIST_PAGE_SIZE);
     setVisibleDecksCount(LIST_PAGE_SIZE);
+    setVisibleOpponentsCount(LIST_PAGE_SIZE);
     setVisibleMatchGroupsCount(PLAYER_MATCH_GROUP_PAGE_SIZE);
   }, [filterKey, id]);
 
@@ -354,19 +420,25 @@ export function PlayerDetailPage() {
   );
   const sortedDecks = [...playerQuery.data.decks].sort(
     (left, right) =>
-      right.matchesCount - left.matchesCount ||
+      (deckSort === 'winrate'
+        ? right.matchWinRate - left.matchWinRate ||
+          right.matchesCount - left.matchesCount
+        : right.matchesCount - left.matchesCount ||
+          right.matchWinRate - left.matchWinRate) ||
       right.tournamentsCount - left.tournamentsCount ||
       left.deck.name.localeCompare(right.deck.name, 'ru'),
   );
   const sortedMatches = sortPlayerMatches(
     getPlayerScopedMatches(playerQuery.data),
   );
+  const opponents = getPlayerOpponentList(sortedMatches);
   const matchGroups = groupPlayerMatchesByTournament(sortedMatches);
   const visibleTournaments = sortedTournaments.slice(
     0,
     visibleTournamentsCount,
   );
   const visibleDecks = sortedDecks.slice(0, visibleDecksCount);
+  const visibleOpponents = opponents.slice(0, visibleOpponentsCount);
   const visibleMatchGroups = matchGroups.slice(
     0,
     visibleMatchGroupsCount,
@@ -394,7 +466,7 @@ export function PlayerDetailPage() {
               ]
             : []),
         ]}
-        description="Турниры, колоды и матчи игрока по выбранным фильтрам."
+        description="Турниры, колоды, оппоненты и матчи игрока по выбранным фильтрам."
         eyebrow="Игрок"
         title={player.name}
       />
@@ -528,6 +600,9 @@ export function PlayerDetailPage() {
               <div className="insight-item__body">
                 {mostFrequentOpponent ? (
                   <>
+                    {!insights.isMatchHistoryComplete
+                      ? 'По доступной истории: '
+                      : null}
                     <EntityLink
                       id={mostFrequentOpponent.opponent.id}
                       name={mostFrequentOpponent.opponent.name}
@@ -563,6 +638,10 @@ export function PlayerDetailPage() {
           {
             id: 'decks',
             label: `Колоды (${playerQuery.data.decks.length})`,
+          },
+          {
+            id: 'opponents',
+            label: `Оппоненты (${opponents.length})`,
           },
           {
             id: 'matches',
@@ -612,15 +691,31 @@ export function PlayerDetailPage() {
             <div>
               <h2 className="section-header__title">Колоды игрока</h2>
               <p className="section-header__description">
-                По умолчанию первыми идут наиболее сыгранные колоды. Для
-                статистики на личной странице нужно 5 матчей в 2 событиях.
+                По умолчанию первыми идут наиболее сыгранные колоды. Можно
+                переключить порядок на винрейт; результаты меньше чем за 5
+                матчей в 2 событиях помечаем как малую выборку.
               </p>
             </div>
           </div>
+          <div className="toolbar-grid">
+            <Select
+              label="Сортировка колод"
+              onChange={(event) => {
+                setDeckSort(event.target.value as PlayerDeckSort);
+                setVisibleDecksCount(LIST_PAGE_SIZE);
+              }}
+              options={playerDeckSortOptions}
+              value={deckSort}
+            />
+          </div>
           <Table
+            key={deckSort}
             columns={deckColumns}
             data={visibleDecks}
-            defaultSort={{ columnId: 'matches', direction: 'desc' }}
+            defaultSort={{
+              columnId: deckSort === 'winrate' ? 'winrate' : 'matches',
+              direction: 'desc',
+            }}
             emptyMessage="С этими фильтрами пока не видно, какими колодами играл этот игрок."
             getRowKey={(row) => row.deck.id}
             minWidth={760}
@@ -633,6 +728,51 @@ export function PlayerDetailPage() {
               setVisibleDecksCount((count) => count + LIST_PAGE_SIZE)
             }
             totalCount={playerQuery.data.decks.length}
+          />
+        </Card>
+      ) : null}
+
+      {activeTab === 'opponents' ? (
+        <Card>
+          <div className="section-header">
+            <div>
+              <div className="entity-cell">
+                <h2 className="section-header__title">Личные встречи</h2>
+                {!insights.isMatchHistoryComplete ? (
+                  <Badge
+                    title="Backend вернул не все результаты игрока по текущим фильтрам."
+                    variant="warning"
+                  >
+                    Неполная история
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="section-header__description">
+                Соперники отсортированы по количеству встреч. Винрейт считаем
+                только по реальным матчам: BYE и записи без известного
+                оппонента исключены.
+                {!insights.isMatchHistoryComplete
+                  ? ` Сейчас доступно ${record.matchesCount} из ${summary.matchesCount} учтённых результатов, поэтому показатели отражают только доступную историю.`
+                  : ''}
+              </p>
+            </div>
+          </div>
+          <Table
+            columns={opponentColumns}
+            data={visibleOpponents}
+            defaultSort={{ columnId: 'matches', direction: 'desc' }}
+            emptyMessage="С этими фильтрами пока нет матчей с известными оппонентами."
+            getRowKey={(row) => row.opponent.id}
+            minWidth={980}
+          />
+          <LoadMorePagination
+            hasMore={visibleOpponents.length < opponents.length}
+            isLoading={false}
+            loadedCount={visibleOpponents.length}
+            onLoadMore={() =>
+              setVisibleOpponentsCount((count) => count + LIST_PAGE_SIZE)
+            }
+            totalCount={opponents.length}
           />
         </Card>
       ) : null}

@@ -98,10 +98,15 @@ const columns: TableColumn<DeckListItem>[] = [
 const sortOptions = [
   { value: 'playersCount_desc', label: 'По популярности' },
   { value: 'matchesCount_desc', label: 'По числу матчей' },
+  { value: 'winRate_desc', label: 'По винрейту' },
   { value: 'name_asc', label: 'По названию' },
 ];
 
-type DeckSort = 'playersCount_desc' | 'matchesCount_desc' | 'name_asc';
+type DeckSort =
+  | 'playersCount_desc'
+  | 'matchesCount_desc'
+  | 'winRate_desc'
+  | 'name_asc';
 
 function sortDecks(items: DeckListItem[], sort: DeckSort) {
   return [...items].sort((left, right) => {
@@ -112,7 +117,20 @@ function sortDecks(items: DeckListItem[], sort: DeckSort) {
       });
     }
 
-    if (sort === 'matchesCount_desc') {
+    if (sort === 'winRate_desc') {
+      const sampleDifference =
+        Number(isEstablishedDeck(right)) - Number(isEstablishedDeck(left));
+
+      if (sampleDifference !== 0) return sampleDifference;
+
+      const winRateDifference = right.matchWinRate - left.matchWinRate;
+      if (winRateDifference !== 0) return winRateDifference;
+
+      const matchesDifference =
+        (right.playedMatchesCount ?? right.matchesCount) -
+        (left.playedMatchesCount ?? left.matchesCount);
+      if (matchesDifference !== 0) return matchesDifference;
+    } else if (sort === 'matchesCount_desc') {
       const matchesDifference =
         (right.playedMatchesCount ?? right.matchesCount) -
         (left.playedMatchesCount ?? left.matchesCount);
@@ -158,27 +176,39 @@ export function DecksPage() {
   const search = searchParams.get('search') || '';
   const requestedSort = searchParams.get('sort');
   const sort: DeckSort =
-    requestedSort === 'matchesCount_desc' || requestedSort === 'name_asc'
+    requestedSort === 'matchesCount_desc' ||
+    requestedSort === 'winRate_desc' ||
+    requestedSort === 'name_asc'
       ? requestedSort
       : 'playersCount_desc';
   const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
   const isSearchMode = normalizedSearch.length > 0;
-  const [visibleSearchCount, setVisibleSearchCount] = useState(LIST_PAGE_SIZE);
+  const useClientList = isSearchMode || sort === 'winRate_desc';
+  const serverSort =
+    sort === 'winRate_desc' ? 'playersCount_desc' : sort;
+  const [visibleClientCount, setVisibleClientCount] = useState(LIST_PAGE_SIZE);
   const filtersKey = JSON.stringify(apiFilters);
 
   useEffect(() => {
-    setVisibleSearchCount(LIST_PAGE_SIZE);
+    setVisibleClientCount(LIST_PAGE_SIZE);
   }, [filtersKey, normalizedSearch, sort]);
 
   const sortLabelMap = {
     playersCount_desc: 'по популярности',
     matchesCount_desc: 'по количеству матчей',
+    winRate_desc: 'по винрейту среди колод с достаточной выборкой',
     name_asc: 'по названию',
   } as const;
   const decksQuery = useInfiniteQuery({
     queryKey: ['decks', apiFilters, search, sort],
     queryFn: ({ pageParam }) =>
-      getDecks({ ...apiFilters, search: search || undefined, sort, page: pageParam, limit: LIST_PAGE_SIZE }),
+      getDecks({
+        ...apiFilters,
+        search: search || undefined,
+        sort: serverSort,
+        page: pageParam,
+        limit: LIST_PAGE_SIZE,
+      }),
     initialPageParam: 1,
     getNextPageParam,
   });
@@ -202,19 +232,19 @@ export function DecksPage() {
 
     return sortDecks(matchingDecks, sort);
   }, [deckInsightsQuery.data, isSearchMode, normalizedSearch, sort]);
-  const decks = isSearchMode
-    ? filteredDecks.slice(0, visibleSearchCount)
+  const decks = useClientList
+    ? filteredDecks.slice(0, visibleClientCount)
     : loadedDecks;
-  const totalCount = isSearchMode
+  const totalCount = useClientList
     ? filteredDecks.length
     : firstPage?.pagination.total ?? 0;
-  const hasInitialData = isSearchMode
+  const hasInitialData = useClientList
     ? deckInsightsQuery.isSuccess
     : Boolean(firstPage);
-  const isInitialLoading = isSearchMode
+  const isInitialLoading = useClientList
     ? deckInsightsQuery.isLoading
     : decksQuery.isLoading;
-  const isInitialError = isSearchMode
+  const isInitialError = useClientList
     ? deckInsightsQuery.isError
     : decksQuery.isError;
   const deckInsights = getDeckListInsights(filteredDecks);
@@ -257,11 +287,11 @@ export function DecksPage() {
       {!hasInitialData && isInitialError ? (
         <ErrorState
           description={getErrorMessage(
-            isSearchMode ? deckInsightsQuery.error : decksQuery.error,
+            useClientList ? deckInsightsQuery.error : decksQuery.error,
             'Не получилось загрузить список колод. Попробуйте обновить страницу или изменить фильтры.',
           )}
           onRetry={() => {
-            if (isSearchMode) {
+            if (useClientList) {
               void deckInsightsQuery.refetch();
             } else {
               void decksQuery.refetch();
@@ -410,16 +440,16 @@ export function DecksPage() {
             />
             <LoadMorePagination
               hasMore={
-                isSearchMode
+                useClientList
                   ? decks.length < totalCount
                   : decksQuery.hasNextPage
               }
-              isError={!isSearchMode && decksQuery.isFetchNextPageError}
-              isLoading={!isSearchMode && decksQuery.isFetchingNextPage}
+              isError={!useClientList && decksQuery.isFetchNextPageError}
+              isLoading={!useClientList && decksQuery.isFetchingNextPage}
               loadedCount={decks.length}
               onLoadMore={() => {
-                if (isSearchMode) {
-                  setVisibleSearchCount((count) => count + LIST_PAGE_SIZE);
+                if (useClientList) {
+                  setVisibleClientCount((count) => count + LIST_PAGE_SIZE);
                 } else {
                   void decksQuery.fetchNextPage();
                 }

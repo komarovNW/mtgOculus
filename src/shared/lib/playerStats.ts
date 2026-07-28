@@ -30,11 +30,25 @@ function compareOpponentName(left: PlayerOpponentStat, right: PlayerOpponentStat
   );
 }
 
-export function getPlayerOpponentStats(matches: PlayerMatchItem[]): PlayerOpponentStats {
-  const opponents = new Map<string, PlayerOpponentStat>();
+function isKnownOpponentMatch(match: PlayerMatchItem) {
+  return (
+    Boolean(match.opponent) &&
+    match.kind !== 'unknown' &&
+    match.kind !== 'bye' &&
+    match.isBye !== true &&
+    match.opponent?.id !== 'player_bye' &&
+    match.opponent?.name.trim().toUpperCase() !== 'BYE'
+  );
+}
+
+export function getPlayerOpponentList(matches: PlayerMatchItem[]) {
+  const opponents = new Map<
+    string,
+    PlayerOpponentStat
+  >();
 
   matches.forEach((match) => {
-    if (!match.opponent || match.kind === 'unknown' || match.isBye) {
+    if (!isKnownOpponentMatch(match) || !match.opponent) {
       return;
     }
 
@@ -56,7 +70,24 @@ export function getPlayerOpponentStats(matches: PlayerMatchItem[]): PlayerOppone
     opponents.set(match.opponent.id, current);
   });
 
-  const allOpponents = [...opponents.values()];
+  return [...opponents.values()]
+    .map((item) => ({
+      opponent: item.opponent,
+      matchesCount: item.matchesCount,
+      matchWins: item.matchWins,
+      matchLosses: item.matchLosses,
+      matchDraws: item.matchDraws,
+      matchWinRate: item.matchWinRate,
+    }))
+    .sort(
+      (left, right) =>
+        right.matchesCount - left.matchesCount ||
+        compareOpponentName(left, right),
+    );
+}
+
+export function getPlayerOpponentStats(matches: PlayerMatchItem[]): PlayerOpponentStats {
+  const allOpponents = getPlayerOpponentList(matches);
   const eligibleForWinRate = allOpponents.filter(
     (opponent) => opponent.matchesCount >= OPPONENT_WIN_RATE_MIN_MATCHES,
   );

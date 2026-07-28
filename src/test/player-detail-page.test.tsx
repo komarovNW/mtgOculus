@@ -164,6 +164,15 @@ describe('PlayerDetailPage', () => {
     expect(screen.queryByRole('columnheader', { name: 'Лучшее место' }))
       .not.toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: 'Оппоненты (1)' }));
+    expect(screen.getByRole('heading', { name: 'Личные встречи' }))
+      .toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Общих турниров' }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Последняя встреча' }))
+      .not.toBeInTheDocument();
+    expect(screen.getByText('50.0%')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: 'История (3)' }));
     expect(screen.getByRole('heading', { name: 'История матчей' }))
       .toBeInTheDocument();

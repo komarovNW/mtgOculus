@@ -81,6 +81,8 @@ describe('DecksPage', () => {
       .not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'По лучшему месту' }))
       .not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'По винрейту' }))
+      .toBeInTheDocument();
     expect(screen.getByText('Одна игра').parentElement).toHaveTextContent('Малая выборка');
 
     const allDecksSection = screen.getByRole('heading', { name: 'Все колоды' })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PlayerMatchItem } from '@/shared/api/types';
 import {
   getPlayerFavoriteFormat,
+  getPlayerOpponentList,
   getPlayerOpponentStats,
   OPPONENT_WIN_RATE_MIN_MATCHES,
 } from '@/shared/lib/playerStats';
@@ -68,6 +69,16 @@ describe('player stats calculated from matches', () => {
     expect(stats.bestWinRateOpponent?.matchWinRate).toBe(80);
     expect(stats.worstWinRateOpponent?.opponent.id).toBe('b');
     expect(stats.worstWinRateOpponent?.matchWinRate).toBeCloseTo(16.67, 2);
+
+    const opponents = getPlayerOpponentList(matches);
+
+    expect(opponents[0]).toEqual(
+      expect.objectContaining({
+        matchesCount: 6,
+        matchWins: 1,
+        matchLosses: 5,
+      }),
+    );
   });
 
   it('returns no winrate leaders when nobody reached the cutoff', () => {

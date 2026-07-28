@@ -9,8 +9,9 @@ describe('ChangelogPage', () => {
     render(<ChangelogPage />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Что нового' })).toBeInTheDocument();
+    expect(screen.getByText('v0.2.1')).toBeInTheDocument();
     expect(screen.getByText('v0.2.0')).toBeInTheDocument();
-    expect(screen.getAllByText('Выпущено')).toHaveLength(2);
+    expect(screen.getAllByText('Выпущено')).toHaveLength(3);
     expect(screen.getByText('v0.1.0')).toBeInTheDocument();
     expect(screen.getByText('Первый публичный релиз')).toBeInTheDocument();
   });
