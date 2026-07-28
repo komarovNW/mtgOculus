@@ -35,6 +35,35 @@ export function getPlayers(query: PlayersListQuery) {
   });
 }
 
+export async function getAllPlayers(query: PlayersListQuery) {
+  const pageSize = 100;
+  const firstPage = await getPlayers({
+    ...query,
+    page: 1,
+    limit: pageSize,
+  });
+  const totalPages = firstPage.pagination.totalPages ?? 1;
+
+  if (totalPages <= 1) {
+    return firstPage.items;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getPlayers({
+        ...query,
+        page: index + 2,
+        limit: pageSize,
+      }),
+    ),
+  );
+
+  return [
+    ...firstPage.items,
+    ...remainingPages.flatMap((page) => page.items),
+  ];
+}
+
 export function getPlayerDetails(id: string, filters: Partial<DashboardFilters>) {
   return apiGet<BackendPlayerDetailsResponse>(endpoints.playerById(id), filters).then(async (response) => {
     const appliedFilters = response.appliedFilters

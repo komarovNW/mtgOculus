@@ -27,10 +27,7 @@ describe('AppLayout navigation', () => {
       'href',
       '/decks?cityId=spb&formatId=',
     );
-    expect(screen.getByRole('link', { name: 'Дайджест' })).toHaveAttribute(
-      'href',
-      '/digest',
-    );
+    expect(screen.queryByRole('link', { name: 'Дайджест' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Добавить' })).toHaveAttribute(
       'href',
       '/admin/tournaments/create',

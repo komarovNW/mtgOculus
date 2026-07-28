@@ -1,4 +1,5 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
+import { HomeRedirect } from '@/app/router/HomeRedirect';
 import { AppLayout } from '@/widgets/app-layout/AppLayout';
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage';
 import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
@@ -24,7 +25,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'home',
-        element: <Navigate to="/" replace />,
+        element: <HomeRedirect />,
       },
       {
         path: 'dailies',

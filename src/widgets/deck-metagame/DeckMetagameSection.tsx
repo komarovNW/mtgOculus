@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { DeckMetagameItem } from '@/shared/api/types';
 import { formatChartDeckName } from '@/shared/lib/formatChartDeckName';
@@ -72,6 +73,7 @@ export function DeckMetagameSection({
   actionLabel = 'Смотреть все колоды',
 }: DeckMetagameSectionProps) {
   const location = useLocation();
+  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
   const visibleItems = items.slice(0, limit);
   const chartData = visibleItems.map((item) => ({
     name: item.deck.name,
@@ -94,7 +96,7 @@ export function DeckMetagameSection({
             className="button button--ghost section-link"
             to={{
               pathname: actionHref,
-              search: location.search,
+              search: dashboardFilterSearch,
             }}
           >
             {actionLabel}

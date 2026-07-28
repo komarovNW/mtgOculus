@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 import type { DeckPerformanceItem } from '@/shared/api/types';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import {
@@ -42,7 +43,7 @@ const columns: TableColumn<DeckPerformanceItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Матчей против соперника',
     align: 'right',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
@@ -89,6 +90,7 @@ export function DeckPerformanceTable({
   actionLabel = 'Смотреть все колоды',
 }: DeckPerformanceTableProps) {
   const location = useLocation();
+  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
   const visibleItems = limit ? items.slice(0, limit) : items;
 
   return (
@@ -107,7 +109,7 @@ export function DeckPerformanceTable({
             className="button button--ghost section-link"
             to={{
               pathname: actionHref,
-              search: location.search,
+              search: dashboardFilterSearch,
             }}
           >
             {actionLabel}

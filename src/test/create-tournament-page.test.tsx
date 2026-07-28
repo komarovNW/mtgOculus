@@ -43,6 +43,10 @@ describe('CreateTournamentPage', () => {
       'href',
       'https://aetherhub.com/User/PhillipRus',
     );
+    expect(screen.getByRole('link', { name: /@komarovNV/ })).toHaveAttribute(
+      'href',
+      'https://t.me/komarovNV',
+    );
 
     expect(screen.getByText('1. С именами игроков')).toBeInTheDocument();
     expect(screen.getByText('2. Только колоды — по порядку мест')).toBeInTheDocument();

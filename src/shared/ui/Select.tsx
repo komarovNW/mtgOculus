@@ -12,7 +12,15 @@ type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   helperText?: string;
 };
 
-export function Select({ label, options, helperText, className, id, ...props }: SelectProps) {
+export function Select({
+  label,
+  options,
+  helperText,
+  className,
+  id,
+  required,
+  ...props
+}: SelectProps) {
   const selectId = id ?? label;
 
   return (
@@ -20,10 +28,21 @@ export function Select({ label, options, helperText, className, id, ...props }: 
       className="field"
       htmlFor={selectId}
     >
-      <span className="field__label">{label}</span>
+      <span className="field__label">
+        {label}
+        {required ? (
+          <span
+            aria-hidden="true"
+            className="field__required"
+          >
+            *
+          </span>
+        ) : null}
+      </span>
       <select
         id={selectId}
         className={cn('field__control', 'field__control--select', className)}
+        required={required}
         {...props}
       >
         {options.map((option) => (

@@ -6,7 +6,14 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   helperText?: string;
 };
 
-export function Input({ label, helperText, className, id, ...props }: InputProps) {
+export function Input({
+  label,
+  helperText,
+  className,
+  id,
+  required,
+  ...props
+}: InputProps) {
   const inputId = id ?? label;
 
   return (
@@ -14,14 +21,24 @@ export function Input({ label, helperText, className, id, ...props }: InputProps
       className="field"
       htmlFor={inputId}
     >
-      <span className="field__label">{label}</span>
+      <span className="field__label">
+        {label}
+        {required ? (
+          <span
+            aria-hidden="true"
+            className="field__required"
+          >
+            *
+          </span>
+        ) : null}
+      </span>
       <input
         id={inputId}
         className={cn('field__control', className)}
+        required={required}
         {...props}
       />
       {helperText ? <span className="field__hint">{helperText}</span> : null}
     </label>
   );
 }
-

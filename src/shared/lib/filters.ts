@@ -81,6 +81,24 @@ export function getDashboardFilterSearch(search: string) {
   return value ? `?${value}` : '';
 }
 
+export function buildDashboardFilterSearch(
+  filters: Partial<DashboardFilters>,
+) {
+  const searchParams = new URLSearchParams();
+
+  FILTER_KEYS.forEach((key) => {
+    const value = filters[key];
+
+    if (value) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const value = searchParams.toString();
+
+  return value ? `?${value}` : '';
+}
+
 export function useDashboardFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => readDashboardFilters(searchParams), [searchParams]);

@@ -91,6 +91,9 @@ type BackendTournamentListItem = {
   playersCount: number;
   roundsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number | null;
+  byesCount?: number | null;
+  unknownResultsCount?: number | null;
   winner?: BackendWinner;
 };
 
@@ -148,7 +151,9 @@ type BackendRoundMatch = {
 
 type BackendTournamentDetailsResponse = {
   appliedFilters?: BackendAppliedFilters | null;
-  tournament: BackendTournamentListItem;
+  tournament: BackendTournamentListItem & {
+    aetherhubUrl?: string | null;
+  };
   standings: BackendTournamentStandingItem[];
   rounds: Array<{
     roundNumber: number;
@@ -172,6 +177,9 @@ type BackendPlayersListItem = {
   player: BackendPlayer;
   tournamentsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number | null;
+  byesCount?: number | null;
+  unknownResultsCount?: number | null;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -189,6 +197,9 @@ type BackendPlayerDetailsResponse = {
   summary: {
     tournamentsCount: number;
     matchesCount: number;
+    playedMatchesCount?: number | null;
+    byesCount?: number | null;
+    unknownResultsCount?: number | null;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
@@ -229,16 +240,19 @@ type BackendPlayerDetailsResponse = {
       title: string;
       date: string;
       format?: BackendFormat | null;
+      type?: TournamentType;
+      club?: BackendClub | null;
     };
     roundNumber: number;
     tableNumber: number;
     playerDeck?: BackendDeck | null;
-    opponent: BackendPlayer;
+    opponent?: BackendPlayer | null;
     opponentDeck?: BackendDeck | null;
     playerScore: number;
     opponentScore: number;
     scoreText: string;
     result: 'win' | 'loss' | 'draw';
+    isBye?: boolean | null;
   }>;
 };
 
@@ -248,6 +262,9 @@ type BackendDeckListItem = {
   tournamentsCount: number;
   playersCount: number;
   matchesCount: number;
+  playedMatchesCount?: number | null;
+  byesCount?: number | null;
+  unknownResultsCount?: number | null;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -268,6 +285,11 @@ type BackendDeckDetailsResponse = {
     playersCount: number;
     uniquePlayersCount: number;
     matchesCount: number;
+    playedMatchesCount?: number | null;
+    byesCount?: number | null;
+    unknownResultsCount?: number | null;
+    matchesWithKnownOpponentDeckCount?: number | null;
+    matchesWithUnknownOpponentDeckCount?: number | null;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
@@ -354,6 +376,7 @@ const UNKNOWN_CLUB_NAME = 'Неизвестный клуб';
 const UNKNOWN_FORMAT_NAME = 'Неизвестный формат';
 const UNKNOWN_DECK_NAME = 'Колода не указана';
 const BYE_PLAYER_ID = 'player_bye';
+const UNKNOWN_PLAYER_ID = 'player_unknown';
 
 function mapCity(raw?: BackendCity | null, fallbackId = ''): City {
   return {
@@ -438,6 +461,9 @@ function mapTournamentListItem(raw: BackendTournamentListItem): TournamentListIt
     playersCount: raw.playersCount,
     roundsCount: raw.roundsCount,
     matchesCount: raw.matchesCount,
+    playedMatchesCount: raw.playedMatchesCount ?? undefined,
+    byesCount: raw.byesCount ?? undefined,
+    unknownResultsCount: raw.unknownResultsCount ?? undefined,
     winner: mapWinner(raw.winner),
   };
 }
@@ -475,20 +501,41 @@ function mapAppliedFilters(raw?: BackendAppliedFilters | null): AppliedFilters {
   };
 }
 
-function mapTournamentRoundMatch(raw: BackendRoundMatch): TournamentRoundMatch {
+function mapTournamentRoundMatch(
+  raw: BackendRoundMatch,
+  deckByPlayerId?: Map<string, DeckShort | undefined>,
+): TournamentRoundMatch {
+  const playerA = mapTournamentMatchPlayer(raw.playerA);
+  const playerB = raw.playerB ? mapTournamentMatchPlayer(raw.playerB) : undefined;
+  const kind = raw.isBye === true
+    ? 'bye'
+    : playerB
+      ? 'played'
+      : 'unknown';
+
+  if (deckByPlayerId?.has(playerA.id)) {
+    playerA.deck = deckByPlayerId.get(playerA.id);
+  }
+
+  if (playerB && deckByPlayerId?.has(playerB.id)) {
+    playerB.deck = deckByPlayerId.get(playerB.id);
+  }
+
   return {
     tableNumber: raw.tableNumber,
-    playerA: mapTournamentMatchPlayer(raw.playerA),
-    playerB: raw.playerB
-      ? mapTournamentMatchPlayer(raw.playerB)
+    playerA,
+    playerB: playerB
+      ? playerB
       : {
-          id: BYE_PLAYER_ID,
-          name: 'BYE',
+          id: kind === 'bye' ? BYE_PLAYER_ID : UNKNOWN_PLAYER_ID,
+          name: kind === 'bye' ? 'BYE' : 'Оппонент не указан',
           deck: undefined,
           score: 0,
-        },
+    },
     scoreText: raw.scoreText,
     winnerPlayerId: raw.winnerPlayerId ? String(raw.winnerPlayerId) : undefined,
+    isBye: kind === 'bye',
+    kind,
   };
 }
 
@@ -541,6 +588,9 @@ export function mapHomeResponse(raw: BackendHomeResponse, appliedFilters: Applie
       player: mapPlayerShort(item.player)!,
       tournamentsCount: item.tournamentsCount,
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount ?? undefined,
+      byesCount: item.byesCount ?? undefined,
+      unknownResultsCount: item.unknownResultsCount ?? undefined,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
@@ -576,8 +626,18 @@ export function mapTournamentListResponse(
 }
 
 export function mapTournamentDetailsResponse(raw: BackendTournamentDetailsResponse): TournamentDetailsResponse {
+  const deckByPlayerId = new Map(
+    raw.playerDecks.map((item) => [
+      String(item.player.id),
+      mapDeckShort(item.deck ?? null),
+    ]),
+  );
+
   return {
-    tournament: mapTournamentListItem(raw.tournament),
+    tournament: {
+      ...mapTournamentListItem(raw.tournament),
+      aetherhubUrl: raw.tournament.aetherhubUrl ?? null,
+    },
     standings: raw.standings.map<TournamentStandingItem>((item) => ({
       rank: item.rank,
       player: mapPlayerShort(item.player)!,
@@ -593,7 +653,9 @@ export function mapTournamentDetailsResponse(raw: BackendTournamentDetailsRespon
     })),
     rounds: raw.rounds.map<TournamentRound>((round) => ({
       roundNumber: round.roundNumber,
-      matches: round.matches.map(mapTournamentRoundMatch),
+      matches: round.matches.map((match) =>
+        mapTournamentRoundMatch(match, deckByPlayerId),
+      ),
     })),
     playerDecks: raw.playerDecks.map<TournamentPlayerDeckItem>((item) => ({
       player: mapPlayerShort(item.player)!,
@@ -623,6 +685,9 @@ export function mapPlayersListResponse(
       player: mapPlayerShort(item.player)!,
       tournamentsCount: item.tournamentsCount,
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount ?? undefined,
+      byesCount: item.byesCount ?? undefined,
+      unknownResultsCount: item.unknownResultsCount ?? undefined,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
@@ -644,6 +709,9 @@ export function mapPlayerDetailsResponse(
     summary: {
       tournamentsCount: raw.summary.tournamentsCount,
       matchesCount: raw.summary.matchesCount,
+      playedMatchesCount: raw.summary.playedMatchesCount ?? undefined,
+      byesCount: raw.summary.byesCount ?? undefined,
+      unknownResultsCount: raw.summary.unknownResultsCount ?? undefined,
       matchWins: raw.summary.matchWins,
       matchLosses: raw.summary.matchLosses,
       matchDraws: raw.summary.matchDraws,
@@ -678,23 +746,40 @@ export function mapPlayerDetailsResponse(
       bestRank: item.bestRank ?? null,
       isSmallSample: item.isSmallSample,
     })),
-    recentMatches: raw.recentMatches.map<PlayerMatchItem>((item) => ({
-      tournament: {
+    recentMatches: raw.recentMatches.map<PlayerMatchItem>((item) => {
+      const opponentIsBye =
+        String(item.opponent?.id ?? '') === BYE_PLAYER_ID ||
+        item.opponent?.name.trim().toUpperCase() === 'BYE';
+      const kind = item.isBye === true || opponentIsBye
+        ? 'bye'
+        : item.opponent
+          ? 'played'
+          : 'unknown';
+
+      return {
+        tournament: {
         id: String(item.tournament.id),
         title: item.tournament.title,
         date: item.tournament.date,
         format: mapFormat(item.tournament.format),
-      },
-      roundNumber: item.roundNumber,
-      tableNumber: item.tableNumber,
-      playerDeck: mapDeckShort(item.playerDeck ?? null),
-      opponent: mapPlayerShort(item.opponent)!,
-      opponentDeck: mapDeckShort(item.opponentDeck ?? null),
-      playerScore: item.playerScore,
-      opponentScore: item.opponentScore,
-      scoreText: item.scoreText,
-      result: item.result,
-    })),
+        type: item.tournament.type,
+        club: item.tournament.club
+          ? mapClub(item.tournament.club)
+          : undefined,
+        },
+        roundNumber: item.roundNumber,
+        tableNumber: item.tableNumber,
+        playerDeck: mapDeckShort(item.playerDeck ?? null),
+        opponent: mapPlayerShort(item.opponent ?? null),
+        opponentDeck: mapDeckShort(item.opponentDeck ?? null),
+        playerScore: item.playerScore,
+        opponentScore: item.opponentScore,
+        scoreText: item.scoreText,
+        result: item.result,
+        isBye: kind === 'bye',
+        kind,
+      };
+    }),
   };
 }
 
@@ -711,6 +796,9 @@ export function mapDecksListResponse(
       tournamentsCount: item.tournamentsCount,
       playersCount: item.playersCount,
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount ?? undefined,
+      byesCount: item.byesCount ?? undefined,
+      unknownResultsCount: item.unknownResultsCount ?? undefined,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
@@ -738,6 +826,13 @@ export function mapDeckDetailsResponse(
       playersCount: raw.summary.playersCount,
       uniquePlayersCount: raw.summary.uniquePlayersCount,
       matchesCount: raw.summary.matchesCount,
+      playedMatchesCount: raw.summary.playedMatchesCount ?? undefined,
+      byesCount: raw.summary.byesCount ?? undefined,
+      unknownResultsCount: raw.summary.unknownResultsCount ?? undefined,
+      matchesWithKnownOpponentDeckCount:
+        raw.summary.matchesWithKnownOpponentDeckCount ?? undefined,
+      matchesWithUnknownOpponentDeckCount:
+        raw.summary.matchesWithUnknownOpponentDeckCount ?? undefined,
       matchWins: raw.summary.matchWins,
       matchLosses: raw.summary.matchLosses,
       matchDraws: raw.summary.matchDraws,
@@ -765,6 +860,7 @@ export function mapDeckDetailsResponse(
     })),
     matchups: raw.matchups.map<DeckMatchupItem>((item) => ({
       opponentDeck: mapDeckOrFallback(item.opponentDeck, UNKNOWN_DECK_NAME),
+      hasKnownOpponentDeck: Boolean(item.opponentDeck),
       matchesCount: item.matchesCount,
       wins: item.wins,
       losses: item.losses,

@@ -34,6 +34,35 @@ export function getDecks(query: DecksListQuery) {
   });
 }
 
+export async function getAllDecks(query: DecksListQuery) {
+  const pageSize = 100;
+  const firstPage = await getDecks({
+    ...query,
+    page: 1,
+    limit: pageSize,
+  });
+  const totalPages = firstPage.pagination.totalPages ?? 1;
+
+  if (totalPages <= 1) {
+    return firstPage.items;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getDecks({
+        ...query,
+        page: index + 2,
+        limit: pageSize,
+      }),
+    ),
+  );
+
+  return [
+    ...firstPage.items,
+    ...remainingPages.flatMap((page) => page.items),
+  ];
+}
+
 export function getDeckDetails(id: string, filters: Partial<DashboardFilters>) {
   return apiGet<BackendDeckDetailsResponse>(endpoints.deckById(id), filters).then(async (response) => {
     const appliedFilters = response.appliedFilters

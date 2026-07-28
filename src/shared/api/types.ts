@@ -1,4 +1,5 @@
 export type TournamentType = 'daily' | 'tournament';
+export type MatchKind = 'played' | 'bye' | 'unknown';
 
 export type QueryValue = string | number | boolean | undefined | null;
 
@@ -71,6 +72,9 @@ export type HomeSummary = {
   tournamentPlayersCount: number;
   uniquePlayersCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   uniqueDecksCount: number;
 };
 
@@ -113,6 +117,9 @@ export type TopPlayerItem = {
   player: PlayerShort;
   tournamentsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -159,6 +166,9 @@ export type TournamentListItem = {
   playersCount: number;
   roundsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   winner?: {
     player: PlayerShort;
     deck?: DeckShort | null;
@@ -179,7 +189,9 @@ export type TournamentListResponse = {
   appliedFilters: AppliedFilters;
 };
 
-export type TournamentDetails = TournamentListItem;
+export type TournamentDetails = TournamentListItem & {
+  aetherhubUrl?: string | null;
+};
 
 export type TournamentStandingItem = {
   rank: number;
@@ -208,6 +220,8 @@ export type TournamentRoundMatch = {
   playerB: TournamentMatchPlayer;
   scoreText: string;
   winnerPlayerId?: string;
+  isBye: boolean;
+  kind?: MatchKind;
 };
 
 export type TournamentRound = {
@@ -249,6 +263,9 @@ export type PlayerListItem = {
   player: PlayerShort;
   tournamentsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -267,6 +284,9 @@ export type PlayersListResponse = {
 export type PlayerSummary = {
   tournamentsCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -319,16 +339,20 @@ export type PlayerMatchItem = {
     title: string;
     date: string;
     format: Format;
+    type?: TournamentType;
+    club?: Club;
   };
   roundNumber: number;
   tableNumber: number;
   playerDeck?: DeckShort;
-  opponent: PlayerShort;
+  opponent?: PlayerShort;
   opponentDeck?: DeckShort;
   playerScore: number;
   opponentScore: number;
   scoreText: string;
   result: 'win' | 'loss' | 'draw';
+  isBye?: boolean;
+  kind?: MatchKind;
 };
 
 export type PlayerDetailsResponse = {
@@ -353,6 +377,9 @@ export type DeckListItem = {
   tournamentsCount: number;
   playersCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -372,6 +399,11 @@ export type DeckSummary = {
   playersCount: number;
   uniquePlayersCount: number;
   matchesCount: number;
+  playedMatchesCount?: number;
+  byesCount?: number;
+  unknownResultsCount?: number;
+  matchesWithKnownOpponentDeckCount?: number;
+  matchesWithUnknownOpponentDeckCount?: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -411,6 +443,7 @@ export type DeckPlayerItem = {
 
 export type DeckMatchupItem = {
   opponentDeck: DeckShort;
+  hasKnownOpponentDeck?: boolean;
   matchesCount: number;
   wins: number;
   losses: number;

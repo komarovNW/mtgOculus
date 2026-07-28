@@ -1,12 +1,15 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { getPlayers } from '@/entities/player/api';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { getAllPlayers, getPlayers } from '@/entities/player/api';
 import type { PlayerListItem, PlayersListQuery } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
+import {
+  ESTABLISHED_PLAYER_SAMPLE_HINT,
+  isEstablishedPlayer,
+} from '@/shared/lib/establishedPlayers';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import {
   MATCH_RECORD_HINT,
   MATCH_RECORD_LABEL,
-  SMALL_SAMPLE_HINT,
   WIN_RATE_HINT,
   WIN_RATE_LABEL,
   formatRecord,
@@ -15,9 +18,11 @@ import {
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
+import { getPlayerListInsights } from '@/shared/lib/playerListInsights';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { Input } from '@/shared/ui/Input';
 import { LoadingState } from '@/shared/ui/LoadingState';
@@ -26,6 +31,8 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
+import { PlayerActivityOverview } from '@/widgets/player-activity/PlayerActivityOverview';
+import { PlayerFavoriteDecks } from '@/widgets/player-favorite-decks/PlayerFavoriteDecks';
 
 const columns: TableColumn<PlayerListItem>[] = [
   {
@@ -39,9 +46,9 @@ const columns: TableColumn<PlayerListItem>[] = [
           name={row.player.name}
           type="player"
         />
-        {row.isSmallSample ? (
+        {!isEstablishedPlayer(row) ? (
           <Badge
-            title={SMALL_SAMPLE_HINT}
+            title={ESTABLISHED_PLAYER_SAMPLE_HINT}
             variant="warning"
           >
             Малая выборка
@@ -60,10 +67,17 @@ const columns: TableColumn<PlayerListItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Результатов учтено',
     align: 'right',
     defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
+    render: (row) => (
+      <div className="stacked-cell stacked-cell--end">
+        <span>{row.matchesCount}</span>
+        {row.byesCount ? (
+          <span className="muted-text">включая {row.byesCount} BYE</span>
+        ) : null}
+      </div>
+    ),
     sortValue: (row) => row.matchesCount,
   },
   {
@@ -85,14 +99,6 @@ const columns: TableColumn<PlayerListItem>[] = [
     sortValue: (row) => row.matchWinRate,
   },
   {
-    id: 'best',
-    header: 'Лучшее место',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
-  },
-  {
     id: 'deck',
     header: 'Любимая колода',
     sortValue: (row) => row.mostPlayedDeck?.name,
@@ -111,23 +117,23 @@ const columns: TableColumn<PlayerListItem>[] = [
 ];
 
 const sortOptions = [
-  { value: 'matchWinRate', label: 'По проценту побед' },
   { value: 'matchesCount', label: 'По числу матчей' },
   { value: 'tournamentsCount', label: 'По числу турниров' },
-  { value: 'bestRank', label: 'По лучшему месту' },
   { value: 'name', label: 'По имени' },
 ];
 
 export function PlayersPage() {
   const { filters, apiFilters, setFilters, resetFilters, searchParams, updateQueryParams } = useDashboardFilters();
   const search = searchParams.get('search') || '';
-  const sort = (searchParams.get('sort') || 'matchWinRate') as NonNullable<PlayersListQuery['sort']>;
-  const order = sort === 'name' || sort === 'bestRank' ? 'asc' : 'desc';
-  const sortLabelMap: Record<NonNullable<PlayersListQuery['sort']>, string> = {
-    matchWinRate: 'по проценту побед',
+  const requestedSort = searchParams.get('sort');
+  const sort: NonNullable<PlayersListQuery['sort']> =
+    requestedSort === 'tournamentsCount' || requestedSort === 'name'
+      ? requestedSort
+      : 'matchesCount';
+  const order = sort === 'name' ? 'asc' : 'desc';
+  const sortLabelMap: Record<'matchesCount' | 'tournamentsCount' | 'name', string> = {
     matchesCount: 'по количеству матчей',
     tournamentsCount: 'по числу турниров',
-    bestRank: 'по лучшему месту',
     name: 'по имени',
   };
 
@@ -145,10 +151,21 @@ export function PlayersPage() {
     initialPageParam: 1,
     getNextPageParam,
   });
+  const playerInsightsQuery = useQuery({
+    queryKey: ['player-list-insights', apiFilters, search],
+    queryFn: () =>
+      getAllPlayers({
+        ...apiFilters,
+        search: search || undefined,
+        sort: 'matchesCount',
+        order: 'desc',
+      }),
+  });
   const firstPage = playersQuery.data?.pages[0];
   const players = playersQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = firstPage?.pagination.total ?? 0;
   const hasInitialData = Boolean(firstPage);
+  const playerInsights = getPlayerListInsights(playerInsightsQuery.data ?? []);
 
   return (
     <div className="page-stack">
@@ -194,7 +211,16 @@ export function PlayersPage() {
         />
       ) : null}
 
-      {firstPage ? (
+      {firstPage ? totalCount === 0 ? (
+        <EmptyState
+          description={
+            search
+              ? 'Попробуйте изменить запрос или сбросить фильтры.'
+              : 'Попробуйте изменить или сбросить выбранные фильтры.'
+          }
+          title={search ? 'Игроки по этому запросу не найдены' : 'По этим фильтрам нет игроков'}
+        />
+      ) : (
         <>
           <Card
             className="insights-card"
@@ -204,8 +230,8 @@ export function PlayersPage() {
               <div>
                 <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала найдите лидеров по нужной метрике, а потом открывайте страницу игрока, если хотите увидеть
-                  его турниры, колоды и последние матчи.
+                  Сводка строится по всем игрокам из текущей выборки и не зависит от
+                  сортировки или загруженной страницы.
                 </p>
               </div>
             </div>
@@ -215,48 +241,88 @@ export function PlayersPage() {
                 <div className="insights-summary__value">{totalCount}</div>
                 <div className="insights-summary__title">игроков найдено</div>
                 <p className="insights-summary__description">
-                  Сейчас список отсортирован {sortLabelMap[sort]}. Поиск выше помогает быстро найти нужного игрока.
+                  Таблица отсортирована {sortLabelMap[sort]}. Для сравнения результатов
+                  нужен минимум 20 матчей в 5 турнирах.
                 </p>
               </div>
 
               <div className="insights-list">
-                {players[0] ? (
+                {playerInsightsQuery.isLoading ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">Сейчас вверху списка</div>
+                    <div className="insight-item__title">Собираем ориентир</div>
                     <div className="insight-item__body">
-                      <EntityLink
-                        id={players[0].player.id}
-                        name={players[0].player.name}
-                        type="player"
-                      />{' '}
-                      с {formatPercent(players[0].matchWinRate)} побед и результатом{' '}
-                      {formatRecord(
-                        players[0].matchWins,
-                        players[0].matchLosses,
-                        players[0].matchDraws,
-                      )}
-                      .
+                      Загружаем все страницы игроков по текущим фильтрам.
+                    </div>
+                  </article>
+                ) : null}
+                {playerInsightsQuery.isError ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Ориентир временно недоступен</div>
+                    <div className="insight-item__body">
+                      Не получилось собрать общую статистику. Таблица игроков ниже
+                      продолжает работать.
                     </div>
                   </article>
                 ) : null}
 
-                <article className="insight-item">
-                  <div className="insight-item__title">Где статистика уже набралась</div>
-                  <div className="insight-item__body">
-                    У {players.filter((item) => !item.isSmallSample).length} игроков уже достаточно
-                    матчей, чтобы процент побед выглядел надёжнее.
-                  </div>
-                </article>
+                {playerInsights.bestEstablishedPlayer ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">
+                      Лучший результат на достаточной выборке
+                    </div>
+                    <div className="insight-item__body">
+                      <EntityLink
+                        id={playerInsights.bestEstablishedPlayer.player.id}
+                        name={playerInsights.bestEstablishedPlayer.player.name}
+                        type="player"
+                      />{' '}
+                      — {formatPercent(playerInsights.bestEstablishedPlayer.matchWinRate)} побед,
+                      результат{' '}
+                      {formatRecord(
+                        playerInsights.bestEstablishedPlayer.matchWins,
+                        playerInsights.bestEstablishedPlayer.matchLosses,
+                        playerInsights.bestEstablishedPlayer.matchDraws,
+                      )}{' '}
+                      за {playerInsights.bestEstablishedPlayer.matchesCount} матчей в{' '}
+                      {playerInsights.bestEstablishedPlayer.tournamentsCount} турнирах.
+                    </div>
+                  </article>
+                ) : null}
 
-                <article className="insight-item">
-                  <div className="insight-item__title">Что делать дальше</div>
-                  <div className="insight-item__body">
-                    Откройте страницу игрока, если хотите посмотреть его турниры, любимые колоды и недавние матчи.
-                  </div>
-                </article>
+                {playerInsights.mostActivePlayer ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Самый активный игрок</div>
+                    <div className="insight-item__body">
+                      <EntityLink
+                        id={playerInsights.mostActivePlayer.player.id}
+                        name={playerInsights.mostActivePlayer.player.name}
+                        type="player"
+                      />{' '}
+                      сыграл {playerInsights.mostActivePlayer.matchesCount} матчей в{' '}
+                      {playerInsights.mostActivePlayer.tournamentsCount} турнирах.
+                    </div>
+                  </article>
+                ) : null}
+
+                {playerInsightsQuery.isSuccess ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Достаточная выборка</div>
+                    <div className="insight-item__body">
+                      Порог 20 матчей в 5 турнирах прошли{' '}
+                      {playerInsights.establishedPlayersCount} из {totalCount} игроков.
+                    </div>
+                  </article>
+                ) : null}
               </div>
             </div>
           </Card>
+
+          {playerInsightsQuery.isSuccess ? (
+            <>
+              <PlayerActivityOverview insights={playerInsights} />
+              <PlayerFavoriteDecks items={playerInsights.favoriteDecks} />
+            </>
+          ) : null}
 
           <Card>
             <div className="section-header">
@@ -264,7 +330,8 @@ export function PlayersPage() {
                 <h2 className="section-header__title">Все игроки</h2>
                 <p className="section-header__description">
                   Найдено {totalCount} игроков. Нажмите на имя, чтобы открыть страницу игрока и
-                  подробную статистику.
+                  подробную статистику. По умолчанию первыми идут игроки с наибольшим
+                  количеством матчей.
                 </p>
               </div>
             </div>
@@ -273,7 +340,7 @@ export function PlayersPage() {
               data={players}
               emptyMessage="По этим фильтрам пока нет игроков."
               getRowKey={(row) => row.player.id}
-              minWidth={1120}
+              minWidth={980}
             />
             <LoadMorePagination
               hasMore={playersQuery.hasNextPage}

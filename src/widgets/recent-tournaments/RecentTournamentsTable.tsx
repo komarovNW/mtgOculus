@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 import type { RecentTournamentItem } from '@/shared/api/types';
 import { formatDate } from '@/shared/lib/formatDate';
 import { Badge } from '@/shared/ui/Badge';
@@ -171,6 +172,7 @@ export function RecentTournamentsTable({
   actionLabel = 'Смотреть все турниры',
 }: RecentTournamentsTableProps) {
   const location = useLocation();
+  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
   const visibleItems = limit ? items.slice(0, limit) : items;
 
   return (
@@ -189,7 +191,7 @@ export function RecentTournamentsTable({
             className="button button--ghost section-link"
             to={{
               pathname: actionHref,
-              search: location.search,
+              search: dashboardFilterSearch,
             }}
           >
             {actionLabel}

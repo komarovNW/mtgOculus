@@ -12,10 +12,17 @@ type FiltersPanelProps = {
   filters: DashboardFilters;
   onChange: (values: Partial<DashboardFilters>) => void;
   onReset: () => void;
+  showFormat?: boolean;
   showTournamentType?: boolean;
 };
 
-export function FiltersPanel({ filters, onChange, onReset, showTournamentType = true }: FiltersPanelProps) {
+export function FiltersPanel({
+  filters,
+  onChange,
+  onReset,
+  showFormat = true,
+  showTournamentType = true,
+}: FiltersPanelProps) {
   const citiesQuery = useQuery({
     queryKey: ['dictionaries', 'cities'],
     queryFn: getCities,
@@ -23,6 +30,7 @@ export function FiltersPanel({ filters, onChange, onReset, showTournamentType = 
   const formatsQuery = useQuery({
     queryKey: ['dictionaries', 'formats'],
     queryFn: getFormats,
+    enabled: showFormat,
   });
   const clubsQuery = useQuery({
     queryKey: ['dictionaries', 'clubs', filters.cityId],
@@ -66,7 +74,7 @@ export function FiltersPanel({ filters, onChange, onReset, showTournamentType = 
     filters.dateFrom !== defaultFilters.dateFrom,
     filters.dateTo !== defaultFilters.dateTo,
     filters.cityId !== defaultFilters.cityId,
-    filters.formatId !== defaultFilters.formatId,
+    showFormat && filters.formatId !== defaultFilters.formatId,
   ].filter(Boolean).length;
 
   return (
@@ -78,7 +86,10 @@ export function FiltersPanel({ filters, onChange, onReset, showTournamentType = 
             <Badge>{activeExtraFiltersCount > 0 ? `Изменено фильтров: ${activeExtraFiltersCount}` : 'По умолчанию'}</Badge>
           </div>
           <p className="section-header__description">
-            Эти фильтры меняют всю статистику на странице. Можно быстро сузить данные по городу, клубу, формату и датам.
+            Эти фильтры меняют всю статистику на странице. Можно быстро сузить
+            данные по городу, клубу
+            {showFormat ? ', формату' : ''}
+            {showTournamentType ? ', типу события' : ''} и датам.
           </p>
         </div>
         <Button
@@ -104,15 +115,17 @@ export function FiltersPanel({ filters, onChange, onReset, showTournamentType = 
           options={clubOptions}
           value={filters.clubId}
         />
-        <Select
-          label="Формат"
-          onChange={(event) => onChange({ formatId: event.target.value })}
-          options={formatOptions}
-          value={filters.formatId}
-        />
+        {showFormat ? (
+          <Select
+            label="Формат"
+            onChange={(event) => onChange({ formatId: event.target.value })}
+            options={formatOptions}
+            value={filters.formatId}
+          />
+        ) : null}
         {showTournamentType ? (
           <Select
-            label="Тип турнира"
+            label="Тип события"
             onChange={(event) =>
               onChange({ tournamentType: event.target.value as DashboardFilters['tournamentType'] })
             }

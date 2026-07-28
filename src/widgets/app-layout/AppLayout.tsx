@@ -13,7 +13,6 @@ type HeaderLink = {
 
 const headerLinks: HeaderLink[] = [
   { to: '/', label: 'Главная', end: true },
-  { to: '/digest', label: 'Дайджест', preserveFilters: false },
   { to: '/dailies', label: 'Дейлики' },
   { to: '/tournaments', label: 'Турниры' },
   { to: '/players', label: 'Игроки' },

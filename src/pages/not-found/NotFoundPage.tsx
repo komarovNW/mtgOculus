@@ -1,8 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 import { Card } from '@/shared/ui/Card';
 import { PageHeader } from '@/shared/ui/PageHeader';
 
 export function NotFoundPage() {
+  const location = useLocation();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -17,7 +20,10 @@ export function NotFoundPage() {
         <div className="form-actions">
           <Link
             className="button button--primary"
-            to="/"
+            to={{
+              pathname: '/',
+              search: getDashboardFilterSearch(location.search),
+            }}
           >
             На главную
           </Link>

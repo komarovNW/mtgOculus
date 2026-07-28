@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildDashboardFilterSearch,
   defaultFilters,
   emptyFilters,
   getDashboardFilterSearch,
@@ -36,6 +37,19 @@ describe('dashboard filters', () => {
     expect(
       getDashboardFilterSearch('?cityId=spb&formatId=&tournamentType=daily&page=3&sort=name'),
     ).toBe('?cityId=spb&formatId=&tournamentType=daily');
+  });
+
+  it('builds a clean dashboard query for a newly created event', () => {
+    expect(
+      buildDashboardFilterSearch({
+        cityId: 'moscow',
+        clubId: 'club',
+        formatId: 'legacy',
+        tournamentType: 'daily',
+      }),
+    ).toBe(
+      '?cityId=moscow&clubId=club&formatId=legacy&tournamentType=daily',
+    );
   });
 
   it('clears every API filter when reset values are written', () => {

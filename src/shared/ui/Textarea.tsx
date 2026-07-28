@@ -6,7 +6,14 @@ type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   helperText?: string;
 };
 
-export function Textarea({ label, helperText, className, id, ...props }: TextareaProps) {
+export function Textarea({
+  label,
+  helperText,
+  className,
+  id,
+  required,
+  ...props
+}: TextareaProps) {
   const textareaId = id ?? label;
 
   return (
@@ -14,14 +21,24 @@ export function Textarea({ label, helperText, className, id, ...props }: Textare
       className="field"
       htmlFor={textareaId}
     >
-      <span className="field__label">{label}</span>
+      <span className="field__label">
+        {label}
+        {required ? (
+          <span
+            aria-hidden="true"
+            className="field__required"
+          >
+            *
+          </span>
+        ) : null}
+      </span>
       <textarea
         id={textareaId}
         className={cn('field__control field__control--textarea', className)}
+        required={required}
         {...props}
       />
       {helperText ? <span className="field__hint">{helperText}</span> : null}
     </label>
   );
 }
-

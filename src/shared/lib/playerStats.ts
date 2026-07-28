@@ -34,6 +34,10 @@ export function getPlayerOpponentStats(matches: PlayerMatchItem[]): PlayerOppone
   const opponents = new Map<string, PlayerOpponentStat>();
 
   matches.forEach((match) => {
+    if (!match.opponent || match.kind === 'unknown' || match.isBye) {
+      return;
+    }
+
     const current = opponents.get(match.opponent.id) ?? {
       opponent: match.opponent,
       matchesCount: 0,
@@ -97,6 +101,10 @@ export function getPlayerFavoriteFormat(matches: PlayerMatchItem[]): PlayerFavor
   >();
 
   matches.forEach((match) => {
+    if (match.kind === 'unknown' || (!match.kind && !match.opponent && !match.isBye)) {
+      return;
+    }
+
     const { format } = match.tournament;
     const current = formats.get(format.id) ?? {
       format,

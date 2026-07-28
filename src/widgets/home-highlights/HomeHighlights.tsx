@@ -61,8 +61,10 @@ export function HomeHighlights({
           <div className="insights-summary__value">{summary.tournamentsCount}</div>
           <div className="insights-summary__title">турниров в статистике</div>
           <p className="insights-summary__description">
-            Это {summary.matchesCount} матчей, {summary.uniquePlayersCount} уникальных игроков и {summary.uniqueDecksCount}{' '}
-            колод.
+            Это {summary.playedMatchesCount ?? summary.matchesCount} сыгранных
+            матчей, {summary.uniquePlayersCount} уникальных игроков и{' '}
+            {summary.uniqueDecksCount} колод
+            {summary.byesCount ? `; ещё ${summary.byesCount} BYE показано отдельно` : ''}.
           </p>
         </div>
 

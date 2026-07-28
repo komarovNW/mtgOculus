@@ -14,7 +14,9 @@ describe('analyzePlayerDecksInput', () => {
     expect(analyzePlayerDecksInput('Lands\nPainter\nEldrazi')).toEqual({
       mode: 'ordered',
       errors: [],
-      warnings: [],
+      warnings: [
+        'Список будет сопоставлен с участниками по порядку итоговых мест. После добавления проверьте привязку.',
+      ],
     });
   });
 
@@ -22,5 +24,13 @@ describe('analyzePlayerDecksInput', () => {
     expect(analyzePlayerDecksInput('1. Lands\n3. Painter').errors).toContain(
       'Нумерация должна идти подряд от 1 без пропусков и повторов.',
     );
+  });
+
+  it('rejects a duplicate player in named mode', () => {
+    expect(
+      analyzePlayerDecksInput(
+        'Игрок 1 - Lands\nИгрок 1 - Painter',
+      ).errors,
+    ).toContain('Строка 2: игрок «Игрок 1» уже указан выше.');
   });
 });

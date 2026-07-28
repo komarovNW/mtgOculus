@@ -267,8 +267,9 @@ type TournamentListItem = {
 }
 ```
 
-Для BYE `playerB` может быть `null`; frontend создаст специальную некликабельную
-строку.
+Для BYE `playerB` может быть `null`, но тогда `isBye` обязательно равен `true`.
+Если `playerB` отсутствует без явного `isBye: true`, frontend покажет запись как
+неизвестную и исключит её из статистики.
 
 ## Игроки
 
@@ -318,6 +319,9 @@ type TournamentListItem = {
 Несмотря на имя `recentMatches`, текущий UI использует массив как доступную
 историю матчей выбранного среза. Для корректного любимого формата и частого
 оппонента backend должен возвращать полную историю, а не последние 10–20 строк.
+BYE также должны приходить отдельными строками с `isBye: true`: они показываются
+в истории раундов и объясняют разницу между числом результатов и реально
+сыгранных матчей.
 
 Матч:
 
@@ -328,16 +332,19 @@ type TournamentListItem = {
     title: string;
     date: string;
     format?: NamedRef | null;
+    type: "daily" | "tournament";
+    club?: NamedRef | null;
   };
   roundNumber: number;
   tableNumber: number;
   playerDeck?: Deck | null;
-  opponent: Player;
+  opponent?: Player | null;
   opponentDeck?: Deck | null;
   playerScore: number;
   opponentScore: number;
   scoreText: string;
   result: "win" | "loss" | "draw";
+  isBye: boolean;
 }
 ```
 
@@ -346,6 +353,12 @@ Frontend сам вычисляет из этого массива:
 - любимый формат по количеству матчей;
 - самого частого оппонента;
 - любимую колоду дополнительно сверяет со статистикой участий.
+
+Матчи на странице сгруппированы по событию, поэтому `type`, `id`, `title`,
+`date`, `club` и `format` нужны в каждом объекте турнира. BYE также входит в
+историю: для него `opponent` равен `null`, а `isBye` равен `true`.
+Отсутствующий `opponent` без `isBye: true` не считается BYE и не участвует в
+record, проценте побед и агрегатах.
 
 ## Колоды
 

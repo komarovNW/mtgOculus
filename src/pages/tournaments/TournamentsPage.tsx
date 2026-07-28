@@ -1,7 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { getTournaments } from '@/entities/tournament/api';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { getAllTournaments, getTournaments } from '@/entities/tournament/api';
 import type { TournamentListItem, TournamentType } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
+import { getDailyInsights } from '@/shared/lib/dailyInsights';
 import { formatDate } from '@/shared/lib/formatDate';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
@@ -14,6 +15,7 @@ import { LoadingState } from '@/shared/ui/LoadingState';
 import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Table, type TableColumn } from '@/shared/ui/Table';
+import { DailyAttendanceChart } from '@/widgets/daily-attendance/DailyAttendanceChart';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
 const columns: TableColumn<TournamentListItem>[] = [
@@ -62,11 +64,11 @@ const columns: TableColumn<TournamentListItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Сыгранных матчей',
     align: 'right',
     defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
-    sortValue: (row) => row.matchesCount,
+    render: (row) => row.playedMatchesCount ?? row.matchesCount,
+    sortValue: (row) => row.playedMatchesCount ?? row.matchesCount,
   },
   {
     id: 'winner',
@@ -85,8 +87,6 @@ const columns: TableColumn<TournamentListItem>[] = [
   },
 ];
 
-const scopedColumns = columns.filter((column) => column.id !== 'type');
-
 type TournamentsPageProps = {
   eventType?: TournamentType;
 };
@@ -97,6 +97,44 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
   const eventPlural = isDaily ? 'дейлики' : 'турниры';
   const eventNounPlural = isDaily ? 'дейликов' : 'турниров';
   const eventTitle = isDaily ? 'Дейлики' : 'Турниры';
+  const tableColumns = columns
+    .filter(
+      (column) =>
+        column.id !== 'type' &&
+        (!isDaily || (column.id !== 'rounds' && column.id !== 'matches')),
+    )
+    .map((column) => {
+      if (!isDaily || column.id !== 'winner') {
+        return column;
+      }
+
+      return {
+        ...column,
+        header: 'Победитель и колода',
+        render: (row: TournamentListItem) =>
+          row.winner ? (
+            <div className="stacked-cell">
+              <EntityLink
+                id={row.winner.player.id}
+                name={row.winner.player.name}
+                type="player"
+              />
+              {row.winner.deck ? (
+                <EntityLink
+                  colors={row.winner.deck.colors}
+                  id={row.winner.deck.id}
+                  name={row.winner.deck.name}
+                  type="deck"
+                />
+              ) : (
+                <span className="muted-text">Колода не указана</span>
+              )}
+            </div>
+          ) : (
+            '—'
+          ),
+      };
+    });
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
   const tournamentsQuery = useInfiniteQuery({
     queryKey: ['tournaments', apiFilters, eventType],
@@ -110,10 +148,23 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
     initialPageParam: 1,
     getNextPageParam,
   });
+  const dailyInsightsQuery = useQuery({
+    queryKey: ['daily-insights', apiFilters],
+    queryFn: () =>
+      getAllTournaments({
+        ...apiFilters,
+        tournamentType: 'daily',
+      }),
+    enabled: isDaily,
+  });
   const firstPage = tournamentsQuery.data?.pages[0];
   const tournaments = tournamentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = firstPage?.pagination.total ?? 0;
   const hasInitialData = Boolean(firstPage);
+  const dailyInsights = getDailyInsights(dailyInsightsQuery.data ?? []);
+  const averagePlayersLabel = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 1,
+  }).format(dailyInsights.averagePlayers);
 
   return (
     <div className="page-stack">
@@ -151,6 +202,17 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
           }}
         />
       ) : null}
+      {isDaily && dailyInsightsQuery.isError ? (
+        <ErrorState
+          description={getErrorMessage(
+            dailyInsightsQuery.error,
+            'Не получилось собрать общую статистику по дейликам.',
+          )}
+          onRetry={() => {
+            void dailyInsightsQuery.refetch();
+          }}
+        />
+      ) : null}
 
       {firstPage ? (
         <>
@@ -162,8 +224,9 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
               <div>
                 <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала смотрите свежие и крупные события, а потом открывайте нужный {eventNoun}, если нужны
-                  стендинги, пары и метагейм.
+                  {isDaily
+                    ? 'Показываем посещаемость и рекорды по всем дейликам, попавшим под текущие фильтры.'
+                    : `Сначала смотрите свежие и крупные события, а потом открывайте нужный ${eventNoun}, если нужны стендинги, пары и метагейм.`}
                 </p>
               </div>
             </div>
@@ -178,55 +241,123 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
               </div>
 
               <div className="insights-list">
-                {tournaments[0] ? (
-                <article className="insight-item">
-                  <div className="insight-item__title">Самый свежий {eventNoun}</div>
-                  <div className="insight-item__body">
-                      <EntityLink
-                        id={tournaments[0].id}
-                        name={tournaments[0].title}
-                        type="tournament"
-                      />{' '}
-                      на {tournaments[0].playersCount} игроков.
-                    </div>
-                  </article>
-                ) : null}
+                {isDaily ? (
+                  <>
+                    {dailyInsightsQuery.isLoading ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Собираем ориентир</div>
+                        <div className="insight-item__body">
+                          Загружаем все страницы дейликов по текущим фильтрам.
+                        </div>
+                      </article>
+                    ) : null}
+                    {dailyInsights.latestDaily ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Самый свежий дейлик</div>
+                        <div className="insight-item__body">
+                          <EntityLink
+                            id={dailyInsights.latestDaily.id}
+                            name={dailyInsights.latestDaily.title}
+                            type="tournament"
+                          />{' '}
+                          на {dailyInsights.latestDaily.playersCount} игроков.
+                        </div>
+                      </article>
+                    ) : null}
+                    {dailyInsightsQuery.isSuccess ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Средняя посещаемость</div>
+                        <div className="insight-item__body">
+                          {averagePlayersLabel} игроков на один дейлик.
+                        </div>
+                      </article>
+                    ) : null}
+                    {dailyInsights.biggestDaily ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Рекорд посещаемости</div>
+                        <div className="insight-item__body">
+                          <EntityLink
+                            id={dailyInsights.biggestDaily.id}
+                            name={dailyInsights.biggestDaily.title}
+                            type="tournament"
+                          />{' '}
+                          собрал {dailyInsights.biggestDaily.playersCount} игроков.
+                        </div>
+                      </article>
+                    ) : null}
+                    {!filters.clubId && dailyInsights.mostActiveClub ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Самый активный клуб</div>
+                        <div className="insight-item__body">
+                          {dailyInsights.mostActiveClub.club.name} —{' '}
+                          {dailyInsights.mostActiveClub.eventsCount} дейликов.
+                        </div>
+                      </article>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    {tournaments[0] ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Самый свежий турнир</div>
+                        <div className="insight-item__body">
+                          <EntityLink
+                            id={tournaments[0].id}
+                            name={tournaments[0].title}
+                            type="tournament"
+                          />{' '}
+                          на {tournaments[0].playersCount} игроков.
+                        </div>
+                      </article>
+                    ) : null}
+                    {tournaments.length > 0 ? (
+                      <article className="insight-item">
+                        <div className="insight-item__title">Самый большой турнир в списке</div>
+                        <div className="insight-item__body">
+                          {(() => {
+                            const biggestTournament = [...tournaments].sort(
+                              (left, right) =>
+                                right.playersCount - left.playersCount ||
+                                (right.playedMatchesCount ??
+                                  right.matchesCount) -
+                                (left.playedMatchesCount ??
+                                  left.matchesCount),
+                            )[0];
 
-                {tournaments.length > 0 ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Самый большой {eventNoun} в списке</div>
-                    <div className="insight-item__body">
-                      {(() => {
-                        const biggestTournament = [...tournaments].sort(
-                          (left, right) => right.playersCount - left.playersCount || right.matchesCount - left.matchesCount,
-                        )[0];
-
-                        return (
-                          <>
-                            <EntityLink
-                              id={biggestTournament.id}
-                              name={biggestTournament.title}
-                              type="tournament"
-                            />{' '}
-                            собрал {biggestTournament.playersCount} игроков и {biggestTournament.matchesCount} матчей.
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </article>
-                ) : null}
-
-                <article className="insight-item">
-                  <div className="insight-item__title">Что делать дальше</div>
-                  <div className="insight-item__body">
-                    Откройте {eventNoun} по названию, если хотите посмотреть итоговые места, пары по раундам и колоды
-                    всех участников.
-                  </div>
-                </article>
+                            return (
+                              <>
+                                <EntityLink
+                                  id={biggestTournament.id}
+                                  name={biggestTournament.title}
+                                  type="tournament"
+                                />{' '}
+                                собрал {biggestTournament.playersCount} игроков и{' '}
+                                {biggestTournament.playedMatchesCount ??
+                                  biggestTournament.matchesCount}{' '}
+                                сыгранных матчей.
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </article>
+                    ) : null}
+                    <article className="insight-item">
+                      <div className="insight-item__title">Что делать дальше</div>
+                      <div className="insight-item__body">
+                        Откройте турнир по названию, если хотите посмотреть итоговые
+                        места, пары по раундам и колоды всех участников.
+                      </div>
+                    </article>
+                  </>
+                )}
               </div>
             </div>
 
           </Card>
+
+          {isDaily && dailyInsightsQuery.isSuccess ? (
+            <DailyAttendanceChart items={dailyInsightsQuery.data} />
+          ) : null}
 
           <Card>
             <div className="section-header">
@@ -238,7 +369,7 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
               </div>
             </div>
             <Table
-              columns={scopedColumns}
+              columns={tableColumns}
               data={tournaments}
               emptyMessage={`По этим фильтрам пока нет загруженных ${eventNounPlural}.`}
               getRowKey={(row) => row.id}

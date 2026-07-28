@@ -113,7 +113,16 @@ export function HomePage() {
                 value: homeQuery.data.summary.uniquePlayersCount,
                 subtitle: 'Сколько разных игроков попало в эту статистику',
               },
-              { title: 'Матчей', value: homeQuery.data.summary.matchesCount, subtitle: 'Все матчи из загруженных турниров' },
+              {
+                title: 'Сыгранных матчей',
+                value:
+                  homeQuery.data.summary.playedMatchesCount ??
+                  homeQuery.data.summary.matchesCount,
+                subtitle:
+                  homeQuery.data.summary.byesCount
+                    ? `${homeQuery.data.summary.byesCount} BYE показано отдельно и не входит в это число`
+                    : 'Только игры против реального оппонента',
+              },
               {
                 title: 'Уникальных колод',
                 value: homeQuery.data.summary.uniqueDecksCount,

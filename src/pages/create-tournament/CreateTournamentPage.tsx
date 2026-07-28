@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createTournament } from '@/entities/admin-tournament/api';
 import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
 import type { CreateTournamentPayload, TournamentType } from '@/shared/api/types';
+import { buildDashboardFilterSearch } from '@/shared/lib/filters';
+import { formatDate } from '@/shared/lib/formatDate';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { analyzePlayerDecksInput } from '@/shared/lib/playerDecksInput';
 import { Badge } from '@/shared/ui/Badge';
@@ -51,9 +53,25 @@ const aetherhubClubLinks = [
   },
 ];
 
+function isAetherhubTournamentUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+
+    return (
+      (hostname === 'aetherhub.com' ||
+        hostname === 'www.aetherhub.com') &&
+      url.pathname.toLowerCase().includes('/tourney/')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function CreateTournamentPage() {
   const [formState, setFormState] = useState<FormState>(initialState);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const citiesQuery = useQuery({
     queryKey: ['create-event', 'cities'],
@@ -73,9 +91,32 @@ export function CreateTournamentPage() {
   });
 
   const inputAnalysis = analyzePlayerDecksInput(formState.playerDecksText);
+  const playerDeckLinesCount = formState.playerDecksText
+    .split('\n')
+    .filter((line) => line.trim()).length;
+  const selectedCity = citiesQuery.data?.items.find(
+    (item) => item.id === formState.cityId,
+  );
+  const selectedClub = clubsQuery.data?.items.find(
+    (item) => item.id === formState.clubId,
+  );
+  const selectedFormat = formatsQuery.data?.items.find(
+    (item) => item.id === formState.formatId,
+  );
+  const eventFilterSearch = buildDashboardFilterSearch({
+    cityId: formState.cityId,
+    clubId: formState.clubId,
+    formatId: formState.formatId,
+    tournamentType: formState.tournamentType,
+  });
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setFormState((current) => ({ ...current, [key]: value }));
+    setValidationErrors([]);
+
+    if (!importMutation.isIdle) {
+      importMutation.reset();
+    }
   }
 
   function validate() {
@@ -85,7 +126,13 @@ export function CreateTournamentPage() {
     if (!formState.cityId) errors.push('Выберите город.');
     if (!formState.clubId) errors.push('Выберите клуб.');
     if (!formState.formatId) errors.push('Выберите формат.');
-    if (!formState.aetherhubUrl.trim()) errors.push('Добавьте ссылку на Aetherhub.');
+    if (!formState.aetherhubUrl.trim()) {
+      errors.push('Добавьте ссылку на Aetherhub.');
+    } else if (!isAetherhubTournamentUrl(formState.aetherhubUrl.trim())) {
+      errors.push(
+        'Укажите полную ссылку на событие в разделе Tourney на Aetherhub.',
+      );
+    }
     if (!formState.playerDecksText.trim()) {
       errors.push('Добавьте список игроков и колод.');
     } else {
@@ -105,6 +152,24 @@ export function CreateTournamentPage() {
       ...formState,
       aetherhubUrl: formState.aetherhubUrl.trim(),
       playerDecksText: formState.playerDecksText.trim(),
+    });
+  }
+
+  function retryImport() {
+    importMutation.mutate({
+      ...formState,
+      aetherhubUrl: formState.aetherhubUrl.trim(),
+      playerDecksText: formState.playerDecksText.trim(),
+    });
+  }
+
+  function resetForm() {
+    setFormState(initialState);
+    setValidationErrors([]);
+    importMutation.reset();
+    formRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
     });
   }
 
@@ -129,11 +194,11 @@ export function CreateTournamentPage() {
         badges={[
           <Badge
             key="access"
-            variant="warning"
+            variant="accent"
           >
-            Служебный раздел
+            Доступно всем
           </Badge>,
-          <Badge key="method">Ручная загрузка</Badge>,
+          <Badge key="method">Импорт из Aetherhub</Badge>,
         ]}
         description="Событие загружается по ссылке на Aetherhub и списку игроков и колод. Все обязательные поля отмечены в инструкции ниже."
         eyebrow="Импорт события"
@@ -182,16 +247,19 @@ export function CreateTournamentPage() {
         <form
           className="form-grid"
           onSubmit={handleSubmit}
+          ref={formRef}
         >
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">1. О событии</h2>
             <p className="form-section__description">
-              Заполните дату, площадку, тип, формат и обязательную ссылку на событие.
+              Заполните дату, площадку, тип, формат и ссылку на событие. Все поля со
+              звёздочкой обязательны.
             </p>
           </div>
           <Input
             label="Дата события"
             onChange={(event) => setField('date', event.target.value)}
+            required
             type="date"
             value={formState.date}
           />
@@ -205,20 +273,53 @@ export function CreateTournamentPage() {
               value: city.id,
               label: city.name,
             }))}
+            required
             value={formState.cityId}
           />
-          <Select
-            label="Клуб"
-            onChange={(event) => setField('clubId', event.target.value)}
-            options={[
-              { value: '', label: clubsQuery.isLoading ? 'Загружаем...' : 'Выберите клуб' },
-              ...(clubsQuery.data?.items ?? []).map((club) => ({
-                value: club.id,
-                label: club.name,
-              })),
-            ]}
-            value={formState.clubId}
-          />
+          <div className="field-stack">
+            <Select
+              disabled={
+                clubsQuery.isLoading ||
+                clubsQuery.isError ||
+                !formState.cityId
+              }
+              label="Клуб"
+              onChange={(event) => setField('clubId', event.target.value)}
+              options={[
+                {
+                  value: '',
+                  label: clubsQuery.isLoading
+                    ? 'Загружаем клубы…'
+                    : clubsQuery.isError
+                      ? 'Не удалось загрузить клубы'
+                      : 'Выберите клуб',
+                },
+                ...(clubsQuery.data?.items ?? []).map((club) => ({
+                  value: club.id,
+                  label: club.name,
+                })),
+              ]}
+              required
+              value={formState.clubId}
+            />
+            {clubsQuery.isError ? (
+              <div
+                className="field-message field-message--error"
+                role="alert"
+              >
+                <span>Не получилось загрузить клубы выбранного города.</span>
+                <Button
+                  onClick={() => {
+                    void clubsQuery.refetch();
+                  }}
+                  type="button"
+                  variant="ghost"
+                >
+                  Повторить
+                </Button>
+              </div>
+            ) : null}
+          </div>
           <Select
             label="Тип события"
             onChange={(event) =>
@@ -228,6 +329,7 @@ export function CreateTournamentPage() {
               { value: 'daily', label: 'Дейлик' },
               { value: 'tournament', label: 'Турнир' },
             ]}
+            required
             value={formState.tournamentType}
           />
           <Select
@@ -237,6 +339,7 @@ export function CreateTournamentPage() {
               value: format.id,
               label: format.name,
             }))}
+            required
             value={formState.formatId}
           />
           <div
@@ -246,11 +349,11 @@ export function CreateTournamentPage() {
           <div className="form-grid__full directory-help">
             Не нашли нужный город, клуб или формат?{' '}
             <a
-              href="https://github.com/komarovNW/mtgOculus/issues/new"
+              href="https://t.me/komarovNV"
               rel="noreferrer"
               target="_blank"
             >
-              Создайте задачу в GitHub Issues
+              Напишите @komarovNV в Telegram
             </a>
             , и мы добавим недостающее значение в список.
           </div>
@@ -426,27 +529,97 @@ export function CreateTournamentPage() {
               onChange={(event) => setField('playerDecksText', event.target.value)}
               placeholder={'Игрок 1 - Lands\nИгрок 2 - UW Phelia\nИгрок 3 - Grixis Reanimator'}
               rows={10}
+              required
               value={formState.playerDecksText}
             />
           </div>
           {formState.playerDecksText.trim() ? (
-            <div className="form-grid__full input-mode-status">
+            <div
+              className={`form-grid__full input-mode-status ${
+                inputAnalysis.errors.length
+                  ? 'input-mode-status--error'
+                  : inputAnalysis.warnings.length
+                    ? 'input-mode-status--warning'
+                    : 'input-mode-status--success'
+              }`}
+            >
               <strong>
                 Определён режим:{' '}
                 {inputAnalysis.mode === 'named'
                   ? 'с именами игроков'
-                  : 'колоды по порядку мест'}
+                  : 'колоды по порядку мест'}{' '}
+                · строк: {playerDeckLinesCount}
               </strong>
-              {inputAnalysis.errors[0] ? <span>{inputAnalysis.errors[0]}</span> : null}
-              {!inputAnalysis.errors.length && inputAnalysis.warnings[0] ? (
-                <span>{inputAnalysis.warnings[0]}</span>
+              {inputAnalysis.errors.length ? (
+                <ul className="flat-list">
+                  {inputAnalysis.errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {!inputAnalysis.errors.length &&
+              inputAnalysis.warnings.length ? (
+                <ul className="flat-list">
+                  {inputAnalysis.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {!inputAnalysis.errors.length &&
+              !inputAnalysis.warnings.length ? (
+                <span>Список выглядит корректно.</span>
               ) : null}
             </div>
           ) : null}
 
+          <div className="form-grid__full form-section">
+            <h2 className="form-section__title">3. Проверка и отправка</h2>
+            <p className="form-section__description">
+              Сверьте основные данные и количество строк. После добавления обязательно
+              откройте событие и проверьте привязку колод.
+            </p>
+          </div>
+
+          {validationErrors.length ? (
+            <div
+              className="form-grid__full form-validation-summary"
+              role="alert"
+            >
+              <strong>Перед добавлением исправьте:</strong>
+              <ul className="flat-list">
+                {validationErrors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="form-grid__full import-summary">
+            <strong>Перед отправкой</strong>
+            <span>
+              {formState.tournamentType === 'daily'
+                ? 'Дейлик'
+                : 'Турнир'}{' '}
+              ·{' '}
+              {formState.date
+                ? formatDate(formState.date)
+                : 'дата не выбрана'}{' '}
+              ·{' '}
+              {selectedCity?.name ?? 'город не выбран'} ·{' '}
+              {selectedClub?.name ?? 'клуб не выбран'} ·{' '}
+              {selectedFormat?.name ?? 'формат не выбран'} ·{' '}
+              {playerDeckLinesCount}{' '}
+              {playerDeckLinesCount === 1 ? 'строка' : 'строк'}
+            </span>
+          </div>
+
           <div className="form-grid__full form-actions">
             <Button
-              disabled={importMutation.isPending}
+              disabled={
+                importMutation.isPending ||
+                clubsQuery.isLoading ||
+                clubsQuery.isError
+              }
               type="submit"
             >
               {importMutation.isPending ? 'Добавляем...' : 'Добавить'}
@@ -455,22 +628,14 @@ export function CreateTournamentPage() {
         </form>
       </Card>
 
-      {validationErrors.length ? (
-        <Card tone="muted">
-          <h2 className="state-card__title">Проверьте форму</h2>
-          <ul className="flat-list">
-            {validationErrors.map((error) => <li key={error}>{error}</li>)}
-          </ul>
-        </Card>
-      ) : null}
-
       {importMutation.isError ? (
         <ErrorState
           description={getErrorMessage(
             importMutation.error,
             'Не удалось добавить событие. Проверьте данные и попробуйте ещё раз.',
           )}
-          onRetry={() => importMutation.reset()}
+          onRetry={retryImport}
+          title="Не удалось добавить событие"
         />
       ) : null}
 
@@ -492,16 +657,32 @@ export function CreateTournamentPage() {
           <div className="form-actions">
             <Link
               className="button button--primary section-link"
-              to={`/tournaments/${importMutation.data.tournamentId}`}
+              to={{
+                pathname: `/tournaments/${importMutation.data.tournamentId}`,
+                search: eventFilterSearch,
+              }}
             >
               Открыть событие
             </Link>
             <Link
               className="button button--ghost section-link"
-              to={formState.tournamentType === 'daily' ? '/dailies' : '/tournaments'}
+              to={{
+                pathname:
+                  formState.tournamentType === 'daily'
+                    ? '/dailies'
+                    : '/tournaments',
+                search: eventFilterSearch,
+              }}
             >
               К списку
             </Link>
+            <Button
+              onClick={resetForm}
+              type="button"
+              variant="ghost"
+            >
+              Добавить ещё
+            </Button>
           </div>
         </Card>
       ) : null}

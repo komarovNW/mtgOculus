@@ -1,24 +1,28 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { getDecks } from '@/entities/deck/api';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { getAllDecks, getDecks } from '@/entities/deck/api';
 import type { DeckListItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
+import { getDeckListInsights } from '@/shared/lib/deckListInsights';
+import {
+  ESTABLISHED_DECK_SAMPLE_HINT,
+  isEstablishedDeck,
+} from '@/shared/lib/establishedDecks';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import {
   MATCH_RECORD_HINT,
   MATCH_RECORD_LABEL,
-  SMALL_SAMPLE_HINT,
   TOURNAMENT_PARTICIPATIONS_HINT,
   TOURNAMENT_PARTICIPATIONS_LABEL,
   WIN_RATE_HINT,
   WIN_RATE_LABEL,
   formatRecord,
-  getRecordSortValue,
 } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { Input } from '@/shared/ui/Input';
@@ -27,13 +31,14 @@ import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
+import { DeckActivityOverview } from '@/widgets/deck-activity/DeckActivityOverview';
+import { EstablishedDeckResults } from '@/widgets/established-deck-results/EstablishedDeckResults';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
 const columns: TableColumn<DeckListItem>[] = [
   {
     id: 'deck',
     header: 'Колода',
-    sortValue: (row) => row.deck.name,
     render: (row) => (
       <div className="entity-cell">
         <EntityLink
@@ -42,9 +47,9 @@ const columns: TableColumn<DeckListItem>[] = [
           name={row.deck.name}
           type="deck"
         />
-        {row.isSmallSample ? (
+        {!isEstablishedDeck(row) ? (
           <Badge
-            title={SMALL_SAMPLE_HINT}
+            title={ESTABLISHED_DECK_SAMPLE_HINT}
             variant="warning"
           >
             Малая выборка
@@ -53,72 +58,61 @@ const columns: TableColumn<DeckListItem>[] = [
       </div>
     ),
   },
-  { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge>, sortValue: (row) => row.format.name },
+  { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge> },
   {
     id: 'tournaments',
     header: 'Турниров',
     align: 'right',
-    defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,
-    sortValue: (row) => row.tournamentsCount,
   },
   {
     id: 'players',
     header: TOURNAMENT_PARTICIPATIONS_LABEL,
     align: 'right',
-    defaultSortDirection: 'desc',
     headerTitle: TOURNAMENT_PARTICIPATIONS_HINT,
     render: (row) => row.playersCount,
-    sortValue: (row) => row.playersCount,
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Матчей против соперника',
     align: 'right',
-    defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
-    sortValue: (row) => row.matchesCount,
+    render: (row) => row.playedMatchesCount ?? row.matchesCount,
   },
   {
     id: 'record',
     header: MATCH_RECORD_LABEL,
     align: 'right',
-    defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
     render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
-    sortValue: (row) => getRecordSortValue(row.matchWins, row.matchLosses, row.matchDraws),
   },
   {
     id: 'winrate',
     header: WIN_RATE_LABEL,
     align: 'right',
-    defaultSortDirection: 'desc',
     headerTitle: WIN_RATE_HINT,
     render: (row) => formatPercent(row.matchWinRate),
-    sortValue: (row) => row.matchWinRate,
-  },
-  {
-    id: 'best',
-    header: 'Лучшее место',
-    align: 'right',
-    defaultSortDirection: 'asc',
-    render: (row) => row.bestRank ?? '—',
-    sortValue: (row) => row.bestRank,
   },
 ];
 
 const sortOptions = [
   { value: 'playersCount_desc', label: 'По популярности' },
-  { value: 'matchWinRate_desc', label: 'По проценту побед' },
   { value: 'matchesCount_desc', label: 'По числу матчей' },
-  { value: 'bestRank_asc', label: 'По лучшему месту' },
   { value: 'name_asc', label: 'По названию' },
 ];
 
 export function DecksPage() {
   const { filters, apiFilters, setFilters, resetFilters, searchParams, updateQueryParams } = useDashboardFilters();
   const search = searchParams.get('search') || '';
-  const sort = searchParams.get('sort') || 'playersCount_desc';
+  const requestedSort = searchParams.get('sort');
+  const sort =
+    requestedSort === 'matchesCount_desc' || requestedSort === 'name_asc'
+      ? requestedSort
+      : 'playersCount_desc';
+  const sortLabelMap = {
+    playersCount_desc: 'по популярности',
+    matchesCount_desc: 'по количеству матчей',
+    name_asc: 'по названию',
+  } as const;
   const decksQuery = useInfiniteQuery({
     queryKey: ['decks', apiFilters, search, sort],
     queryFn: ({ pageParam }) =>
@@ -126,10 +120,20 @@ export function DecksPage() {
     initialPageParam: 1,
     getNextPageParam,
   });
+  const deckInsightsQuery = useQuery({
+    queryKey: ['deck-list-insights', apiFilters, search],
+    queryFn: () =>
+      getAllDecks({
+        ...apiFilters,
+        search: search || undefined,
+        sort: 'playersCount_desc',
+      }),
+  });
   const firstPage = decksQuery.data?.pages[0];
   const decks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = firstPage?.pagination.total ?? 0;
   const hasInitialData = Boolean(firstPage);
+  const deckInsights = getDeckListInsights(deckInsightsQuery.data ?? []);
 
   return (
     <div className="page-stack">
@@ -175,7 +179,16 @@ export function DecksPage() {
         />
       ) : null}
 
-      {firstPage ? (
+      {firstPage ? totalCount === 0 ? (
+        <EmptyState
+          description={
+            search
+              ? 'Попробуйте изменить запрос или сбросить фильтры.'
+              : 'Попробуйте изменить или сбросить выбранные фильтры.'
+          }
+          title={search ? 'Колоды по этому запросу не найдены' : 'По этим фильтрам нет колод'}
+        />
+      ) : (
         <>
           <Card
             className="insights-card"
@@ -185,8 +198,8 @@ export function DecksPage() {
               <div>
                 <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сначала смотрите, чем играют чаще всего и какие колоды уже набрали матчи, а потом открывайте нужную
-                  колоду для турниров, игроков и матчапов.
+                  Сводка строится по всем колодам из текущей выборки и не зависит от
+                  сортировки или загруженной страницы.
                 </p>
               </div>
             </div>
@@ -196,75 +209,90 @@ export function DecksPage() {
                 <div className="insights-summary__value">{totalCount}</div>
                 <div className="insights-summary__title">колод найдено</div>
                 <p className="insights-summary__description">
-                  Сортировку можно менять в один клик, а поиск выше помогает быстро найти нужную колоду.
+                  Таблица отсортирована {sortLabelMap[sort]}. Для сравнения результатов
+                  нужно минимум 30 матчей в 10 турнирах.
                 </p>
               </div>
 
               <div className="insights-list">
-                {decks.length > 0 ? (
+                {deckInsightsQuery.isLoading ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Собираем ориентир</div>
+                    <div className="insight-item__body">
+                      Загружаем все страницы колод по текущим фильтрам.
+                    </div>
+                  </article>
+                ) : null}
+                {deckInsightsQuery.isError ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Ориентир временно недоступен</div>
+                    <div className="insight-item__body">
+                      Не получилось собрать общую статистику. Таблица колод ниже
+                      продолжает работать.
+                    </div>
+                  </article>
+                ) : null}
+
+                {deckInsights.mostPopularDeck ? (
                   <article className="insight-item">
                     <div className="insight-item__title">Самая популярная колода</div>
                     <div className="insight-item__body">
-                      {(() => {
-                        const popularDeck = [...decks].sort(
-                          (left, right) => right.playersCount - left.playersCount || right.matchesCount - left.matchesCount,
-                        )[0];
-
-                        return (
-                          <>
-                            <EntityLink
-                              colors={popularDeck.deck.colors}
-                              id={popularDeck.deck.id}
-                              name={popularDeck.deck.name}
-                              type="deck"
-                            />{' '}
-                            встречалась {popularDeck.playersCount} раз и сыграла {popularDeck.matchesCount} матчей.
-                          </>
-                        );
-                      })()}
+                      <EntityLink
+                        colors={deckInsights.mostPopularDeck.deck.colors}
+                        id={deckInsights.mostPopularDeck.deck.id}
+                        name={deckInsights.mostPopularDeck.deck.name}
+                        type="deck"
+                      />{' '}
+                      встретилась {deckInsights.mostPopularDeck.playersCount} раз в{' '}
+                      {deckInsights.mostPopularDeck.tournamentsCount} турнирах.
                     </div>
                   </article>
                 ) : null}
 
-                {decks.length > 0 ? (
+                {deckInsights.bestEstablishedDeck ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">По результатам впереди</div>
+                    <div className="insight-item__title">
+                      Лучший результат на достаточной выборке
+                    </div>
                     <div className="insight-item__body">
-                      {(() => {
-                        const bestStableDeck =
-                          [...decks]
-                            .filter((item) => !item.isSmallSample)
-                            .sort(
-                              (left, right) =>
-                                right.matchWinRate - left.matchWinRate || right.matchesCount - left.matchesCount,
-                            )[0] ?? decks[0];
-
-                        return (
-                          <>
-                            <EntityLink
-                              colors={bestStableDeck.deck.colors}
-                              id={bestStableDeck.deck.id}
-                              name={bestStableDeck.deck.name}
-                              type="deck"
-                            />{' '}
-                            с {formatPercent(bestStableDeck.matchWinRate)} побед за {bestStableDeck.matchesCount} матчей.
-                          </>
-                        );
-                      })()}
+                      <EntityLink
+                        colors={deckInsights.bestEstablishedDeck.deck.colors}
+                        id={deckInsights.bestEstablishedDeck.deck.id}
+                        name={deckInsights.bestEstablishedDeck.deck.name}
+                        type="deck"
+                      />{' '}
+                      — {formatPercent(deckInsights.bestEstablishedDeck.matchWinRate)} побед,
+                      результат{' '}
+                      {formatRecord(
+                        deckInsights.bestEstablishedDeck.matchWins,
+                        deckInsights.bestEstablishedDeck.matchLosses,
+                        deckInsights.bestEstablishedDeck.matchDraws,
+                      )}{' '}
+                      за {deckInsights.bestEstablishedDeck.matchesCount} матчей в{' '}
+                      {deckInsights.bestEstablishedDeck.tournamentsCount} турнирах.
                     </div>
                   </article>
                 ) : null}
 
-                <article className="insight-item">
-                  <div className="insight-item__title">Где статистика уже набралась</div>
-                  <div className="insight-item__body">
-                    У {decks.filter((item) => !item.isSmallSample).length} колод уже хватает матчей,
-                    чтобы процент побед выглядел надёжнее.
-                  </div>
-                </article>
+                {deckInsightsQuery.isSuccess ? (
+                  <article className="insight-item">
+                    <div className="insight-item__title">Достаточная выборка</div>
+                    <div className="insight-item__body">
+                      Порог 30 матчей в 10 турнирах прошли{' '}
+                      {deckInsights.establishedDecksCount} из {totalCount} колод.
+                    </div>
+                  </article>
+                ) : null}
               </div>
             </div>
           </Card>
+
+          {deckInsightsQuery.isSuccess ? (
+            <>
+              <DeckActivityOverview insights={deckInsights} />
+              <EstablishedDeckResults items={deckInsights.establishedDecks} />
+            </>
+          ) : null}
 
           <Card>
             <div className="section-header">
@@ -272,7 +300,7 @@ export function DecksPage() {
                 <h2 className="section-header__title">Все колоды</h2>
                 <p className="section-header__description">
                   Найдено {totalCount} колод. Нажмите на колоду, чтобы открыть турниры, игроков и
-                  матчапы.
+                  матчапы. По умолчанию первыми идут самые популярные колоды.
                 </p>
               </div>
             </div>
@@ -281,7 +309,7 @@ export function DecksPage() {
               data={decks}
               emptyMessage={search ? 'По этому запросу колоды не найдены.' : 'По этим фильтрам пока нет колод.'}
               getRowKey={(row) => row.deck.id}
-              minWidth={1100}
+              minWidth={980}
             />
             <LoadMorePagination
               hasMore={decksQuery.hasNextPage}

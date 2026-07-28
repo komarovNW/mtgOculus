@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { getDashboardFilterSearch } from '@/shared/lib/filters';
 import { cn } from '@/shared/lib/cn';
 import type { TopPlayerItem } from '@/shared/api/types';
 import { formatPercent } from '@/shared/lib/formatPercent';
@@ -62,7 +63,7 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Результатов учтено',
     align: 'right',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
@@ -144,7 +145,7 @@ const compactColumns: TableColumn<RankedTopPlayerItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Матчей',
+    header: 'Результатов',
     align: 'right',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
@@ -200,6 +201,7 @@ export function TopPlayersTable({
   actionLabel = 'Смотреть всех игроков',
 }: TopPlayersTableProps) {
   const location = useLocation();
+  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
   const rankedItems = items.map((item, index) => ({
     ...item,
     homeRank: index + 1,
@@ -224,7 +226,7 @@ export function TopPlayersTable({
             className="button button--ghost section-link"
             to={{
               pathname: actionHref,
-              search: location.search,
+              search: dashboardFilterSearch,
             }}
           >
             {actionLabel}

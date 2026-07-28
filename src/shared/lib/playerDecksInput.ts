@@ -32,6 +32,8 @@ export function analyzePlayerDecksInput(value: string): PlayerDecksInputAnalysis
   }
 
   if (mode === 'named') {
+    const playerNames = new Set<string>();
+
     lines.forEach((line) => {
       const valueWithoutNumber = line.value.replace(leadingNumberPattern, '');
       const separator = valueWithoutNumber.match(separatorPattern);
@@ -50,10 +52,24 @@ export function analyzePlayerDecksInput(value: string): PlayerDecksInputAnalysis
 
       if (!playerName || !deckName) {
         errors.push(`Строка ${line.lineNumber}: имя и название колоды не должны быть пустыми.`);
+        return;
       }
+
+      const normalizedPlayerName = playerName.toLocaleLowerCase('ru');
+
+      if (playerNames.has(normalizedPlayerName)) {
+        errors.push(
+          `Строка ${line.lineNumber}: игрок «${playerName}» уже указан выше.`,
+        );
+        return;
+      }
+
+      playerNames.add(normalizedPlayerName);
     });
-  } else if (separatorCount > 0) {
-    warnings.push('Список будет сопоставлен с участниками по порядку итоговых мест.');
+  } else {
+    warnings.push(
+      'Список будет сопоставлен с участниками по порядку итоговых мест. После добавления проверьте привязку.',
+    );
   }
 
   return { mode, errors, warnings };
