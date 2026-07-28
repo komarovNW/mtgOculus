@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getAllDecks, getDecks } from '@/entities/deck/api';
 import type { DeckListItem } from '@/shared/api/types';
@@ -100,14 +101,75 @@ const sortOptions = [
   { value: 'name_asc', label: 'По названию' },
 ];
 
+type DeckSort = 'playersCount_desc' | 'matchesCount_desc' | 'name_asc';
+
+function sortDecks(items: DeckListItem[], sort: DeckSort) {
+  return [...items].sort((left, right) => {
+    if (sort === 'name_asc') {
+      return left.deck.name.localeCompare(right.deck.name, 'ru', {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    }
+
+    if (sort === 'matchesCount_desc') {
+      const matchesDifference =
+        (right.playedMatchesCount ?? right.matchesCount) -
+        (left.playedMatchesCount ?? left.matchesCount);
+
+      if (matchesDifference !== 0) return matchesDifference;
+    } else {
+      const popularityDifference = right.playersCount - left.playersCount;
+
+      if (popularityDifference !== 0) return popularityDifference;
+    }
+
+    const tournamentsDifference = right.tournamentsCount - left.tournamentsCount;
+    if (tournamentsDifference !== 0) return tournamentsDifference;
+
+    return left.deck.name.localeCompare(right.deck.name, 'ru', {
+      numeric: true,
+      sensitivity: 'base',
+    });
+  });
+}
+
+function getDeckSearchResultText(count: number) {
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return `найдено ${count} колод`;
+  }
+
+  if (lastDigit === 1) {
+    return `найдена ${count} колода`;
+  }
+
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return `найдено ${count} колоды`;
+  }
+
+  return `найдено ${count} колод`;
+}
+
 export function DecksPage() {
   const { filters, apiFilters, setFilters, resetFilters, searchParams, updateQueryParams } = useDashboardFilters();
   const search = searchParams.get('search') || '';
   const requestedSort = searchParams.get('sort');
-  const sort =
+  const sort: DeckSort =
     requestedSort === 'matchesCount_desc' || requestedSort === 'name_asc'
       ? requestedSort
       : 'playersCount_desc';
+  const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU');
+  const isSearchMode = normalizedSearch.length > 0;
+  const [visibleSearchCount, setVisibleSearchCount] = useState(LIST_PAGE_SIZE);
+  const filtersKey = JSON.stringify(apiFilters);
+
+  useEffect(() => {
+    setVisibleSearchCount(LIST_PAGE_SIZE);
+  }, [filtersKey, normalizedSearch, sort]);
+
   const sortLabelMap = {
     playersCount_desc: 'по популярности',
     matchesCount_desc: 'по количеству матчей',
@@ -121,19 +183,41 @@ export function DecksPage() {
     getNextPageParam,
   });
   const deckInsightsQuery = useQuery({
-    queryKey: ['deck-list-insights', apiFilters, search],
+    queryKey: ['deck-list-insights', apiFilters],
     queryFn: () =>
       getAllDecks({
         ...apiFilters,
-        search: search || undefined,
         sort: 'playersCount_desc',
       }),
   });
   const firstPage = decksQuery.data?.pages[0];
-  const decks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const totalCount = firstPage?.pagination.total ?? 0;
-  const hasInitialData = Boolean(firstPage);
-  const deckInsights = getDeckListInsights(deckInsightsQuery.data ?? []);
+  const loadedDecks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const filteredDecks = useMemo(() => {
+    const allDecks = deckInsightsQuery.data ?? [];
+    const matchingDecks = isSearchMode
+      ? allDecks.filter((item) =>
+          item.deck.name.toLocaleLowerCase('ru-RU').includes(normalizedSearch),
+        )
+      : allDecks;
+
+    return sortDecks(matchingDecks, sort);
+  }, [deckInsightsQuery.data, isSearchMode, normalizedSearch, sort]);
+  const decks = isSearchMode
+    ? filteredDecks.slice(0, visibleSearchCount)
+    : loadedDecks;
+  const totalCount = isSearchMode
+    ? filteredDecks.length
+    : firstPage?.pagination.total ?? 0;
+  const hasInitialData = isSearchMode
+    ? deckInsightsQuery.isSuccess
+    : Boolean(firstPage);
+  const isInitialLoading = isSearchMode
+    ? deckInsightsQuery.isLoading
+    : decksQuery.isLoading;
+  const isInitialError = isSearchMode
+    ? deckInsightsQuery.isError
+    : decksQuery.isError;
+  const deckInsights = getDeckListInsights(filteredDecks);
 
   return (
     <div className="page-stack">
@@ -169,17 +253,24 @@ export function DecksPage() {
         </div>
       </Card>
 
-      {!hasInitialData && decksQuery.isLoading ? <LoadingState description="Собираем статистику по колодам." /> : null}
-      {!hasInitialData && decksQuery.isError ? (
+      {!hasInitialData && isInitialLoading ? <LoadingState description="Собираем статистику по колодам." /> : null}
+      {!hasInitialData && isInitialError ? (
         <ErrorState
-          description={getErrorMessage(decksQuery.error, 'Не получилось загрузить список колод. Попробуйте обновить страницу или изменить фильтры.')}
+          description={getErrorMessage(
+            isSearchMode ? deckInsightsQuery.error : decksQuery.error,
+            'Не получилось загрузить список колод. Попробуйте обновить страницу или изменить фильтры.',
+          )}
           onRetry={() => {
-            void decksQuery.refetch();
+            if (isSearchMode) {
+              void deckInsightsQuery.refetch();
+            } else {
+              void decksQuery.refetch();
+            }
           }}
         />
       ) : null}
 
-      {firstPage ? totalCount === 0 ? (
+      {hasInitialData ? totalCount === 0 ? (
         <EmptyState
           description={
             search
@@ -198,8 +289,9 @@ export function DecksPage() {
               <div>
                 <h2 className="section-header__title">Быстрый ориентир</h2>
                 <p className="section-header__description">
-                  Сводка строится по всем колодам из текущей выборки и не зависит от
-                  сортировки или загруженной страницы.
+                  {isSearchMode
+                    ? `Сводка построена только по колодам, найденным по запросу «${search.trim()}».`
+                    : 'Сводка строится по всем колодам из текущей выборки и не зависит от сортировки или загруженной страницы.'}
                 </p>
               </div>
             </div>
@@ -215,7 +307,7 @@ export function DecksPage() {
               </div>
 
               <div className="insights-list">
-                {deckInsightsQuery.isLoading ? (
+                {!isSearchMode && deckInsightsQuery.isLoading ? (
                   <article className="insight-item">
                     <div className="insight-item__title">Собираем ориентир</div>
                     <div className="insight-item__body">
@@ -223,7 +315,7 @@ export function DecksPage() {
                     </div>
                   </article>
                 ) : null}
-                {deckInsightsQuery.isError ? (
+                {!isSearchMode && deckInsightsQuery.isError ? (
                   <article className="insight-item">
                     <div className="insight-item__title">Ориентир временно недоступен</div>
                     <div className="insight-item__body">
@@ -297,10 +389,15 @@ export function DecksPage() {
           <Card>
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Все колоды</h2>
+                <h2 className="section-header__title">
+                  {isSearchMode ? 'Результаты поиска' : 'Все колоды'}
+                </h2>
                 <p className="section-header__description">
-                  Найдено {totalCount} колод. Нажмите на колоду, чтобы открыть турниры, игроков и
-                  матчапы. По умолчанию первыми идут самые популярные колоды.
+                  {isSearchMode
+                    ? `По запросу «${search.trim()}» ${getDeckSearchResultText(totalCount)}.`
+                    : `Найдено ${totalCount} колод.`}{' '}
+                  Нажмите на колоду, чтобы открыть турниры, игроков и матчапы.
+                  По умолчанию первыми идут самые популярные колоды.
                 </p>
               </div>
             </div>
@@ -312,12 +409,20 @@ export function DecksPage() {
               minWidth={980}
             />
             <LoadMorePagination
-              hasMore={decksQuery.hasNextPage}
-              isError={decksQuery.isFetchNextPageError}
-              isLoading={decksQuery.isFetchingNextPage}
+              hasMore={
+                isSearchMode
+                  ? decks.length < totalCount
+                  : decksQuery.hasNextPage
+              }
+              isError={!isSearchMode && decksQuery.isFetchNextPageError}
+              isLoading={!isSearchMode && decksQuery.isFetchingNextPage}
               loadedCount={decks.length}
               onLoadMore={() => {
-                void decksQuery.fetchNextPage();
+                if (isSearchMode) {
+                  setVisibleSearchCount((count) => count + LIST_PAGE_SIZE);
+                } else {
+                  void decksQuery.fetchNextPage();
+                }
               }}
               totalCount={totalCount}
             />

@@ -94,19 +94,55 @@ describe('DecksPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render zero-value analytics for an empty search', async () => {
+  it('filters deck search on the frontend when the backend returns an unfiltered list', async () => {
     vi.mocked(getDecks).mockResolvedValue({
       appliedFilters: {},
-      items: [],
+      items: [establishedDeck, oneOffDeck],
       pagination: {
         page: 1,
         limit: 50,
-        total: 0,
-        totalPages: 0,
+        total: 2,
+        totalPages: 1,
         hasMore: false,
       },
     });
-    vi.mocked(getAllDecks).mockResolvedValue([]);
+    vi.mocked(getAllDecks).mockResolvedValue([establishedDeck, oneOffDeck]);
+
+    render(
+      <TestProviders initialEntry="/decks?search=одна">
+        <DecksPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Результаты поиска' }))
+      .toBeInTheDocument();
+
+    const searchResults = screen.getByRole('heading', { name: 'Результаты поиска' })
+      .closest('section');
+
+    expect(searchResults).not.toBeNull();
+    expect(searchResults).toHaveTextContent(
+      'По запросу «одна» найдена 1 колода.',
+    );
+    expect(within(searchResults as HTMLElement).getByText('Одна игра'))
+      .toBeInTheDocument();
+    expect(within(searchResults as HTMLElement).queryByText('Популярная колода'))
+      .not.toBeInTheDocument();
+  });
+
+  it('does not render zero-value analytics for an empty search', async () => {
+    vi.mocked(getDecks).mockResolvedValue({
+      appliedFilters: {},
+      items: [establishedDeck, oneOffDeck],
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: 2,
+        totalPages: 1,
+        hasMore: false,
+      },
+    });
+    vi.mocked(getAllDecks).mockResolvedValue([establishedDeck, oneOffDeck]);
 
     render(
       <TestProviders initialEntry="/decks?search=Несуществующая">
