@@ -340,6 +340,14 @@ const matchColumns: TableColumn<PlayerMatchItem>[] = [
   },
 ];
 
+const dailyMatchColumns = matchColumns.filter(
+  (column) => column.id !== 'playerDeck',
+);
+
+function getMatchGroupPlayerDeck(matches: PlayerMatchItem[]) {
+  return matches.find((match) => match.playerDeck)?.playerDeck;
+}
+
 function getMatchesWord(value: number) {
   const mod10 = value % 10;
   const mod100 = value % 100;
@@ -797,64 +805,84 @@ export function PlayerDetailPage() {
             <EmptyState description="С этими фильтрами пока нет матчей этого игрока." />
           ) : null}
 
-          {visibleMatchGroups.map((group) => (
-            <Card
-              className="player-match-group"
-              key={group.tournament.id}
-            >
-              <div className="section-header">
-                <div>
-                  <div className="entity-cell">
-                    <h3 className="section-header__title">
-                      <EntityLink
-                        id={group.tournament.id}
-                        name={group.tournament.title}
-                        type="tournament"
-                      />
-                    </h3>
-                    <Badge>
-                      {group.tournament.type === 'daily'
-                        ? 'Дейлик'
-                        : group.tournament.type === 'tournament'
-                          ? 'Турнир'
-                          : 'Событие'}
-                    </Badge>
+          {visibleMatchGroups.map((group) => {
+            const isDaily = group.tournament.type === 'daily';
+            const playerDeck = getMatchGroupPlayerDeck(group.matches);
+
+            return (
+              <Card
+                className="player-match-group"
+                key={group.tournament.id}
+              >
+                <div className="section-header">
+                  <div>
+                    <div className="entity-cell">
+                      <h3 className="section-header__title">
+                        <EntityLink
+                          id={group.tournament.id}
+                          name={group.tournament.title}
+                          type="tournament"
+                        />
+                      </h3>
+                      <Badge>
+                        {isDaily
+                          ? 'Дейлик'
+                          : group.tournament.type === 'tournament'
+                            ? 'Турнир'
+                            : 'Событие'}
+                      </Badge>
+                    </div>
+                    <p className="section-header__description">
+                      {formatDate(group.tournament.date)} ·{' '}
+                      {group.tournament.club?.name
+                        ? `${group.tournament.club.name} · `
+                        : ''}
+                      {group.tournament.format.name}
+                      {isDaily ? (
+                        <>
+                          {' · Колода: '}
+                          {playerDeck ? (
+                            <EntityLink
+                              colors={playerDeck.colors}
+                              id={playerDeck.id}
+                              name={playerDeck.name}
+                              type="deck"
+                            />
+                          ) : (
+                            '—'
+                          )}
+                        </>
+                      ) : null}
+                      {' · '}
+                      {group.record.matchesCount} учтённых результатов
+                      {group.record.byesCount > 0
+                        ? `, включая ${group.record.byesCount} BYE`
+                        : ''}
+                      {group.record.unknownResultsCount > 0
+                        ? ` · ${group.record.unknownResultsCount} неизвестных исключено`
+                        : ''}
+                      {' · '}результат{' '}
+                      {formatRecord(
+                        group.record.wins,
+                        group.record.losses,
+                        group.record.draws,
+                      )}
+                    </p>
                   </div>
-                  <p className="section-header__description">
-                    {formatDate(group.tournament.date)} ·{' '}
-                    {group.tournament.club?.name
-                      ? `${group.tournament.club.name} · `
-                      : ''}
-                    {group.tournament.format.name} ·{' '}
-                    {group.record.matchesCount}{' '}
-                    учтённых результатов
-                    {group.record.byesCount > 0
-                      ? `, включая ${group.record.byesCount} BYE`
-                      : ''}
-                    {group.record.unknownResultsCount > 0
-                      ? ` · ${group.record.unknownResultsCount} неизвестных исключено`
-                      : ''}
-                    {' · '}результат{' '}
-                    {formatRecord(
-                      group.record.wins,
-                      group.record.losses,
-                      group.record.draws,
-                    )}
-                  </p>
                 </div>
-              </div>
-              <Table
-                columns={matchColumns}
-                data={group.matches}
-                defaultSort={{ columnId: 'round', direction: 'asc' }}
-                emptyMessage="В этом событии нет матчей с известными оппонентами."
-                getRowKey={(row) =>
-                  `${row.tournament.id}-${row.roundNumber}-${row.tableNumber}-${row.opponent?.id ?? getPlayerMatchKind(row)}`
-                }
-                minWidth={880}
-              />
-            </Card>
-          ))}
+                <Table
+                  columns={isDaily ? dailyMatchColumns : matchColumns}
+                  data={group.matches}
+                  defaultSort={{ columnId: 'round', direction: 'asc' }}
+                  emptyMessage="В этом событии нет матчей с известными оппонентами."
+                  getRowKey={(row) =>
+                    `${row.tournament.id}-${row.roundNumber}-${row.tableNumber}-${row.opponent?.id ?? getPlayerMatchKind(row)}`
+                  }
+                  minWidth={isDaily ? 720 : 880}
+                />
+              </Card>
+            );
+          })}
 
           {matchGroups.length > 0 ? (
             <div

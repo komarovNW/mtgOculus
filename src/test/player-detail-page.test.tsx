@@ -179,6 +179,10 @@ describe('PlayerDetailPage', () => {
     expect(
       screen.getAllByRole('columnheader', { name: 'Оппонент' }),
     ).toHaveLength(2);
+    expect(
+      screen.queryByRole('columnheader', { name: 'Колода игрока' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Колода:/)).toHaveLength(2);
     expect(screen.getAllByText('Дейлик').length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText(/Клуб · Legacy/)).toHaveLength(2);
     expect(screen.getByText(/результат 1-0/)).toBeInTheDocument();
