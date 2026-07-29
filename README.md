@@ -37,9 +37,9 @@ API; backend-кода в этом репозитории нет.
   статей, CMS и API для него ещё нет.
 - Frontend работает с реальным API; локальные mock-данные и mock-auth удалены.
 - Списки загружаются по 50 элементов через кнопку `Показать ещё`.
-- Часть показателей блока `Быстрый ориентир` пока рассчитывается по уже
-  загруженным страницам. Backend-задача описана в
-  [BACKEND_LIST_INSIGHTS.md](readme/BACKEND_LIST_INSIGHTS.md).
+- Часть глобальных показателей пока требует загрузки полных списков на
+  frontend. Канонический список backend-задач описан в
+  [BACKEND_DATA_ACCURACY.md](readme/BACKEND_DATA_ACCURACY.md).
 
 Рабочие задачи проекта находятся в
 [GitHub Project](https://github.com/users/komarovNW/projects/6).

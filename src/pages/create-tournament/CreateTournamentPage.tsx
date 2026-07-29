@@ -3,7 +3,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createTournament } from '@/entities/admin-tournament/api';
 import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
-import type { CreateTournamentPayload, TournamentType } from '@/shared/api/types';
+import { AppError } from '@/shared/api/client';
+import type {
+  CreateTournamentPayload,
+  ImportFeedbackItem,
+  TournamentType,
+} from '@/shared/api/types';
 import { buildDashboardFilterSearch } from '@/shared/lib/filters';
 import { formatDate } from '@/shared/lib/formatDate';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
@@ -53,6 +58,46 @@ const aetherhubClubLinks = [
   },
 ];
 
+const importSourceLabels: Record<string, string> = {
+  aetherhubUrl: 'Ссылка Aetherhub',
+  allRoundsFile: 'Раунды и результаты',
+  date: 'Дата события',
+  playerDecksText: 'Список игроков и колод',
+  standingsFile: 'Стендинги',
+};
+
+function ImportFeedbackList({
+  items,
+  title,
+  tone,
+}: {
+  items: ImportFeedbackItem[];
+  title: string;
+  tone: 'error' | 'warning';
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className={`import-feedback import-feedback--${tone}`}>
+      <h3 className="import-feedback__title">{title}</h3>
+      <ul className="flat-list import-feedback__list">
+        {items.map((item, index) => (
+          <li key={`${item.code}-${item.source ?? 'general'}-${index}`}>
+            {item.source ? (
+              <strong className="import-feedback__source">
+                {importSourceLabels[item.source] ?? 'Данные события'}:
+              </strong>
+            ) : null}{' '}
+            {item.message}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function isAetherhubTournamentUrl(value: string) {
   try {
     const url = new URL(value);
@@ -89,6 +134,8 @@ export function CreateTournamentPage() {
   const importMutation = useMutation({
     mutationFn: createTournament,
   });
+  const importError =
+    importMutation.error instanceof AppError ? importMutation.error : null;
 
   const inputAnalysis = analyzePlayerDecksInput(formState.playerDecksText);
   const playerDeckLinesCount = formState.playerDecksText
@@ -629,14 +676,38 @@ export function CreateTournamentPage() {
       </Card>
 
       {importMutation.isError ? (
-        <ErrorState
-          description={getErrorMessage(
-            importMutation.error,
-            'Не удалось добавить событие. Проверьте данные и попробуйте ещё раз.',
-          )}
-          onRetry={retryImport}
-          title="Не удалось добавить событие"
-        />
+        <Card
+          className="state-card state-card--error"
+          role="alert"
+        >
+          <h2 className="state-card__title">Не удалось добавить событие</h2>
+          <p className="state-card__description">
+            {importError?.details.length
+              ? 'Импорт остановлен. Исправьте перечисленные ошибки и отправьте форму ещё раз.'
+              : getErrorMessage(
+                  importMutation.error,
+                  'Не удалось добавить событие. Проверьте данные и попробуйте ещё раз.',
+                )}
+          </p>
+          <ImportFeedbackList
+            items={importError?.details ?? []}
+            title="Что нужно исправить"
+            tone="error"
+          />
+          <ImportFeedbackList
+            items={importError?.warnings ?? []}
+            title="Дополнительные предупреждения"
+            tone="warning"
+          />
+          <div className="state-card__actions">
+            <Button
+              onClick={retryImport}
+              variant="secondary"
+            >
+              Попробовать ещё раз
+            </Button>
+          </div>
+        </Card>
       ) : null}
 
       {importMutation.isSuccess ? (
@@ -648,11 +719,11 @@ export function CreateTournamentPage() {
             </div>
           </div>
           {importMutation.data.warnings?.length ? (
-            <ul className="flat-list">
-              {importMutation.data.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
+            <ImportFeedbackList
+              items={importMutation.data.warnings}
+              title="Событие добавлено, но обратите внимание"
+              tone="warning"
+            />
           ) : null}
           <div className="form-actions">
             <Link

@@ -1996,6 +1996,39 @@ textarea {
   gap: 10px;
 }
 
+.import-feedback {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+
+.import-feedback--error {
+  border-color: color-mix(in srgb, var(--danger) 48%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, var(--panel));
+}
+
+.import-feedback--warning {
+  border-color: color-mix(in srgb, var(--warning) 48%, transparent);
+  background: var(--warning-soft);
+}
+
+.import-feedback__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.import-feedback__list {
+  margin: 0;
+}
+
+.import-feedback__source {
+  color: var(--text);
+}
+
 .loading-spinner {
   width: 34px;
   height: 34px;

@@ -1,7 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTournament } from '@/entities/admin-tournament/api';
 import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
+import { AppError } from '@/shared/api/client';
 import { TestProviders } from '@/test/test-utils';
+
+vi.mock('@/entities/admin-tournament/api', () => ({
+  createTournament: vi.fn(),
+}));
 
 vi.mock('@/entities/dictionaries/api', () => ({
   getCities: vi.fn().mockResolvedValue({
@@ -16,6 +23,10 @@ vi.mock('@/entities/dictionaries/api', () => ({
 }));
 
 describe('CreateTournamentPage', () => {
+  beforeEach(() => {
+    vi.mocked(createTournament).mockReset();
+  });
+
   it('keeps the Aetherhub directory and the complete input guide available', async () => {
     render(
       <TestProviders>
@@ -51,5 +62,87 @@ describe('CreateTournamentPage', () => {
     expect(screen.getByText('1. С именами игроков')).toBeInTheDocument();
     expect(screen.getByText('2. Только колоды — по порядку мест')).toBeInTheDocument();
     expect(screen.getByText('Так добавлять нельзя')).toBeInTheDocument();
+  });
+
+  it('shows structured backend errors and warnings after a failed import', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(createTournament).mockRejectedValue(
+      new AppError({
+        status: 422,
+        code: 'DECK_PLAYER_NOT_FOUND_IN_STANDINGS',
+        message:
+          'Игрок "Колошко Александр" из списка колод отсутствует в стендингах.',
+        details: [
+          {
+            code: 'DECK_PLAYER_NOT_FOUND_IN_STANDINGS',
+            message:
+              'Игрок "Колошко Александр" из списка колод отсутствует в стендингах.',
+            source: 'playerDecksText',
+            playerName: 'Колошко Александр',
+          },
+          {
+            code: 'INVALID_MATCH_SCORE',
+            message: 'Некорректный счёт матча в раунде 5, столе 11.',
+            source: 'allRoundsFile',
+            roundNumber: 5,
+            tableNumber: 11,
+            rawValue: '2-1-1',
+          },
+        ],
+        warnings: [
+          {
+            code: 'PLAYER_NAME_NORMALIZED',
+            message:
+              'Имя "Панферов Александр" сопоставлено с "Панфёров Александр".',
+            source: 'playerDecksText',
+            rawValue: 'Панферов Александр',
+            matchedValue: 'Панфёров Александр',
+          },
+        ],
+      }),
+    );
+
+    render(
+      <TestProviders>
+        <CreateTournamentPage />
+      </TestProviders>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Добавить' }),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Дата события/), '2026-07-24');
+    await user.selectOptions(await screen.findByLabelText(/Клуб/), 'club');
+    await user.type(
+      screen.getByLabelText(/Ссылка на Aetherhub/),
+      'https://aetherhub.com/Tourney/RoundTourney/100523',
+    );
+    await user.type(
+      screen.getByLabelText(/Список игроков и колод/),
+      'Колошко Александр - Lands',
+    );
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Не удалось добавить событие',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Список игроков и колод:')).toHaveLength(2);
+    expect(screen.getByText('Раунды и результаты:')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Игрок "Колошко Александр" из списка колод отсутствует в стендингах.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Некорректный счёт матча в раунде 5, столе 11.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Имя "Панферов Александр" сопоставлено с "Панфёров Александр".',
+      ),
+    ).toBeInTheDocument();
   });
 });

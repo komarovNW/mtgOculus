@@ -34,10 +34,9 @@
 
 - [BACKEND_API_HANDOFF.md](BACKEND_API_HANDOFF.md) — текущий контракт API,
   фильтры, пагинация и ошибки.
-- [BACKEND_DATA_ACCURACY.md](BACKEND_DATA_ACCURACY.md) — список требований к
-  корректным агрегатам, BYE, сортировке и пагинации detail-данных.
-- [BACKEND_LIST_INSIGHTS.md](BACKEND_LIST_INSIGHTS.md) — поля и правила
-  глобальных агрегатов для блока `Быстрый ориентир`.
+- [BACKEND_DATA_ACCURACY.md](BACKEND_DATA_ACCURACY.md) — канонический список
+  backend-задач с объяснением, почему каждая из них должна решаться на backend,
+  а не на frontend.
 
 ## Для деплоя
 

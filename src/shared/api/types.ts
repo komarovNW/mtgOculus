@@ -13,11 +13,22 @@ export type CreateTournamentPayload = {
   playerDecksText: string;
 };
 
+export type ImportFeedbackItem = {
+  code: string;
+  message: string;
+  source?: string;
+  playerName?: string;
+  roundNumber?: number;
+  tableNumber?: number;
+  rawValue?: string;
+  matchedValue?: string;
+};
+
 export type CreateTournamentResponse = {
   success: true;
   tournamentId: string;
   message: string;
-  warnings?: string[];
+  warnings?: ImportFeedbackItem[];
 };
 
 export type City = {
