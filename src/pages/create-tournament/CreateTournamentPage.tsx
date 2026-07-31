@@ -28,7 +28,7 @@ type FormState = CreateTournamentPayload;
 const initialState: FormState = {
   date: '',
   cityId: 'moscow',
-  clubId: 'edinorog_moscow',
+  clubId: 'goldfish_msk',
   tournamentType: 'daily',
   formatId: 'pauper',
   aetherhubUrl: '',

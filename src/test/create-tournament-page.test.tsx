@@ -70,7 +70,7 @@ describe('CreateTournamentPage', () => {
     expect(screen.getByText('Так добавлять нельзя')).toBeInTheDocument();
   });
 
-  it('uses Moscow, Edinorog and Pauper as defaults', async () => {
+  it('uses Moscow, Goldfish and Pauper as defaults', async () => {
     render(
       <TestProviders>
         <CreateTournamentPage />
@@ -79,7 +79,7 @@ describe('CreateTournamentPage', () => {
 
     expect(await screen.findByLabelText(/Город/)).toHaveValue('moscow');
     expect(await screen.findByLabelText(/Клуб/)).toHaveValue(
-      'edinorog_moscow',
+      'goldfish_msk',
     );
     expect(screen.getByLabelText(/Тип события/)).toHaveValue('daily');
     expect(screen.getByLabelText(/Формат/)).toHaveValue('pauper');
@@ -107,7 +107,7 @@ describe('CreateTournamentPage', () => {
     const decksInput = screen.getByLabelText(/Список игроков и колод/);
 
     await user.type(dateInput, '2026-07-24');
-    await user.selectOptions(clubSelect, 'goldfish_msk');
+    await user.selectOptions(clubSelect, 'edinorog_moscow');
     await user.selectOptions(formatSelect, 'legacy');
     await user.type(
       aetherhubInput,
@@ -124,7 +124,7 @@ describe('CreateTournamentPage', () => {
 
     expect(dateInput).toHaveValue('2026-07-24');
     expect(screen.getByLabelText(/Город/)).toHaveValue('moscow');
-    expect(clubSelect).toHaveValue('goldfish_msk');
+    expect(clubSelect).toHaveValue('edinorog_moscow');
     expect(screen.getByLabelText(/Тип события/)).toHaveValue('daily');
     expect(formatSelect).toHaveValue('legacy');
     expect(aetherhubInput).toHaveValue('');
