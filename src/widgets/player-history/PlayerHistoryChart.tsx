@@ -166,7 +166,12 @@ export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
               dataKey="month"
               minTickGap={28}
               tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-              tickFormatter={(_, index) => chartData[index]?.label ?? ''}
+              tickFormatter={(value) =>
+                formatMonth(
+                  String(value),
+                  period === 'all' || !canLimitToLatestYear,
+                )
+              }
               tickLine={false}
             />
             <YAxis

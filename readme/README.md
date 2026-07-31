@@ -34,6 +34,8 @@
 
 - [BACKEND_API_HANDOFF.md](BACKEND_API_HANDOFF.md) — текущий контракт API,
   фильтры, пагинация и ошибки.
+- [DAILY_IMPORT_INTEGRATION.md](DAILY_IMPORT_INTEGRATION.md) — техническая
+  инструкция для внешнего backend, который загружает дейлики в Magic Oculus.
 - [BACKEND_DATA_ACCURACY.md](BACKEND_DATA_ACCURACY.md) — канонический список
   backend-задач с объяснением, почему каждая из них должна решаться на backend,
   а не на frontend.

@@ -28,9 +28,9 @@ type FormState = CreateTournamentPayload;
 const initialState: FormState = {
   date: '',
   cityId: 'moscow',
-  clubId: '',
+  clubId: 'edinorog_moscow',
   tournamentType: 'daily',
-  formatId: 'legacy',
+  formatId: 'pauper',
   aetherhubUrl: '',
   playerDecksText: '',
 };
@@ -211,10 +211,14 @@ export function CreateTournamentPage() {
   }
 
   function resetForm() {
-    setFormState(initialState);
+    setFormState((current) => ({
+      ...current,
+      aetherhubUrl: '',
+      playerDecksText: '',
+    }));
     setValidationErrors([]);
     importMutation.reset();
-    formRef.current?.scrollIntoView({
+    formRef.current?.scrollIntoView?.({
       behavior: 'smooth',
       block: 'start',
     });

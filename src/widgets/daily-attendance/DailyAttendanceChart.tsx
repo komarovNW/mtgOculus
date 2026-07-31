@@ -126,7 +126,11 @@ export function DailyAttendanceChart({ items }: DailyAttendanceChartProps) {
               dataKey="key"
               minTickGap={28}
               tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-              tickFormatter={(_, index) => chartData[index]?.label ?? ''}
+              tickFormatter={(value) =>
+                view === 'events'
+                  ? formatDate(String(value)).slice(0, 5)
+                  : formatMonth(String(value))
+              }
               tickLine={false}
             />
             <YAxis
