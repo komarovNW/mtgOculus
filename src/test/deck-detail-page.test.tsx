@@ -159,9 +159,11 @@ describe('DeckDetailPage', () => {
       expect(getDeckDetails).toHaveBeenCalledWith(
         '5',
         expect.objectContaining({ formatId: undefined }),
+        { signal: expect.any(AbortSignal) },
       );
       expect(getAllDecks).toHaveBeenCalledWith(
         expect.objectContaining({ formatId: 'legacy' }),
+        { signal: expect.any(AbortSignal) },
       );
     });
 

@@ -191,6 +191,7 @@ type TopPlayersTableProps = {
   showSpotlight?: boolean;
   actionHref?: string;
   actionLabel?: string;
+  scopeDescription?: string;
 };
 
 export function TopPlayersTable({
@@ -199,6 +200,7 @@ export function TopPlayersTable({
   showSpotlight = false,
   actionHref,
   actionLabel = 'Смотреть всех игроков',
+  scopeDescription,
 }: TopPlayersTableProps) {
   const location = useLocation();
   const dashboardFilterSearch = getDashboardFilterSearch(location.search);
@@ -219,6 +221,7 @@ export function TopPlayersTable({
             {showSpotlight
               ? 'Сравниваем винрейт только у игроков с 20+ матчами минимум в 5 турнирах.'
               : 'Сравниваем игроков по проценту побед и результату матчей.'}
+            {scopeDescription ? ` ${scopeDescription}` : ''}
           </p>
         </div>
         {actionHref ? (

@@ -1,4 +1,5 @@
-import { apiGet } from '@/shared/api/client';
+import { collectPages } from '@/shared/api/collectPages';
+import { apiGet, type RequestOptions } from '@/shared/api/client';
 import {
   mapAppliedFilters,
   mapHomeResponse,
@@ -13,17 +14,17 @@ import { endpoints } from '@/shared/api/endpoints';
 import { resolveAppliedFilters } from '@/entities/dictionaries/api';
 import type { DashboardFilters, TournamentListQuery } from '@/shared/api/types';
 
-export function getHomeData(filters: Partial<DashboardFilters>) {
-  return apiGet<BackendHomeResponse>(endpoints.home, filters).then(async (response) => {
+export function getHomeData(filters: Partial<DashboardFilters>, options?: RequestOptions) {
+  return apiGet<BackendHomeResponse>(endpoints.home, filters, options).then(async (response) => {
     const appliedFilters = response.appliedFilters
       ? mapAppliedFilters(response.appliedFilters)
-      : await resolveAppliedFilters(filters);
+      : await resolveAppliedFilters(filters, options);
 
     return mapHomeResponse(response, appliedFilters);
   });
 }
 
-export function getTournaments(query: TournamentListQuery) {
+export function getTournaments(query: TournamentListQuery, options?: RequestOptions) {
   const page = query.page ?? 1;
   const pageSize = query.limit ?? 50;
 
@@ -36,44 +37,22 @@ export function getTournaments(query: TournamentListQuery) {
     dateTo: query.dateTo,
     page,
     page_size: pageSize,
-  }).then(async (response) => {
+  }, options).then(async (response) => {
     const appliedFilters = response.appliedFilters
       ? mapAppliedFilters(response.appliedFilters)
-      : await resolveAppliedFilters(query);
+      : await resolveAppliedFilters(query, options);
 
     return mapTournamentListResponse(response, appliedFilters, page, pageSize);
   });
 }
 
-export async function getAllTournaments(query: TournamentListQuery) {
-  const pageSize = 100;
-  const firstPage = await getTournaments({
-    ...query,
-    page: 1,
-    limit: pageSize,
-  });
-  const totalPages = firstPage.pagination.totalPages ?? 1;
-
-  if (totalPages <= 1) {
-    return firstPage.items;
-  }
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      getTournaments({
-        ...query,
-        page: index + 2,
-        limit: pageSize,
-      }),
-    ),
+export function getAllTournaments(query: TournamentListQuery, options?: RequestOptions) {
+  return collectPages(
+    (page) => getTournaments({ ...query, page, limit: 100 }, options),
+    options,
   );
-
-  return [
-    ...firstPage.items,
-    ...remainingPages.flatMap((page) => page.items),
-  ];
 }
 
-export function getTournamentDetails(id: string) {
-  return apiGet<BackendTournamentDetailsResponse>(endpoints.tournamentById(id)).then(mapTournamentDetailsResponse);
+export function getTournamentDetails(id: string, options?: RequestOptions) {
+  return apiGet<BackendTournamentDetailsResponse>(endpoints.tournamentById(id), undefined, options).then(mapTournamentDetailsResponse);
 }

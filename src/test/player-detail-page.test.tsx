@@ -85,6 +85,21 @@ const details: PlayerDetailsResponse = {
   recentMatches: [
     {
       tournament: {
+        id: 'one', title: 'Первый турнир', date: '2026-01-10',
+        format: { id: 'legacy', name: 'Legacy' }, type: 'daily',
+        club: { id: 'club', name: 'Клуб', cityId: 'moscow' },
+      },
+      roundNumber: 2,
+      tableNumber: 0,
+      playerDeck: { id: 'tempo', name: 'Tempo' },
+      playerScore: 2,
+      opponentScore: 0,
+      scoreText: 'BYE',
+      result: 'win',
+      isBye: true,
+    },
+    {
+      tournament: {
         id: 'one',
         title: 'Первый турнир',
         date: '2026-01-10',
@@ -145,7 +160,7 @@ describe('PlayerDetailPage', () => {
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(getPlayerDetails).toHaveBeenCalledWith('3', {});
+      expect(getPlayerDetails).toHaveBeenCalledWith('3', {}, { signal: expect.any(AbortSignal) });
     });
 
     expect(screen.getByText('Результатов учтено')).toBeInTheDocument();

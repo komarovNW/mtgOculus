@@ -121,93 +121,6 @@ export function groupPlayerMatchesByTournament(
   }));
 }
 
-function getRecordResultsCount(record: string) {
-  const parts = record.trim().split('-').map(Number);
-
-  if (
-    (parts.length !== 2 && parts.length !== 3) ||
-    parts.some((part) => !Number.isInteger(part) || part < 0)
-  ) {
-    return null;
-  }
-
-  return parts.reduce((total, part) => total + part, 0);
-}
-
-function restoreOmittedByes(
-  detail: PlayerDetailsResponse,
-  matches: PlayerMatchItem[],
-) {
-  const matchesByTournament = new Map<string, PlayerMatchItem[]>();
-
-  matches.forEach((match) => {
-    const tournamentMatches =
-      matchesByTournament.get(match.tournament.id) ?? [];
-
-    tournamentMatches.push(match);
-    matchesByTournament.set(match.tournament.id, tournamentMatches);
-  });
-
-  const inferredByes = detail.tournaments.flatMap<PlayerMatchItem>(
-    (participation) => {
-      const tournamentMatches =
-        matchesByTournament.get(participation.tournament.id) ?? [];
-      const expectedResultsCount = getRecordResultsCount(
-        participation.record,
-      );
-
-      // Backend currently omits BYE from recentMatches. We only restore a BYE
-      // when the event has other match rows and their round numbers leave an
-      // unambiguous gap inside the final record. An entirely missing event is
-      // not reconstructed because there is not enough evidence.
-      if (
-        tournamentMatches.length === 0 ||
-        expectedResultsCount === null ||
-        expectedResultsCount <= tournamentMatches.length
-      ) {
-        return [];
-      }
-
-      const occupiedRounds = new Set(
-        tournamentMatches.map((match) => match.roundNumber),
-      );
-      const missingRounds = Array.from(
-        { length: expectedResultsCount },
-        (_, index) => index + 1,
-      ).filter((roundNumber) => !occupiedRounds.has(roundNumber));
-
-      if (
-        missingRounds.length !==
-        expectedResultsCount - tournamentMatches.length
-      ) {
-        return [];
-      }
-
-      return missingRounds.map<PlayerMatchItem>((roundNumber) => ({
-        tournament: {
-          id: participation.tournament.id,
-          title: participation.tournament.title,
-          date: participation.tournament.date,
-          format: participation.tournament.format,
-          type: participation.tournament.type,
-          club: participation.tournament.club,
-        },
-        roundNumber,
-        tableNumber: 0,
-        playerDeck: participation.deck,
-        playerScore: 2,
-        opponentScore: 0,
-        scoreText: 'BYE',
-        result: 'win',
-        isBye: true,
-        kind: 'bye',
-      }));
-    },
-  );
-
-  return [...matches, ...inferredByes];
-}
-
 export function getPlayerMonthlyActivity(matches: PlayerMatchItem[]) {
   const monthly = new Map<
     string,
@@ -314,7 +227,7 @@ export function getPlayerScopedMatches(detail: PlayerDetailsResponse) {
     tournamentIds.has(match.tournament.id),
   );
 
-  return restoreOmittedByes(detail, scopedMatches);
+  return scopedMatches;
 }
 
 function isMatchHistoryComplete(

@@ -272,6 +272,23 @@ describe('player detail insights', () => {
     );
   });
 
+  it('does not turn a missing round into a BYE victory', () => {
+    const first = { ...matches[0], result: 'loss' as const, roundNumber: 1 };
+    const third = { ...first, roundNumber: 3 };
+    const incompleteDetail: PlayerDetailsResponse = {
+      ...detail,
+      summary: { ...detail.summary, tournamentsCount: 1, matchesCount: 3, matchWins: 0, matchLosses: 3, matchDraws: 0 },
+      tournaments: [{ ...detail.tournaments[0], record: '0-3-0' }],
+      recentMatches: [first, third],
+    };
+
+    const insights = getPlayerDetailInsights(incompleteDetail);
+    expect(insights.realMatchRecord).toMatchObject({ matchesCount: 2, wins: 0, losses: 2, byesCount: 0 });
+    expect(insights.isMatchHistoryComplete).toBe(false);
+    expect(insights.excludedMatchesCount).toBe(1);
+    expect(insights.monthlyActivity[0]).toMatchObject({ matchesCount: 2, byesCount: 0 });
+  });
+
   it('does not count tournament wins from an incomplete tournament list', () => {
     const insights = getPlayerDetailInsights({
       ...detail,

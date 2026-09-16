@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
+import { dictionaryQueries } from '@/entities/dictionaries/queries';
 import type { DashboardFilters } from '@/shared/api/types';
 import { defaultFilters } from '@/shared/lib/filters';
 import { Badge } from '@/shared/ui/Badge';
@@ -13,6 +13,7 @@ type FiltersPanelProps = {
   onChange: (values: Partial<DashboardFilters>) => void;
   onReset: () => void;
   showFormat?: boolean;
+  requireFormat?: boolean;
   showTournamentType?: boolean;
 };
 
@@ -21,22 +22,15 @@ export function FiltersPanel({
   onChange,
   onReset,
   showFormat = true,
+  requireFormat = false,
   showTournamentType = true,
 }: FiltersPanelProps) {
-  const citiesQuery = useQuery({
-    queryKey: ['dictionaries', 'cities'],
-    queryFn: getCities,
-  });
+  const citiesQuery = useQuery(dictionaryQueries.cities());
   const formatsQuery = useQuery({
-    queryKey: ['dictionaries', 'formats'],
-    queryFn: getFormats,
+    ...dictionaryQueries.formats(),
     enabled: showFormat,
   });
-  const clubsQuery = useQuery({
-    queryKey: ['dictionaries', 'clubs', filters.cityId],
-    queryFn: () => getClubs(filters.cityId),
-    enabled: Boolean(filters.cityId),
-  });
+  const clubsQuery = useQuery(dictionaryQueries.clubs(filters.cityId));
 
   const cityOptions = [
     { value: '', label: citiesQuery.isLoading ? 'Загружаем города...' : 'Все города' },
@@ -55,7 +49,7 @@ export function FiltersPanel({
   ];
 
   const formatOptions = [
-    { value: '', label: formatsQuery.isLoading ? 'Загружаем форматы...' : 'Все форматы' },
+    { value: '', label: formatsQuery.isLoading ? 'Загружаем форматы...' : requireFormat ? 'Выберите формат' : 'Все форматы' },
     ...(formatsQuery.data?.items ?? []).map((item) => ({
       value: item.id,
       label: item.name,
@@ -118,6 +112,7 @@ export function FiltersPanel({
         {showFormat ? (
           <Select
             label="Формат"
+            required={requireFormat}
             onChange={(event) => onChange({ formatId: event.target.value })}
             options={formatOptions}
             value={filters.formatId}

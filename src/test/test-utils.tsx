@@ -5,12 +5,13 @@ import { MemoryRouter } from 'react-router-dom';
 export function TestProviders({
   children,
   initialEntry = '/',
-}: PropsWithChildren<{ initialEntry?: string }>) {
+  queryGcTime = 0,
+}: PropsWithChildren<{ initialEntry?: string; queryGcTime?: number }>) {
   const client = new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
-        gcTime: 0,
+        gcTime: queryGcTime,
       },
     },
   });

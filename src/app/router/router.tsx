@@ -1,18 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { HomeRedirect } from '@/app/router/HomeRedirect';
 import { AppLayout } from '@/widgets/app-layout/AppLayout';
-import { ChangelogPage } from '@/pages/changelog/ChangelogPage';
-import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
-import { DailiesPage } from '@/pages/dailies/DailiesPage';
-import { DeckDetailPage } from '@/pages/deck-detail/DeckDetailPage';
-import { DecksPage } from '@/pages/decks/DecksPage';
-import { DigestPage } from '@/pages/digest/DigestPage';
-import { HomePage } from '@/pages/home/HomePage';
-import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
-import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
-import { PlayersPage } from '@/pages/players/PlayersPage';
-import { TournamentDetailPage } from '@/pages/tournament-detail/TournamentDetailPage';
-import { TournamentsPage } from '@/pages/tournaments/TournamentsPage';
 
 export const router = createBrowserRouter([
   {
@@ -21,7 +9,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        lazy: async () => ({ Component: (await import('@/pages/home/HomePage')).HomePage }),
       },
       {
         path: 'home',
@@ -29,30 +17,30 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dailies',
-        element: <DailiesPage />,
+        lazy: async () => ({ Component: (await import('@/pages/dailies/DailiesPage')).DailiesPage }),
       },
       {
         path: 'digest',
-        element: <DigestPage />,
+        lazy: async () => ({ Component: (await import('@/pages/digest/DigestPage')).DigestPage }),
       },
       {
         path: 'changelog',
-        element: <ChangelogPage />,
+        lazy: async () => ({ Component: (await import('@/pages/changelog/ChangelogPage')).ChangelogPage }),
       },
       {
         path: 'admin/tournaments/create',
-        element: <CreateTournamentPage />,
+        lazy: async () => ({ Component: (await import('@/pages/create-tournament/CreateTournamentPage')).CreateTournamentPage }),
       },
       {
         path: 'tournaments',
         children: [
           {
             index: true,
-            element: <TournamentsPage />,
+            lazy: async () => ({ Component: (await import('@/pages/tournaments/TournamentsPage')).TournamentsPage }),
           },
           {
             path: ':id',
-            element: <TournamentDetailPage />,
+            lazy: async () => ({ Component: (await import('@/pages/tournament-detail/TournamentDetailPage')).TournamentDetailPage }),
           },
         ],
       },
@@ -61,11 +49,11 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <PlayersPage />,
+            lazy: async () => ({ Component: (await import('@/pages/players/PlayersPage')).PlayersPage }),
           },
           {
             path: ':id',
-            element: <PlayerDetailPage />,
+            lazy: async () => ({ Component: (await import('@/pages/player-detail/PlayerDetailPage')).PlayerDetailPage }),
           },
         ],
       },
@@ -74,17 +62,21 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <DecksPage />,
+            lazy: async () => ({ Component: (await import('@/pages/decks/DecksPage')).DecksPage }),
           },
           {
             path: ':id',
-            element: <DeckDetailPage />,
+            lazy: async () => ({ Component: (await import('@/pages/deck-detail/DeckDetailPage')).DeckDetailPage }),
           },
         ],
       },
       {
+        path: 'matchups',
+        lazy: async () => ({ Component: (await import('@/pages/matchups/MatchupsPage')).MatchupsPage }),
+      },
+      {
         path: '*',
-        element: <NotFoundPage />,
+        lazy: async () => ({ Component: (await import('@/pages/not-found/NotFoundPage')).NotFoundPage }),
       },
     ],
   },

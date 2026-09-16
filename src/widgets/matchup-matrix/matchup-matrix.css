@@ -1,0 +1,118 @@
+.matchup-card {
+  --matchup-heat-0: #f06a6a;
+  --matchup-heat-25: #f58b59;
+  --matchup-heat-40: #f8ac45;
+  --matchup-heat-50: #f5c542;
+  --matchup-heat-60: #b9ce4b;
+  --matchup-heat-75: #7fc65e;
+  --matchup-heat-100: #40b87c;
+}
+
+:root[data-theme='dark'] .matchup-card {
+  --matchup-heat-0: #991b1b;
+  --matchup-heat-25: #a92b23;
+  --matchup-heat-40: #9e4024;
+  --matchup-heat-50: #956700;
+  --matchup-heat-60: #657329;
+  --matchup-heat-75: #37732f;
+  --matchup-heat-100: #146642;
+}
+
+.matchup-toolbar { display: grid; gap: 18px; }
+.matchup-controls { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+.matchup-size {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.matchup-size .field { width: 160px; }
+.matchup-size .button { min-height: 46px; }
+.matchup-period { display: flex; flex-direction: column; flex: 1 1 470px; min-width: 0; gap: 8px; }
+.matchup-period__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.matchup-period__button { min-height: 46px; padding: 10px 12px; white-space: nowrap; }
+.matchup-period__summary { color: var(--text); font-size: 0.82rem; }
+.matchup-period__hint { margin: 0; }
+.matchup-card { min-width: 0; --matchup-name-width: 190px; }
+.matchup-mobile-help { display: none; }
+.matchup-card__status { white-space: nowrap; font-size: 0.85rem; color: var(--muted); }
+.matchup-legend { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; margin: 0 0 16px; font-size: 0.8rem; color: var(--muted); }
+.matchup-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.matchup-legend__scale { width: 280px; max-width: 100%; }
+.matchup-legend__gradient { height: 12px; border: 1px solid var(--line-strong); border-radius: 4px; }
+.matchup-legend__ticks { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+
+.matchup-matrix-scroll {
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  scroll-padding-left: 194px;
+}
+
+.matchup-matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.matchup-matrix th,
+.matchup-matrix td {
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0;
+}
+
+.matchup-matrix thead th { position: sticky; top: 0; z-index: 2; background: var(--table-head); height: 160px; }
+.matchup-matrix .matchup-matrix__corner { left: 0; z-index: 4; text-align: left; padding: 12px; vertical-align: bottom; }
+.matchup-matrix__corner span { display: block; margin-top: 6px; font-weight: 400; color: var(--muted); }
+.matchup-matrix .matchup-matrix__overall-heading { vertical-align: bottom; padding: 12px 10px; text-align: center; border-right: 2px solid var(--line-strong); }
+.matchup-matrix__opponent { vertical-align: bottom; }
+.matchup-matrix__opponent > div { height: 160px; display: flex; justify-content: center; align-items: flex-start; padding: 12px 0; overflow: hidden; }
+.matchup-matrix__opponent .entity-link { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; max-height: 136px; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.matchup-matrix .matchup-matrix__deck { position: sticky; left: 0; z-index: 1; padding: 10px 12px; background: var(--panel); text-align: left; overflow-wrap: anywhere; }
+.matchup-matrix__deck .entity-link { color: var(--text); }
+.matchup-matrix__deck .deck-link { flex-wrap: wrap; }
+.matchup-matrix__share { display: block; margin-top: 4px; font-size: 0.7rem; font-weight: 400; color: var(--muted); }
+.matchup-matrix__cell { background: var(--matchup-heat, var(--panel)); }
+.matchup-matrix .matchup-matrix__overall { border-right: 2px solid var(--line-strong); }
+.matchup-matrix__value { position: relative; display: flex; width: 100%; min-height: 56px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; border: 0; background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.matchup-matrix__value strong { font-size: 0.82rem; }
+.matchup-matrix__count { font-size: 0.68rem; }
+.matchup-matrix__small { position: absolute; right: 5px; top: 4px; font-weight: 800; }
+.matchup-matrix__missing,
+.matchup-matrix__mirror-count { color: var(--muted); }
+.matchup-matrix__mirror { background: var(--card-muted); }
+.matchup-matrix__row-active .matchup-matrix__value,
+.matchup-matrix__column-active .matchup-matrix__value { box-shadow: inset 0 0 0 1px var(--accent); }
+.matchup-matrix__value--active,
+.matchup-matrix__value:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.matchup-matrix .matchup-matrix__heading-active,
+.matchup-matrix__row-active .matchup-matrix__deck { box-shadow: inset 0 -3px var(--accent); }
+.matchup-matrix .entity-link:hover { color: var(--accent); text-decoration: underline; }
+.matchup-card__note { margin: 16px 0 0; font-size: 0.82rem; line-height: 1.6; color: var(--muted); }
+.matchup-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.matchup-details { position: fixed; z-index: 50; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; padding: 16px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--popover-bg); color: var(--text); box-shadow: 0 8px 28px rgb(0 0 0 / 18%); font-size: 0.82rem; }
+.matchup-details__title { display: block; overflow-wrap: anywhere; line-height: 1.5; }
+.matchup-details__stats { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.matchup-details__stats > div { display: flex; justify-content: space-between; gap: 16px; }
+.matchup-details__stats dt { color: var(--muted); }
+.matchup-details__stats dd { margin: 0; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+.matchup-details p { margin: 12px 0 0; color: var(--muted); line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .matchup-mobile-help { display: inline; }
+  .matchup-desktop-help { display: none; }
+  .matchup-size { justify-content: flex-start; }
+  .matchup-matrix-scroll { scroll-padding-left: 144px; }
+  .matchup-card { --matchup-name-width: 140px; }
+  .matchup-matrix .matchup-matrix__deck { padding: 8px; }
+}

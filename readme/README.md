@@ -8,6 +8,8 @@
 
 ## Для всех участников
 
+- [PROJECT_AUDIT.md](PROJECT_AUDIT.md) — аудит от 2026-09-05: ценность продукта,
+  данные на экранах и реальные ограничения API; контекст для backend-задач.
 - [ROUTES.md](ROUTES.md) — карта экранов, доступ и навигация.
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — устройство frontend-кода и
   границы слоёв.
@@ -32,13 +34,15 @@
 
 ## Для backend-разработчика
 
+- [BACKEND_MATCHUP_SELECTION.md](BACKEND_MATCHUP_SELECTION.md) — новая задача:
+  выбор любых колод для матрицы, параметр `deckIds` и поиск названий.
 - [BACKEND_API_HANDOFF.md](BACKEND_API_HANDOFF.md) — текущий контракт API,
   фильтры, пагинация и ошибки.
 - [DAILY_IMPORT_INTEGRATION.md](DAILY_IMPORT_INTEGRATION.md) — техническая
   инструкция для внешнего backend, который загружает дейлики в Magic Oculus.
 - [BACKEND_DATA_ACCURACY.md](BACKEND_DATA_ACCURACY.md) — канонический список
   backend-задач с объяснением, почему каждая из них должна решаться на backend,
-  а не на frontend.
+  а не на frontend; приоритеты, предлагаемые контракты и новые полезные данные.
 
 ## Для деплоя
 

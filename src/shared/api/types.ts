@@ -69,6 +69,32 @@ export type AppliedFilters = {
   dateTo?: string | null;
 };
 
+export type MatchupStats = {
+  matchesCount: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number | null;
+  winRateLow: number | null;
+  winRateHigh: number | null;
+  isSmallSample: boolean;
+};
+
+export type MatchupMatrixRow = {
+  deck: DeckShort;
+  metaShare: number;
+  mirrorMatches: number;
+  overall: MatchupStats | null;
+  /** The opponent at index i is always decks[i] in MatchupMatrixResponse. */
+  cells: (MatchupStats | null)[];
+};
+
+export type MatchupMatrixResponse = {
+  decks: DeckShort[];
+  rows: MatchupMatrixRow[];
+  appliedFilters: AppliedFilters;
+};
+
 export type DashboardFilters = {
   cityId: string;
   clubId: string;

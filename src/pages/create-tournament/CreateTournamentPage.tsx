@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createTournament } from '@/entities/admin-tournament/api';
-import { getCities, getClubs, getFormats } from '@/entities/dictionaries/api';
+import { dictionaryQueries } from '@/entities/dictionaries/queries';
 import { AppError } from '@/shared/api/client';
 import type {
   CreateTournamentPayload,
@@ -114,25 +114,21 @@ function isAetherhubTournamentUrl(value: string) {
 }
 
 export function CreateTournamentPage() {
+  const queryClient = useQueryClient();
   const [formState, setFormState] = useState<FormState>(initialState);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const citiesQuery = useQuery({
-    queryKey: ['create-event', 'cities'],
-    queryFn: getCities,
-  });
-  const formatsQuery = useQuery({
-    queryKey: ['create-event', 'formats'],
-    queryFn: getFormats,
-  });
-  const clubsQuery = useQuery({
-    queryKey: ['create-event', 'clubs', formState.cityId],
-    queryFn: () => getClubs(formState.cityId),
-    enabled: Boolean(formState.cityId),
-  });
+  const citiesQuery = useQuery(dictionaryQueries.cities());
+  const formatsQuery = useQuery(dictionaryQueries.formats());
+  const clubsQuery = useQuery(dictionaryQueries.clubs(formState.cityId));
   const importMutation = useMutation({
     mutationFn: createTournament,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== 'dictionaries',
+      });
+    },
   });
   const importError =
     importMutation.error instanceof AppError ? importMutation.error : null;

@@ -129,7 +129,7 @@ describe('TournamentDetailPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Legacy Daily' }))
       .toBeInTheDocument();
-    expect(getTournamentDetails).toHaveBeenCalledWith('145');
+    expect(getTournamentDetails).toHaveBeenCalledWith('145', { signal: expect.any(AbortSignal) });
     expect(screen.getByRole('link', { name: /Открыть на Aetherhub/ }))
       .toHaveAttribute(
         'href',

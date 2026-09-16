@@ -380,12 +380,12 @@ export function PlayerDetailPage() {
   const playerQuery = useQuery({
     enabled: Boolean(id),
     queryKey: ['player-detail', id, apiFilters],
-    queryFn: () => getPlayerDetails(id, apiFilters),
+    queryFn: ({ signal }) => getPlayerDetails(id, apiFilters, { signal }),
   });
   const careerQuery = useQuery({
     enabled: Boolean(id),
-    queryKey: ['player-detail-career', id],
-    queryFn: () => getPlayerDetails(id, {}),
+    queryKey: ['player-detail', id, {}],
+    queryFn: ({ signal }) => getPlayerDetails(id, {}, { signal }),
   });
   const filterKey = JSON.stringify(apiFilters);
 
@@ -673,6 +673,7 @@ export function PlayerDetailPage() {
           <Table
             columns={tournamentColumns}
             data={visibleTournaments}
+            isPartial={visibleTournaments.length < sortedTournaments.length}
             defaultSort={{ columnId: 'date', direction: 'desc' }}
             emptyMessage="С этими фильтрами пока нет турниров этого игрока."
             getRowKey={(row) => row.tournament.id}
@@ -720,6 +721,7 @@ export function PlayerDetailPage() {
             key={deckSort}
             columns={deckColumns}
             data={visibleDecks}
+            isPartial={visibleDecks.length < sortedDecks.length}
             defaultSort={{
               columnId: deckSort === 'winrate' ? 'winrate' : 'matches',
               direction: 'desc',
@@ -768,6 +770,7 @@ export function PlayerDetailPage() {
           <Table
             columns={opponentColumns}
             data={visibleOpponents}
+            isPartial={visibleOpponents.length < opponents.length}
             defaultSort={{ columnId: 'matches', direction: 'desc' }}
             emptyMessage="С этими фильтрами пока нет матчей с известными оппонентами."
             getRowKey={(row) => row.opponent.id}

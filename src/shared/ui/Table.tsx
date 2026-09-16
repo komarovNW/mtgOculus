@@ -25,6 +25,7 @@ type TableProps<T> = {
   getRowClassName?: (row: T, index: number) => string | undefined;
   layout?: 'auto' | 'fixed';
   minWidth?: number | string;
+  isPartial?: boolean;
   defaultSort?: {
     columnId: string;
     direction: SortDirection;
@@ -75,6 +76,7 @@ export function Table<T>({
   getRowClassName,
   layout = 'auto',
   minWidth,
+  isPartial = false,
   defaultSort,
 }: TableProps<T>) {
   const [sortState, setSortState] = useState<SortState | null>(defaultSort ?? null);
@@ -137,6 +139,11 @@ export function Table<T>({
 
   return (
     <div className="table-shell">
+      {isPartial && columns.some((column) => column.sortValue) ? (
+        <p className="muted-text" role="note">
+          Показаны не все строки. Сортировка по заголовкам действует только на показанные.
+        </p>
+      ) : null}
       <table
         className={cn('table', layout === 'fixed' && 'table--fixed')}
         style={

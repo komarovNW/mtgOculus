@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getAllPlayers, getPlayers } from '@/entities/player/api';
 import type { PlayerListItem, PlayersListQuery } from '@/shared/api/types';
@@ -19,6 +20,7 @@ import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { getNextPageParam, LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import { getPlayerListInsights } from '@/shared/lib/playerListInsights';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
@@ -125,6 +127,8 @@ const sortOptions = [
 export function PlayersPage() {
   const { filters, apiFilters, setFilters, resetFilters, searchParams, updateQueryParams } = useDashboardFilters();
   const search = searchParams.get('search') || '';
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const isSearchPending = debouncedSearch !== search.trim();
   const requestedSort = searchParams.get('sort');
   const sort: NonNullable<PlayersListQuery['sort']> =
     requestedSort === 'tournamentsCount' || requestedSort === 'name'
@@ -138,34 +142,39 @@ export function PlayersPage() {
   };
 
   const playersQuery = useInfiniteQuery({
-    queryKey: ['players', apiFilters, search, sort],
-    queryFn: ({ pageParam }) =>
+    enabled: !isSearchPending,
+    queryKey: ['players', apiFilters, debouncedSearch, sort],
+    queryFn: ({ pageParam, signal }) =>
       getPlayers({
         ...apiFilters,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         sort,
         order,
         page: pageParam,
         limit: LIST_PAGE_SIZE,
-      }),
+      }, { signal }),
     initialPageParam: 1,
     getNextPageParam,
   });
   const playerInsightsQuery = useQuery({
-    queryKey: ['player-list-insights', apiFilters, search],
-    queryFn: () =>
+    enabled: !isSearchPending,
+    queryKey: ['player-list-insights', apiFilters, debouncedSearch],
+    queryFn: ({ signal }) =>
       getAllPlayers({
         ...apiFilters,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         sort: 'matchesCount',
         order: 'desc',
-      }),
+      }, { signal }),
   });
-  const firstPage = playersQuery.data?.pages[0];
+  const firstPage = isSearchPending ? undefined : playersQuery.data?.pages[0];
   const players = playersQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = firstPage?.pagination.total ?? 0;
   const hasInitialData = Boolean(firstPage);
-  const playerInsights = getPlayerListInsights(playerInsightsQuery.data ?? []);
+  const playerInsights = useMemo(
+    () => getPlayerListInsights(playerInsightsQuery.data ?? []),
+    [playerInsightsQuery.data],
+  );
 
   return (
     <div className="page-stack">
@@ -201,8 +210,8 @@ export function PlayersPage() {
         </div>
       </Card>
 
-      {!hasInitialData && playersQuery.isLoading ? <LoadingState description="Собираем статистику по игрокам." /> : null}
-      {!hasInitialData && playersQuery.isError ? (
+      {!hasInitialData && (isSearchPending || playersQuery.isLoading) ? <LoadingState description="Собираем статистику по игрокам." /> : null}
+      {!hasInitialData && !isSearchPending && playersQuery.isError ? (
         <ErrorState
           description={getErrorMessage(playersQuery.error, 'Не получилось загрузить список игроков. Попробуйте обновить страницу или изменить фильтры.')}
           onRetry={() => {
@@ -251,7 +260,7 @@ export function PlayersPage() {
                   <article className="insight-item">
                     <div className="insight-item__title">Собираем ориентир</div>
                     <div className="insight-item__body">
-                      Загружаем все страницы игроков по текущим фильтрам.
+                      Собираем общую статистику по выбранным фильтрам.
                     </div>
                   </article>
                 ) : null}
@@ -341,6 +350,7 @@ export function PlayersPage() {
               emptyMessage="По этим фильтрам пока нет игроков."
               getRowKey={(row) => row.player.id}
               minWidth={980}
+              isPartial={players.length < totalCount}
             />
             <LoadMorePagination
               hasMore={playersQuery.hasNextPage}

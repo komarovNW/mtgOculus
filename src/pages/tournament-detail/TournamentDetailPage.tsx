@@ -323,7 +323,7 @@ export function TournamentDetailPage() {
   const detailQuery = useQuery({
     enabled: Boolean(id),
     queryKey: ['tournament-detail', id],
-    queryFn: () => getTournamentDetails(id),
+    queryFn: ({ signal }) => getTournamentDetails(id, { signal }),
   });
 
   useEffect(() => {

@@ -26,18 +26,18 @@ export function HomePage() {
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
   const homeQuery = useQuery({
     queryKey: ['home', apiFilters],
-    queryFn: () => getHomeData(apiFilters),
+    queryFn: ({ signal }) => getHomeData(apiFilters, { signal }),
   });
   const establishedPlayersQuery = useQuery({
     queryKey: ['home', 'established-players', apiFilters],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       getPlayers({
         ...apiFilters,
         sort: 'matchesCount',
         order: 'desc',
         page: 1,
         limit: 100,
-      }),
+      }, { signal }),
   });
 
   const appliedLabels = getAppliedFilterLabels(homeQuery.data?.appliedFilters);
@@ -178,6 +178,9 @@ export function HomePage() {
                   items={getEstablishedPlayers(establishedPlayersQuery.data.items)}
                   limit={10}
                   showSpotlight
+                  scopeDescription={establishedPlayersQuery.data.pagination.hasMore
+                    ? `Среди ${establishedPlayersQuery.data.items.length} самых активных игроков из ${establishedPlayersQuery.data.pagination.total} в выбранной статистике.`
+                    : undefined}
                 />
               ) : null}
               <PopularMatchupsTable

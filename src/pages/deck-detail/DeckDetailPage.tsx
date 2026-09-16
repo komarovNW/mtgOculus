@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { getAllDecks, getDeckDetails } from '@/entities/deck/api';
+import { getDeckDetails } from '@/entities/deck/api';
+import { allDecksQueryOptions } from '@/entities/deck/queries';
 import type { DeckMatchupItem, DeckPlayerItem, TournamentDeckResultItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import {
@@ -240,17 +241,12 @@ export function DeckDetailPage() {
   const deckQuery = useQuery({
     enabled: Boolean(id),
     queryKey: ['deck-detail', id, detailFilters],
-    queryFn: () => getDeckDetails(id, detailFilters),
+    queryFn: ({ signal }) => getDeckDetails(id, detailFilters, { signal }),
   });
   const deckFormatId = deckQuery.data?.deck.format.id;
   const metagameQuery = useQuery({
+    ...allDecksQueryOptions({ ...apiFilters, formatId: deckFormatId }),
     enabled: Boolean(deckFormatId),
-    queryKey: ['deck-detail-metagame', apiFilters, deckFormatId],
-    queryFn: () =>
-      getAllDecks({
-        ...apiFilters,
-        formatId: deckFormatId ?? '',
-      }),
   });
   const filterKey = JSON.stringify(detailFilters);
 
@@ -588,6 +584,7 @@ export function DeckDetailPage() {
           <Table
             columns={tournamentColumns}
             data={visibleTournamentResults}
+            isPartial={visibleTournamentResults.length < sortedTournamentResults.length}
             defaultSort={{ columnId: 'date', direction: 'desc' }}
             emptyMessage="С этими фильтрами пока нет результатов этой колоды."
             getRowKey={(row) => `${row.tournament.id}-${row.player.id}`}
@@ -623,6 +620,7 @@ export function DeckDetailPage() {
           <Table
             columns={playerColumns}
             data={visiblePlayers}
+            isPartial={visiblePlayers.length < sortedPlayers.length}
             defaultSort={{ columnId: 'matches', direction: 'desc' }}
             emptyMessage="С этими фильтрами пока не видно, кто играл этой колодой."
             getRowKey={(row) => row.player.id}
@@ -655,6 +653,7 @@ export function DeckDetailPage() {
           <Table
             columns={matchupColumns}
             data={visibleMatchups}
+            isPartial={visibleMatchups.length < sortedMatchups.length}
             defaultSort={{ columnId: 'matches', direction: 'desc' }}
             emptyMessage="С этими фильтрами пока нет матчапов этой колоды."
             getRowKey={(row) => row.opponentDeck.id}

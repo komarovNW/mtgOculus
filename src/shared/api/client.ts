@@ -153,7 +153,7 @@ async function parseError(response: Response): Promise<AppError> {
   }
 }
 
-type RequestOptions = {
+export type RequestOptions = {
   signal?: AbortSignal;
 };
 

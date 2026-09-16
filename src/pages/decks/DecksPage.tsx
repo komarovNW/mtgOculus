@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { getAllDecks, getDecks } from '@/entities/deck/api';
+import { getDecks } from '@/entities/deck/api';
+import { allDecksQueryOptions } from '@/entities/deck/queries';
+import { useAppliedFilters } from '@/entities/dictionaries/useAppliedFilters';
 import type { DeckListItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { getDeckListInsights } from '@/shared/lib/deckListInsights';
@@ -200,27 +202,21 @@ export function DecksPage() {
     name_asc: 'по названию',
   } as const;
   const decksQuery = useInfiniteQuery({
-    queryKey: ['decks', apiFilters, search, sort],
-    queryFn: ({ pageParam }) =>
+    enabled: !useClientList,
+    queryKey: ['decks', apiFilters, sort],
+    queryFn: ({ pageParam, signal }) =>
       getDecks({
         ...apiFilters,
-        search: search || undefined,
         sort: serverSort,
         page: pageParam,
         limit: LIST_PAGE_SIZE,
-      }),
+      }, { signal }),
     initialPageParam: 1,
     getNextPageParam,
   });
-  const deckInsightsQuery = useQuery({
-    queryKey: ['deck-list-insights', apiFilters],
-    queryFn: () =>
-      getAllDecks({
-        ...apiFilters,
-        sort: 'playersCount_desc',
-      }),
-  });
+  const deckInsightsQuery = useQuery(allDecksQueryOptions(apiFilters));
   const firstPage = decksQuery.data?.pages[0];
+  const appliedFilters = useAppliedFilters(apiFilters, firstPage?.appliedFilters);
   const loadedDecks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const filteredDecks = useMemo(() => {
     const allDecks = deckInsightsQuery.data ?? [];
@@ -247,12 +243,12 @@ export function DecksPage() {
   const isInitialError = useClientList
     ? deckInsightsQuery.isError
     : decksQuery.isError;
-  const deckInsights = getDeckListInsights(filteredDecks);
+  const deckInsights = useMemo(() => getDeckListInsights(filteredDecks), [filteredDecks]);
 
   return (
     <div className="page-stack">
       <PageHeader
-        badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
+        badges={getAppliedFilterLabels(appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
         description="Здесь удобно сравнивать популярность колод, их результаты и быстро переходить к турнирам и матчапам."
@@ -341,7 +337,7 @@ export function DecksPage() {
                   <article className="insight-item">
                     <div className="insight-item__title">Собираем ориентир</div>
                     <div className="insight-item__body">
-                      Загружаем все страницы колод по текущим фильтрам.
+                      Собираем общую статистику по выбранным фильтрам.
                     </div>
                   </article>
                 ) : null}

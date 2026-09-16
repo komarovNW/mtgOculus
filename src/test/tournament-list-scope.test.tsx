@@ -95,6 +95,7 @@ describe('tournament list scope', () => {
           page: 1,
           limit: 50,
         }),
+        { signal: expect.any(AbortSignal) },
       );
     });
   });
@@ -108,6 +109,7 @@ describe('tournament list scope', () => {
         expect.objectContaining({
           tournamentType: 'tournament',
         }),
+        { signal: expect.any(AbortSignal) },
       );
     });
   });

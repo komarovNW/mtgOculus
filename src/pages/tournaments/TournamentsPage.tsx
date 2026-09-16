@@ -138,23 +138,23 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
   const tournamentsQuery = useInfiniteQuery({
     queryKey: ['tournaments', apiFilters, eventType],
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam, signal }) =>
       getTournaments({
         ...apiFilters,
         tournamentType: eventType,
         page: pageParam,
         limit: LIST_PAGE_SIZE,
-      }),
+      }, { signal }),
     initialPageParam: 1,
     getNextPageParam,
   });
   const dailyInsightsQuery = useQuery({
     queryKey: ['daily-insights', apiFilters],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       getAllTournaments({
         ...apiFilters,
         tournamentType: 'daily',
-      }),
+      }, { signal }),
     enabled: isDaily,
   });
   const firstPage = tournamentsQuery.data?.pages[0];
@@ -247,7 +247,7 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
                       <article className="insight-item">
                         <div className="insight-item__title">Собираем ориентир</div>
                         <div className="insight-item__body">
-                          Загружаем все страницы дейликов по текущим фильтрам.
+                          Собираем общую статистику по выбранным фильтрам.
                         </div>
                       </article>
                     ) : null}
@@ -312,7 +312,9 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
                     ) : null}
                     {tournaments.length > 0 ? (
                       <article className="insight-item">
-                        <div className="insight-item__title">Самый большой турнир в списке</div>
+                        <div className="insight-item__title">
+                          {tournamentsQuery.hasNextPage ? 'Самый большой из загруженных турниров' : 'Самый большой турнир в списке'}
+                        </div>
                         <div className="insight-item__body">
                           {(() => {
                             const biggestTournament = [...tournaments].sort(
@@ -375,6 +377,7 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
               getRowKey={(row) => row.id}
               layout="fixed"
               minWidth={880}
+              isPartial={tournaments.length < totalCount}
             />
             <LoadMorePagination
               hasMore={tournamentsQuery.hasNextPage}

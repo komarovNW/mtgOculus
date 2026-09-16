@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAllPlayers, getPlayers } from '@/entities/player/api';
 import { PlayersPage } from '@/pages/players/PlayersPage';
 import type { PlayerListItem } from '@/shared/api/types';
@@ -41,6 +42,7 @@ const oneOffPlayer: PlayerListItem = {
 };
 
 describe('PlayersPage', () => {
+  beforeEach(() => vi.clearAllMocks());
   it('defaults to activity and removes best-place sorting', async () => {
     vi.mocked(getPlayers).mockResolvedValue({
       appliedFilters: {},
@@ -67,6 +69,7 @@ describe('PlayersPage', () => {
           sort: 'matchesCount',
           order: 'desc',
         }),
+        { signal: expect.any(AbortSignal) },
       );
     });
 
@@ -106,5 +109,25 @@ describe('PlayersPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Активность сообщества')).not.toBeInTheDocument();
     expect(screen.queryByText('Быстрый ориентир')).not.toBeInTheDocument();
+  });
+
+  it('requests only the completed search and does not show old rows under the new input', async () => {
+    vi.mocked(getPlayers).mockResolvedValue({
+      appliedFilters: {}, items: [activePlayer],
+      pagination: { page: 1, limit: 50, total: 1, hasMore: false },
+    });
+    vi.mocked(getAllPlayers).mockResolvedValue([activePlayer]);
+    render(<TestProviders initialEntry="/players"><PlayersPage /></TestProviders>);
+    await screen.findByRole('heading', { name: 'Все игроки' });
+
+    await userEvent.setup().type(screen.getByLabelText('Найти игрока'), 'Новый');
+    expect(screen.queryByRole('heading', { name: 'Все игроки' })).not.toBeInTheDocument();
+    expect(getPlayers).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getPlayers).toHaveBeenCalledTimes(2));
+    expect(getPlayers).toHaveBeenLastCalledWith(
+      expect.objectContaining({ search: 'Новый', page: 1 }),
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(getAllPlayers).toHaveBeenCalledTimes(2);
   });
 });

@@ -5,6 +5,7 @@ export const endpoints = {
   players: '/players',
   playerById: (id: string) => `/players/${id}`,
   decks: '/decks',
+  matchups: '/matchups',
   deckById: (id: string) => `/decks/${id}`,
   cities: '/cities',
   clubsByCity: (cityId: string) => `/cities/${cityId}/clubs`,

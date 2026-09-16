@@ -1,4 +1,4 @@
-import { apiGet } from '@/shared/api/client';
+import { apiGet, type RequestOptions } from '@/shared/api/client';
 import {
   type BackendCity,
   type BackendClub,
@@ -7,8 +7,8 @@ import {
 import { endpoints } from '@/shared/api/endpoints';
 import type { AppliedFilters, CitiesResponse, ClubsResponse, DashboardFilters, FormatsResponse } from '@/shared/api/types';
 
-export function getCities() {
-  return apiGet<BackendCity[]>(endpoints.cities).then((items) => ({
+export function getCities(options?: RequestOptions) {
+  return apiGet<BackendCity[]>(endpoints.cities, undefined, options).then((items) => ({
     items: items.map((item) => ({
       id: item.id,
       name: item.name,
@@ -17,8 +17,8 @@ export function getCities() {
   } satisfies CitiesResponse));
 }
 
-export function getClubs(cityId: string) {
-  return apiGet<BackendClub[]>(endpoints.clubsByCity(cityId)).then((items) => ({
+export function getClubs(cityId: string, options?: RequestOptions) {
+  return apiGet<BackendClub[]>(endpoints.clubsByCity(cityId), undefined, options).then((items) => ({
     items: items.map((item) => ({
       id: item.id,
       name: item.name,
@@ -27,8 +27,8 @@ export function getClubs(cityId: string) {
   } satisfies ClubsResponse));
 }
 
-export function getFormats() {
-  return apiGet<BackendFormat[]>(endpoints.formats).then((items) => ({
+export function getFormats(options?: RequestOptions) {
+  return apiGet<BackendFormat[]>(endpoints.formats, undefined, options).then((items) => ({
     items: items.map((item) => ({
       id: item.id,
       name: item.name,
@@ -36,11 +36,11 @@ export function getFormats() {
   } satisfies FormatsResponse));
 }
 
-export async function resolveAppliedFilters(filters: Partial<DashboardFilters>): Promise<AppliedFilters> {
+export async function resolveAppliedFilters(filters: Partial<DashboardFilters>, options?: RequestOptions): Promise<AppliedFilters> {
   const [cities, formats, clubs] = await Promise.all([
-    filters.cityId ? getCities() : Promise.resolve({ items: [] }),
-    filters.formatId ? getFormats() : Promise.resolve({ items: [] }),
-    filters.cityId && filters.clubId ? getClubs(filters.cityId) : Promise.resolve({ items: [] }),
+    filters.cityId ? getCities(options) : Promise.resolve({ items: [] }),
+    filters.formatId ? getFormats(options) : Promise.resolve({ items: [] }),
+    filters.cityId && filters.clubId ? getClubs(filters.cityId, options) : Promise.resolve({ items: [] }),
   ]);
 
   return {

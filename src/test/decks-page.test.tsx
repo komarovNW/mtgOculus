@@ -1,5 +1,5 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAllDecks, getDecks } from '@/entities/deck/api';
 import { DecksPage } from '@/pages/decks/DecksPage';
 import type { DeckListItem } from '@/shared/api/types';
@@ -45,6 +45,7 @@ const oneOffDeck: DeckListItem = {
 };
 
 describe('DecksPage', () => {
+  beforeEach(() => vi.clearAllMocks());
   it('defaults to popularity and removes raw result sorting', async () => {
     vi.mocked(getDecks).mockResolvedValue({
       appliedFilters: {},
@@ -70,6 +71,7 @@ describe('DecksPage', () => {
         expect.objectContaining({
           sort: 'playersCount_desc',
         }),
+        { signal: expect.any(AbortSignal) },
       );
     });
 
@@ -130,6 +132,7 @@ describe('DecksPage', () => {
       .toBeInTheDocument();
     expect(within(searchResults as HTMLElement).queryByText('Популярная колода'))
       .not.toBeInTheDocument();
+    expect(getDecks).not.toHaveBeenCalled();
   });
 
   it('does not render zero-value analytics for an empty search', async () => {
