@@ -4,18 +4,13 @@ import type {
   DeckPerformanceItem,
 } from '@/shared/api/types';
 
-export const ESTABLISHED_DECK_MIN_MATCHES = 30;
-export const ESTABLISHED_DECK_MIN_TOURNAMENTS = 10;
 export const ESTABLISHED_DECK_SAMPLE_HINT =
-  'Для устойчивого сравнения нужно минимум 30 матчей в 10 турнирах.';
+  'Достаточность выборки определяет сервер по единому правилу статистики.';
 
 export function isEstablishedDeck(
-  item: Pick<DeckListItem, 'matchesCount' | 'tournamentsCount'>,
+  item: Pick<DeckListItem, 'isSmallSample'>,
 ) {
-  return (
-    item.matchesCount >= ESTABLISHED_DECK_MIN_MATCHES &&
-    item.tournamentsCount >= ESTABLISHED_DECK_MIN_TOURNAMENTS
-  );
+  return !item.isSmallSample;
 }
 
 export function getEstablishedDecks(items: DeckListItem[]) {
@@ -37,14 +32,7 @@ export function getEstablishedDeckPerformance(
   );
 
   return [...deckPerformance]
-    .filter((item) => {
-      const metagame = metagameByDeckId.get(item.deck.id);
-
-      return (
-        item.matchesCount >= ESTABLISHED_DECK_MIN_MATCHES &&
-        (metagame?.tournamentsCount ?? 0) >= ESTABLISHED_DECK_MIN_TOURNAMENTS
-      );
-    })
+    .filter((item) => !item.isSmallSample && metagameByDeckId.has(item.deck.id))
     .sort(
       (left, right) =>
         right.matchWinRate - left.matchWinRate ||

@@ -145,6 +145,7 @@ export function DailyAttendanceChart({ items }: DailyAttendanceChartProps) {
               activeDot={{ r: 6 }}
               dataKey="playersCount"
               dot={{ r: 3 }}
+              isAnimationActive={false}
               stroke="var(--color-chart-1)"
               strokeWidth={3}
               type="monotone"

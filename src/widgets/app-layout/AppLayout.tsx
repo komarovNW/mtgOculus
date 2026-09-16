@@ -25,7 +25,7 @@ const headerLinks: HeaderLink[] = [
 type ThemeMode = 'dark' | 'light';
 
 const THEME_STORAGE_KEY = 'magic-oculus-theme';
-const MOBILE_NAV_BREAKPOINT = 760;
+const MOBILE_NAV_BREAKPOINT = 768;
 
 function readInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -89,13 +89,23 @@ export function AppLayout() {
         <div className="site-header__inner">
           <div className="site-header__top">
             <div className="brand">
-              <div className="brand__eyebrow">Турниры, колоды и статистика</div>
-              <NavLink
-                className="brand__title"
-                to={{ pathname: '/', search: dashboardFilterSearch }}
-              >
-                Magic Oculus
-              </NavLink>
+              <img
+                alt=""
+                aria-hidden="true"
+                className="brand__icon"
+                height="46"
+                src="/icons/magic-oculus-192.png"
+                width="46"
+              />
+              <div className="brand__copy">
+                <div className="brand__eyebrow">Турниры, колоды и статистика</div>
+                <NavLink
+                  className="brand__title"
+                  to={{ pathname: '/', search: dashboardFilterSearch }}
+                >
+                  Magic Oculus
+                </NavLink>
+              </div>
             </div>
             <button
               aria-controls="site-navigation"
@@ -169,8 +179,7 @@ export function AppLayout() {
       <footer className="site-footer">
         <div className="site-footer__inner">
           <span>
-            Magic Oculus собирает в одном месте результаты турниров, колоды, игроков и матчапы по загруженным
-            событиям Magic: The Gathering.
+            Результаты турниров, колоды и матчапы Magic: The Gathering.
           </span>
           <Link
             className="site-footer__version"

@@ -1,6 +1,9 @@
 import type { TournamentListItem } from '@/shared/api/types';
 
 export function getDailyInsights(items: TournamentListItem[]) {
+  const chronologicalItems = [...items].sort((left, right) =>
+    left.date.localeCompare(right.date),
+  );
   const biggestDaily = [...items].sort(
     (left, right) =>
       right.playersCount - left.playersCount ||
@@ -12,6 +15,21 @@ export function getDailyInsights(items: TournamentListItem[]) {
   const averagePlayers = items.length
     ? items.reduce((sum, item) => sum + item.playersCount, 0) / items.length
     : 0;
+  const comparisonItems = chronologicalItems.slice(-8);
+  const attendanceTrend = comparisonItems.length === 8
+    ? (() => {
+        const previous = comparisonItems.slice(0, 4);
+        const recent = comparisonItems.slice(4);
+        const previousAverage = previous.reduce((sum, item) => sum + item.playersCount, 0) / previous.length;
+        const recentAverage = recent.reduce((sum, item) => sum + item.playersCount, 0) / recent.length;
+
+        return {
+          previousAverage,
+          recentAverage,
+          difference: recentAverage - previousAverage,
+        };
+      })()
+    : undefined;
   const clubStats = new Map<
     string,
     { club: TournamentListItem['club']; eventsCount: number; playersCount: number }
@@ -35,6 +53,7 @@ export function getDailyInsights(items: TournamentListItem[]) {
 
   return {
     averagePlayers,
+    attendanceTrend,
     biggestDaily,
     latestDaily,
     mostActiveClub,

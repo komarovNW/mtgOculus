@@ -4,17 +4,6 @@ import type {
   DeckPlayerItem,
   TournamentDeckResultItem,
 } from '@/shared/api/types';
-import {
-  ESTABLISHED_DECK_MIN_MATCHES,
-  ESTABLISHED_DECK_MIN_TOURNAMENTS,
-} from '@/shared/lib/establishedDecks';
-import {
-  ESTABLISHED_PLAYER_MIN_MATCHES,
-  ESTABLISHED_PLAYER_MIN_TOURNAMENTS,
-} from '@/shared/lib/establishedPlayers';
-
-export const ESTABLISHED_MATCHUP_MIN_MATCHES = 10;
-
 export type DeckMonthlyActivity = {
   month: string;
   tournamentsCount: number;
@@ -67,7 +56,7 @@ function getEstablishedMatchups(deckId: string, matchups: DeckMatchupItem[]) {
   return matchups.filter(
     (item) =>
       item.opponentDeck.id !== deckId &&
-      item.matchesCount >= ESTABLISHED_MATCHUP_MIN_MATCHES,
+      !item.isSmallSample,
   );
 }
 
@@ -152,9 +141,8 @@ export function getDeckDetailInsights(detail: DeckDetailsResponse) {
     (total, item) => total + item.matchesCount,
     0,
   );
-  const playedMatchesCount =
-    detail.summary.playedMatchesCount ?? detail.summary.matchesCount;
-  const byesCount = detail.summary.byesCount ?? 0;
+  const playedMatchesCount = detail.summary.playedMatchesCount;
+  const byesCount = detail.summary.byesCount;
   const unknownResultsCount = detail.summary.unknownResultsCount ?? 0;
   const knownMatchupsCount =
     detail.summary.matchesWithKnownOpponentDeckCount ?? matchupRowsCount;
@@ -162,7 +150,7 @@ export function getDeckDetailInsights(detail: DeckDetailsResponse) {
     detail.summary.matchesWithUnknownOpponentDeckCount ??
     Math.max(0, playedMatchesCount - knownMatchupsCount);
   const playerMatchesCount = detail.players.reduce(
-    (total, item) => total + item.matchesCount,
+    (total, item) => total + item.playedMatchesCount,
     0,
   );
   const monthlyActivity = getDeckMonthlyActivity(detail.tournamentResults);
@@ -176,9 +164,7 @@ export function getDeckDetailInsights(detail: DeckDetailsResponse) {
     Math.min(...establishedWinRates) < Math.max(...establishedWinRates);
 
   return {
-    isEstablished:
-      playedMatchesCount >= ESTABLISHED_DECK_MIN_MATCHES &&
-      detail.summary.tournamentsCount >= ESTABLISHED_DECK_MIN_TOURNAMENTS,
+    isEstablished: !detail.summary.isSmallSample,
     isPlayerHistoryComplete:
       playerMatchesCount === playedMatchesCount,
     isTournamentHistoryComplete:
@@ -210,12 +196,9 @@ export function getDeckDetailInsights(detail: DeckDetailsResponse) {
 }
 
 export function isEstablishedDeckPlayer(item: DeckPlayerItem) {
-  return (
-    item.matchesCount >= ESTABLISHED_PLAYER_MIN_MATCHES &&
-    item.tournamentsCount >= ESTABLISHED_PLAYER_MIN_TOURNAMENTS
-  );
+  return !item.isSmallSample;
 }
 
 export function isEstablishedMatchup(item: DeckMatchupItem) {
-  return item.matchesCount >= ESTABLISHED_MATCHUP_MIN_MATCHES;
+  return !item.isSmallSample;
 }

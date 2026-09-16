@@ -1,33 +1,29 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { matchupsQueryOptions } from '@/entities/matchup/queries';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
-import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorState } from '@/shared/ui/ErrorState';
-import { Input } from '@/shared/ui/Input';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { Select } from '@/shared/ui/Select';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 import { MatchupMatrix } from '@/widgets/matchup-matrix/MatchupMatrix';
 import { MatchupPeriodSelector } from '@/widgets/matchup-matrix/MatchupPeriodSelector';
 
 function MatrixSize({ top, onApply }: { top: number; onApply: (top: number) => void }) {
-  const [value, setValue] = useState(String(top));
+  const sizes = [...new Set([10, 15, 25, 40, top])].sort((left, right) => left - right);
+
   return (
-    <form className="matchup-size" onSubmit={(event) => {
-      event.preventDefault();
-      const next = Number(value);
-      if (Number.isInteger(next) && next >= 2 && next <= 40) onApply(next);
-    }}>
-      <Input label="Колод в матрице" type="number" min={2} max={40} step={1} required
-        value={value} onChange={(event) => setValue(event.target.value)} />
-      <Button type="submit" variant="secondary">Применить размер</Button>
-    </form>
+    <Select
+      label="Колод в матрице"
+      value={String(top)}
+      onChange={(event) => onApply(Number(event.target.value))}
+      options={sizes.map((value) => ({ value: String(value), label: `${value}` }))}
+    />
   );
 }
 

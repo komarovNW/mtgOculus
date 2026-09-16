@@ -12,11 +12,13 @@ function performance(
   return {
     deck: { id, name: id },
     matchesCount,
+    playedMatchesCount: matchesCount,
+    byesCount: 0,
     matchWins,
     matchLosses: matchesCount - matchWins,
     matchDraws: 0,
     matchWinRate,
-    isSmallSample: false,
+    isSmallSample: id === 'four-matches' || id === 'two-tournaments',
   };
 }
 

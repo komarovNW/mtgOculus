@@ -121,16 +121,13 @@ function getMetagameChartData(
 }
 
 export function getTournamentInsights(details: TournamentDetailsResponse) {
-  const allPairings = details.rounds.flatMap((round) => round.matches);
-  const playedMatches = allPairings.filter(
-    (match) => getTournamentMatchKind(match) === 'played',
+  const byeCount = details.tournament.byesCount;
+  const unknownResultsCount = Math.max(
+    0,
+    details.tournament.pairingsCount -
+      details.tournament.playedMatchesCount -
+      details.tournament.byesCount,
   );
-  const byeCount = allPairings.filter(
-    (match) => getTournamentMatchKind(match) === 'bye',
-  ).length;
-  const unknownResultsCount = allPairings.filter(
-    (match) => getTournamentMatchKind(match) === 'unknown',
-  ).length;
   const participantsWithDeck = details.playerDecks.filter(
     (item): item is TournamentPlayerDeckItem & { deck: DeckShort } =>
       Boolean(item.deck),
@@ -160,8 +157,8 @@ export function getTournamentInsights(details: TournamentDetailsResponse) {
     mostPopularDecks: sortedMetagame.filter(
       (item) => item.playersCount === highestPlayersCount,
     ),
-    playedMatchesCount: playedMatches.length,
-    reportedPairingsCount: allPairings.length,
+    playedMatchesCount: details.tournament.playedMatchesCount,
+    reportedPairingsCount: details.tournament.pairingsCount,
     singlePlayerDecksCount: details.metagame.filter(
       (item) => item.playersCount === 1,
     ).length,

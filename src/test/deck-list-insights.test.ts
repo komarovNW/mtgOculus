@@ -17,11 +17,13 @@ function deck(
     tournamentsCount,
     playersCount,
     matchesCount,
+    playedMatchesCount: matchesCount,
+    byesCount: 0,
     matchWins,
     matchLosses: matchesCount - matchWins,
     matchDraws: 0,
     matchWinRate,
-    isSmallSample: false,
+    isSmallSample: id === 'one-off' || id === 'five-nine',
   };
 }
 

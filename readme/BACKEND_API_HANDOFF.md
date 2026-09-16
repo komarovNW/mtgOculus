@@ -290,6 +290,13 @@ type TournamentListItem = {
 {
   player: Player;
   tournamentsCount: number;
+  /** Дата последнего турнира в текущем срезе, YYYY-MM-DD. */
+  lastTournamentDate?: string | null;
+  /**
+   * Число турниров, где игрок прошёл все запланированные раунды
+   * без поражений и ничьих. Досрочно выбывшие игроки не учитываются.
+   */
+  undefeatedTopsCount?: number | null;
   matchesCount: number;
   matchWins: number;
   matchLosses: number;

@@ -15,12 +15,15 @@ function player(
     player: { id, name: id },
     tournamentsCount,
     matchesCount,
+    playedMatchesCount: matchesCount,
+    byesCount: 0,
     matchWins,
     matchLosses: matchesCount - matchWins,
     matchDraws: 0,
+    playedWins: matchWins,
     matchWinRate,
     mostPlayedDeck: deckId ? { id: deckId, name: deckId } : undefined,
-    isSmallSample: false,
+    isSmallSample: id === 'one-off',
   };
 }
 

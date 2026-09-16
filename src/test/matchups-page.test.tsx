@@ -48,7 +48,7 @@ describe('MatchupsPage', () => {
     expect(tooltip).toHaveTextContent('2 / 0 / 1');
     expect(tooltip).toHaveTextContent('66,67%');
     expect(tooltip).toHaveTextContent('20,77% – 93,85%');
-    expect(tooltip).toHaveTextContent('Малая выборка');
+    expect(tooltip).toHaveTextContent('Мало данных');
     expect(cell).toHaveAttribute('aria-describedby', tooltip.id);
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
@@ -92,19 +92,15 @@ describe('MatchupsPage', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('applies top only on submit, keeps it in URL and reuses cache on Back', async () => {
+  it('applies a matrix size preset, keeps it in URL and reuses cache on Back', async () => {
     const user = userEvent.setup();
     setup('/matchups?formatId=legacy&top=3', 30_000);
     await screen.findByRole('table');
-    const input = screen.getByRole('spinbutton', { name: 'Колод в матрице' });
-    await user.clear(input);
-    await user.type(input, '40');
-    expect(getMatchups).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole('button', { name: 'Применить размер' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Колод в матрице' }), '40');
     await waitFor(() => expect(getMatchups).toHaveBeenLastCalledWith(expect.objectContaining({ top: 40 }), { signal: expect.any(AbortSignal) }));
     expect(screen.getByTestId('location')).toHaveTextContent('top=40');
     await user.click(screen.getByRole('button', { name: 'Назад' }));
-    expect(screen.getByRole('spinbutton', { name: 'Колод в матрице' })).toHaveValue(3);
+    expect(screen.getByRole('combobox', { name: 'Колод в матрице' })).toHaveValue('3');
     expect(getMatchups).toHaveBeenCalledTimes(2);
   });
 
@@ -181,6 +177,10 @@ describe('MatchupsPage', () => {
       expect(screen.getByRole('button', { name: '30 дней' })).toHaveAttribute('aria-pressed', 'true');
       fireEvent.change(screen.getByLabelText('Дата от'), { target: { value: '2026-07-01' } });
       const group = screen.getByRole('group', { name: 'Период' });
+      expect(getMatchups).toHaveBeenCalledTimes(1);
+      expect(group).toHaveTextContent('08.08.2026 — 06.09.2026');
+      await user.click(screen.getByRole('button', { name: 'Применить период' }));
+      await waitFor(() => expect(getMatchups).toHaveBeenCalledTimes(2));
       expect(group).toHaveTextContent('Свой период: 01.07.2026 — 06.09.2026');
       expect(within(group).getAllByRole('button').every((button) => button.getAttribute('aria-pressed') === 'false')).toBe(true);
       await user.click(screen.getByRole('button', { name: '90 дней' }));
@@ -188,6 +188,20 @@ describe('MatchupsPage', () => {
       await user.click(screen.getByRole('button', { name: 'Назад' }));
       expect(group).toHaveTextContent('Свой период: 01.07.2026 — 06.09.2026');
       expect(screen.getByLabelText('Дата от')).toHaveValue('2026-07-01');
+    });
+
+    it('does not apply an inverted manual period and lets the user cancel the draft', async () => {
+      const user = userEvent.setup();
+      setup('/matchups?dateFrom=2026-08-08&dateTo=2026-09-06');
+      await screen.findByRole('table');
+      fireEvent.change(screen.getByLabelText('Дата от'), { target: { value: '2026-10-01' } });
+      expect(screen.getByRole('alert')).toHaveTextContent('Дата начала должна быть не позже даты окончания.');
+      expect(screen.getByRole('button', { name: 'Применить период' })).toBeDisabled();
+      expect(getMatchups).toHaveBeenCalledTimes(1);
+      await user.click(screen.getByRole('button', { name: 'Отменить' }));
+      expect(screen.getByLabelText('Дата от')).toHaveValue('2026-08-08');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(getMatchups).toHaveBeenCalledTimes(1);
     });
 
     it('clears only dates with All time and preserves the period when location changes', async () => {
@@ -213,8 +227,7 @@ describe('MatchupsPage', () => {
       await screen.findByRole('table');
       expect(screen.getAllByRole('link', { name: 'Tempo' })[0]).toHaveAttribute('href',
         '/decks/0?cityId=moscow&formatId=legacy&dateFrom=2026-08-08&dateTo=2026-09-06');
-      fireEvent.change(screen.getByRole('spinbutton', { name: 'Колод в матрице' }), { target: { value: '10' } });
-      await user.click(screen.getByRole('button', { name: 'Применить размер' }));
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Колод в матрице' }), '10');
       await waitFor(() => expect(getMatchups).toHaveBeenLastCalledWith(expect.objectContaining({ top: 10, dateFrom: '2026-08-08', dateTo: '2026-09-06' }), { signal: expect.any(AbortSignal) }));
       expect(screen.getByRole('button', { name: '30 дней' })).toHaveAttribute('aria-pressed', 'true');
     });

@@ -15,6 +15,9 @@ function daily(id: string, date: string, playersCount: number): TournamentListIt
     playersCount,
     roundsCount: 4,
     matchesCount: playersCount * 2,
+    pairingsCount: playersCount * 2,
+    playedMatchesCount: playersCount * 2,
+    byesCount: 0,
   };
 }
 

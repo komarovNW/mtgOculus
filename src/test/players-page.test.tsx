@@ -1,13 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAllPlayers, getPlayers } from '@/entities/player/api';
+import { getPlayers } from '@/entities/player/api';
 import { PlayersPage } from '@/pages/players/PlayersPage';
 import type { PlayerListItem } from '@/shared/api/types';
 import { TestProviders } from '@/test/test-utils';
 
 vi.mock('@/entities/player/api', () => ({
-  getAllPlayers: vi.fn(),
   getPlayers: vi.fn(),
 }));
 
@@ -20,10 +19,15 @@ vi.mock('@/entities/dictionaries/api', () => ({
 const activePlayer: PlayerListItem = {
   player: { id: 'active', name: 'Активный игрок' },
   tournamentsCount: 20,
+  lastTournamentDate: '2026-09-12',
+  undefeatedTopsCount: 7,
   matchesCount: 80,
+  playedMatchesCount: 80,
+  byesCount: 0,
   matchWins: 48,
   matchLosses: 30,
   matchDraws: 2,
+  playedWins: 48,
   matchWinRate: 60,
   bestRank: 1,
   isSmallSample: false,
@@ -33,12 +37,15 @@ const oneOffPlayer: PlayerListItem = {
   player: { id: 'one-off', name: 'Один матч' },
   tournamentsCount: 1,
   matchesCount: 1,
+  playedMatchesCount: 1,
+  byesCount: 0,
   matchWins: 1,
   matchLosses: 0,
   matchDraws: 0,
+  playedWins: 1,
   matchWinRate: 100,
   bestRank: 1,
-  isSmallSample: false,
+  isSmallSample: true,
 };
 
 describe('PlayersPage', () => {
@@ -55,8 +62,6 @@ describe('PlayersPage', () => {
         hasMore: false,
       },
     });
-    vi.mocked(getAllPlayers).mockResolvedValue([activePlayer, oneOffPlayer]);
-
     render(
       <TestProviders initialEntry="/players">
         <PlayersPage />
@@ -73,7 +78,7 @@ describe('PlayersPage', () => {
       );
     });
 
-    expect(await screen.findByRole('columnheader', { name: /Результатов/ }))
+    expect(await screen.findByRole('columnheader', { name: /Сыграно матчей/ }))
       .toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: /Лучшее место/ }))
       .not.toBeInTheDocument();
@@ -81,7 +86,10 @@ describe('PlayersPage', () => {
       .not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'По лучшему месту' }))
       .not.toBeInTheDocument();
-    expect(screen.getByText('Один матч').parentElement).toHaveTextContent('Малая выборка');
+    expect(screen.getByText('Мало данных')).toBeInTheDocument();
+    expect(screen.getByText('Последний турнир · 12.09.2026')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Без поражений/ }))
+      .toBeInTheDocument();
   });
 
   it('shows a focused empty state instead of zero-value analytics', async () => {
@@ -96,8 +104,6 @@ describe('PlayersPage', () => {
         hasMore: false,
       },
     });
-    vi.mocked(getAllPlayers).mockResolvedValue([]);
-
     render(
       <TestProviders initialEntry="/players?search=Несуществующий">
         <PlayersPage />
@@ -111,12 +117,29 @@ describe('PlayersPage', () => {
     expect(screen.queryByText('Быстрый ориентир')).not.toBeInTheDocument();
   });
 
+  it('hides the favorite deck outside a selected format', async () => {
+    vi.mocked(getPlayers).mockResolvedValue({
+      appliedFilters: {},
+      items: [activePlayer],
+      pagination: { page: 1, limit: 50, total: 1, hasMore: false },
+    });
+
+    render(
+      <TestProviders initialEntry="/players?cityId=moscow&formatId=">
+        <PlayersPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Все игроки' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Любимая колода' }))
+      .not.toBeInTheDocument();
+  });
+
   it('requests only the completed search and does not show old rows under the new input', async () => {
     vi.mocked(getPlayers).mockResolvedValue({
       appliedFilters: {}, items: [activePlayer],
       pagination: { page: 1, limit: 50, total: 1, hasMore: false },
     });
-    vi.mocked(getAllPlayers).mockResolvedValue([activePlayer]);
     render(<TestProviders initialEntry="/players"><PlayersPage /></TestProviders>);
     await screen.findByRole('heading', { name: 'Все игроки' });
 
@@ -128,6 +151,5 @@ describe('PlayersPage', () => {
       expect.objectContaining({ search: 'Новый', page: 1 }),
       { signal: expect.any(AbortSignal) },
     );
-    expect(getAllPlayers).toHaveBeenCalledTimes(2);
   });
 });

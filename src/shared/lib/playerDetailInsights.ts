@@ -9,9 +9,8 @@ import {
 } from '@/shared/lib/playerStats';
 
 export const PLAYER_DETAIL_MIN_MATCHES = 5;
-export const PLAYER_DETAIL_MIN_TOURNAMENTS = 2;
 export const PLAYER_DETAIL_SAMPLE_HINT =
-  'Для статистики на личной странице нужно минимум 5 матчей в 2 событиях.';
+  'Достаточность выборки определяет сервер по единому правилу статистики.';
 
 export type PlayerMatchRecord = {
   matchesCount: number;
@@ -33,6 +32,15 @@ export type PlayerMatchGroup = {
   tournament: PlayerMatchItem['tournament'];
   matches: PlayerMatchItem[];
   record: PlayerMatchRecord;
+};
+
+export type PlayerDeckMatchup = {
+  opponentDeck: NonNullable<PlayerMatchItem['opponentDeck']>;
+  matchesCount: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number;
 };
 
 export function getPlayerMatchKind(match: PlayerMatchItem) {
@@ -119,6 +127,49 @@ export function groupPlayerMatchesByTournament(
     ...group,
     record: getPlayerMatchRecord(group.matches),
   }));
+}
+
+export function getPlayerDeckMatchups(
+  matches: PlayerMatchItem[],
+  playerDeckId: string,
+): PlayerDeckMatchup[] {
+  const matchups = new Map<string, Omit<PlayerDeckMatchup, 'winRate'>>();
+
+  matches.forEach((match) => {
+    if (
+      getPlayerMatchKind(match) !== 'played' ||
+      match.playerDeck?.id !== playerDeckId ||
+      !match.opponentDeck
+    ) {
+      return;
+    }
+
+    const current = matchups.get(match.opponentDeck.id) ?? {
+      opponentDeck: match.opponentDeck,
+      matchesCount: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+    };
+
+    current.matchesCount += 1;
+    current.wins += match.result === 'win' ? 1 : 0;
+    current.losses += match.result === 'loss' ? 1 : 0;
+    current.draws += match.result === 'draw' ? 1 : 0;
+    matchups.set(match.opponentDeck.id, current);
+  });
+
+  return [...matchups.values()]
+    .map((matchup) => ({
+      ...matchup,
+      winRate: matchup.matchesCount > 0
+        ? (matchup.wins / matchup.matchesCount) * 100
+        : 0,
+    }))
+    .sort((left, right) =>
+      right.matchesCount - left.matchesCount ||
+      right.winRate - left.winRate ||
+      compareNames(left.opponentDeck.name, right.opponentDeck.name));
 }
 
 export function getPlayerMonthlyActivity(matches: PlayerMatchItem[]) {
@@ -230,6 +281,24 @@ export function getPlayerScopedMatches(detail: PlayerDetailsResponse) {
   return scopedMatches;
 }
 
+export function getWinOnlyTournamentWins(record: string) {
+  const match = record.trim().match(/^(\d+)-(\d+)(?:-(\d+))?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const wins = Number(match[1]);
+  const losses = Number(match[2]);
+  const draws = Number(match[3] ?? 0);
+
+  return wins > 0 && losses === 0 && draws === 0 ? wins : null;
+}
+
+export function isWinOnlyTournamentRecord(record: string) {
+  return getWinOnlyTournamentWins(record) !== null;
+}
+
 function isMatchHistoryComplete(
   detail: PlayerDetailsResponse,
   matches = getPlayerScopedMatches(detail),
@@ -237,12 +306,56 @@ function isMatchHistoryComplete(
   return getPlayerMatchRecord(matches).matchesCount === detail.summary.matchesCount;
 }
 
+export function countCompletedWinOnlyTournaments(
+  detail: PlayerDetailsResponse,
+  roundsByTournamentId: ReadonlyMap<string, number>,
+) {
+  if (detail.tournaments.length !== detail.summary.tournamentsCount) {
+    return null;
+  }
+
+  let count = 0;
+
+  for (const item of detail.tournaments) {
+    const wins = getWinOnlyTournamentWins(item.record);
+
+    if (wins === null) {
+      continue;
+    }
+
+    const roundsCount = roundsByTournamentId.get(item.tournament.id);
+
+    if (roundsCount === undefined) {
+      return null;
+    }
+
+    if (wins === roundsCount) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
 export function getPlayerDetailInsights(
   detail: PlayerDetailsResponse,
   careerDetail?: PlayerDetailsResponse,
 ) {
   const matches = getPlayerScopedMatches(detail);
-  const realMatchRecord = getPlayerMatchRecord(matches);
+  const historyRecord = getPlayerMatchRecord(matches);
+  const realMatchRecord: PlayerMatchRecord = {
+    matchesCount: detail.summary.playedMatchesCount,
+    playedMatchesCount: detail.summary.playedMatchesCount,
+    byesCount: detail.summary.byesCount,
+    unknownResultsCount: Math.max(
+      historyRecord.unknownResultsCount,
+      detail.summary.matchesCount - historyRecord.matchesCount,
+    ),
+    wins: detail.summary.playedWins,
+    losses: detail.summary.matchLosses,
+    draws: detail.summary.matchDraws,
+    winRate: detail.summary.matchWinRate,
+  };
   const hasCompleteMatchHistory = isMatchHistoryComplete(detail, matches);
   const deckMatchesCount = detail.decks.reduce(
     (total, item) => total + item.matchesCount,
@@ -253,9 +366,8 @@ export function getPlayerDetailInsights(
   const isTournamentHistoryComplete =
     detail.tournaments.length === detail.summary.tournamentsCount;
   const excludedMatchesCount = Math.max(
-    realMatchRecord.unknownResultsCount,
-    detail.summary.unknownResultsCount ?? 0,
-    detail.summary.matchesCount - realMatchRecord.matchesCount,
+    historyRecord.unknownResultsCount,
+    detail.summary.matchesCount - historyRecord.matchesCount,
   );
   const favoriteDeck = getFavoriteDeck(matches);
   const opponentStats = getPlayerOpponentStats(matches);
@@ -264,21 +376,16 @@ export function getPlayerDetailInsights(
     : [];
 
   return {
-    isEstablished:
-      realMatchRecord.matchesCount >= PLAYER_DETAIL_MIN_MATCHES &&
-      detail.summary.tournamentsCount >= PLAYER_DETAIL_MIN_TOURNAMENTS,
+    isEstablished: !detail.summary.isSmallSample,
     isMatchHistoryComplete: hasCompleteMatchHistory,
     isDeckHistoryComplete,
     isTournamentHistoryComplete,
-    tournamentWinsCount: isTournamentHistoryComplete
-      ? detail.tournaments.filter((item) => item.rank === 1).length
-      : null,
     realMatchRecord,
     excludedMatchesCount,
     favoriteDeck,
     favoriteDeckShare:
-      favoriteDeck && realMatchRecord.matchesCount > 0
-        ? (favoriteDeck.matchesCount / realMatchRecord.matchesCount) * 100
+      favoriteDeck && detail.summary.matchesCount > 0
+        ? (favoriteDeck.matchesCount / detail.summary.matchesCount) * 100
         : null,
     favoriteFormat: careerDetail
       ? getPlayerFavoriteFormat(careerMatches)
@@ -300,8 +407,5 @@ export function getPlayerDetailInsights(
 }
 
 export function isEstablishedPlayerDeck(item: PlayerDeckItem) {
-  return (
-    item.matchesCount >= PLAYER_DETAIL_MIN_MATCHES &&
-    item.tournamentsCount >= PLAYER_DETAIL_MIN_TOURNAMENTS
-  );
+  return !item.isSmallSample;
 }

@@ -65,6 +65,9 @@ describe('tournament list scope', () => {
           playersCount: 8,
           roundsCount: 4,
           matchesCount: 16,
+          pairingsCount: 16,
+          playedMatchesCount: 16,
+          byesCount: 0,
           winner: {
             player: { id: 'player-1', name: 'Игрок 1' },
             deck: { id: 'deck-1', name: 'Lands' },

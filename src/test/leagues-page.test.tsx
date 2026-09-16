@@ -70,6 +70,7 @@ describe('LeaguesPage', () => {
     await screen.findByRole('table');
     expect(getLeagueDetails).toHaveBeenCalledWith('1', ['tournamentPoints', 'bonusPoints', 'tournamentsPlayed'],
       { signal: expect.any(AbortSignal) });
+    await user.click(screen.getByRole('button', { name: 'Изменить порядок' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Главный показатель' }), 'bonusPoints');
     await waitFor(() => expect(getLeagueDetails).toHaveBeenLastCalledWith('1', ['bonusPoints', 'tournamentsPlayed'],
       { signal: expect.any(AbortSignal) }));

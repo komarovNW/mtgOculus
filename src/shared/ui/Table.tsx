@@ -1,5 +1,5 @@
 import { cn } from '@/shared/lib/cn';
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { InfoHint } from '@/shared/ui/InfoHint';
 
@@ -23,6 +23,7 @@ type TableProps<T> = {
   getRowKey: (row: T, index: number) => string;
   emptyMessage: string;
   getRowClassName?: (row: T, index: number) => string | undefined;
+  renderAfterRow?: (row: T, index: number) => ReactNode;
   layout?: 'auto' | 'fixed';
   minWidth?: number | string;
   isPartial?: boolean;
@@ -30,6 +31,8 @@ type TableProps<T> = {
     columnId: string;
     direction: SortDirection;
   };
+  accessibleLabel?: string;
+  mobileScrollHint?: string;
 };
 
 type SortState = {
@@ -74,10 +77,13 @@ export function Table<T>({
   getRowKey,
   emptyMessage,
   getRowClassName,
+  renderAfterRow,
   layout = 'auto',
   minWidth,
   isPartial = false,
   defaultSort,
+  accessibleLabel = 'Таблица данных',
+  mobileScrollHint = 'Прокрутите таблицу вбок, чтобы увидеть все столбцы.',
 }: TableProps<T>) {
   const [sortState, setSortState] = useState<SortState | null>(defaultSort ?? null);
 
@@ -138,20 +144,32 @@ export function Table<T>({
   }
 
   return (
-    <div className="table-shell">
+    <div className="table-region">
+      <p
+        aria-hidden="true"
+        className="table-region__mobile-hint"
+      >
+        {mobileScrollHint}
+      </p>
       {isPartial && columns.some((column) => column.sortValue) ? (
-        <p className="muted-text" role="note">
-          Показаны не все строки. Сортировка по заголовкам действует только на показанные.
+        <p className="table-region__partial-note" role="note">
+          Загружена часть списка. Сортировка работает в пределах показанных строк.
         </p>
       ) : null}
-      <table
-        className={cn('table', layout === 'fixed' && 'table--fixed')}
-        style={
-          minWidth !== undefined
-            ? { minWidth: typeof minWidth === 'number' ? `${minWidth}px` : minWidth }
-            : undefined
-        }
+      <div
+        aria-label={accessibleLabel}
+        className="table-shell"
+        role="region"
+        tabIndex={0}
       >
+        <table
+          className={cn('table', layout === 'fixed' && 'table--fixed')}
+          style={
+            minWidth !== undefined
+              ? { minWidth: typeof minWidth === 'number' ? `${minWidth}px` : minWidth }
+              : undefined
+          }
+        >
         <thead>
           <tr>
             {columns.map((column) => (
@@ -200,22 +218,23 @@ export function Table<T>({
         </thead>
         <tbody>
           {rows.map(({ row, originalIndex }, index) => (
-            <tr
-              key={getRowKey(row, originalIndex)}
-              className={cn('table__row', getRowClassName?.(row, index))}
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.id}
-                  className={`table__cell table__cell--${column.align ?? 'left'}`}
-                >
-                  {column.render(row, index)}
-                </td>
-              ))}
-            </tr>
+            <Fragment key={getRowKey(row, originalIndex)}>
+              <tr className={cn('table__row', getRowClassName?.(row, index))}>
+                {columns.map((column) => (
+                  <td
+                    key={column.id}
+                    className={`table__cell table__cell--${column.align ?? 'left'}`}
+                  >
+                    {column.render(row, index)}
+                  </td>
+                ))}
+              </tr>
+              {renderAfterRow?.(row, index)}
+            </Fragment>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

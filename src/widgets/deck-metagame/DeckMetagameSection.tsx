@@ -1,17 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { getDashboardFilterSearch } from '@/shared/lib/filters';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { DeckMetagameItem } from '@/shared/api/types';
-import { formatChartDeckName } from '@/shared/lib/formatChartDeckName';
+import type { DeckMetagameItem, DeckPerformanceItem } from '@/shared/api/types';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { Card } from '@/shared/ui/Card';
+import { Badge } from '@/shared/ui/Badge';
 import { EntityLink } from '@/shared/ui/EntityLink';
-import { MetricBar } from '@/shared/ui/MetricBar';
-import { MetagameChartTooltip } from '@/shared/ui/MetagameChartTooltip';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 
-const columns: TableColumn<DeckMetagameItem>[] = [
+type DeckMetagameRow = DeckMetagameItem & {
+  performance?: DeckPerformanceItem;
+};
+
+const columns: TableColumn<DeckMetagameRow>[] = [
   {
     id: 'deck',
     header: 'Колода',
@@ -45,22 +46,33 @@ const columns: TableColumn<DeckMetagameItem>[] = [
   {
     id: 'share',
     header: 'Доля меты',
+    align: 'right',
     headerTitle: 'Какую часть поля заняла эта колода по этим фильтрам.',
     defaultSortDirection: 'desc',
-    render: (row) => (
-      <MetricBar
-        compact
-        label={formatPercent(row.metaShare)}
-        title={`Доля меты: ${formatPercent(row.metaShare)}`}
-        value={row.metaShare}
-      />
-    ),
+    render: (row) => formatPercent(row.metaShare),
     sortValue: (row) => row.metaShare,
+  },
+  {
+    id: 'winrate',
+    header: 'Процент побед',
+    align: 'right',
+    headerTitle: 'Общий процент побед этой колоды против всех соперников по выбранным фильтрам.',
+    defaultSortDirection: 'desc',
+    render: (row) => row.performance ? (
+      <div className="stacked-cell stacked-cell--compact stacked-cell--end">
+        <span>{formatPercent(row.performance.matchWinRate)}</span>
+        {row.performance.isSmallSample ? (
+          <Badge variant="warning">Мало данных</Badge>
+        ) : null}
+      </div>
+    ) : '—',
+    sortValue: (row) => row.performance?.matchWinRate,
   },
 ];
 
 type DeckMetagameSectionProps = {
   items: DeckMetagameItem[];
+  performanceItems: DeckPerformanceItem[];
   limit?: number;
   actionHref?: string;
   actionLabel?: string;
@@ -68,27 +80,27 @@ type DeckMetagameSectionProps = {
 
 export function DeckMetagameSection({
   items,
+  performanceItems,
   limit = 10,
   actionHref,
   actionLabel = 'Смотреть все колоды',
 }: DeckMetagameSectionProps) {
   const location = useLocation();
   const dashboardFilterSearch = getDashboardFilterSearch(location.search);
-  const visibleItems = items.slice(0, limit);
-  const chartData = visibleItems.map((item) => ({
-    name: item.deck.name,
-    metaShare: Number(item.metaShare.toFixed(1)),
-    decksCount: item.playersCount,
+  const performanceByDeckId = new Map(
+    performanceItems.map((item) => [item.deck.id, item]),
+  );
+  const visibleItems: DeckMetagameRow[] = items.slice(0, limit).map((item) => ({
+    ...item,
+    performance: performanceByDeckId.get(item.deck.id),
   }));
-
   return (
     <Card>
       <div className="section-header">
         <div>
           <h2 className="section-header__title">Метагейм по колодам</h2>
           <p className="section-header__description">
-            Показываем, какими колодами играли чаще всего. На графике и в таблице оставили топ-{limit}, чтобы всё
-            читалось быстрее.
+            Топ-{limit} колод по популярности: доля поля и результат против всех соперников.
           </p>
         </div>
         {actionHref ? (
@@ -104,57 +116,13 @@ export function DeckMetagameSection({
         ) : null}
       </div>
 
-      <div className="chart-layout">
-        <div className="chart-surface">
-          <ResponsiveContainer
-            height={320}
-            width="100%"
-          >
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 12, right: 20, bottom: 12, left: 12 }}
-            >
-              <CartesianGrid
-                horizontal={false}
-                stroke="var(--color-chart-grid)"
-              />
-              <XAxis
-                axisLine={false}
-                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-                tickLine={false}
-                type="number"
-              />
-              <YAxis
-                axisLine={false}
-                dataKey="name"
-                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-                tickLine={false}
-                tickFormatter={formatChartDeckName}
-                type="category"
-                width={110}
-              />
-              <Tooltip
-                content={<MetagameChartTooltip />}
-                cursor={{ fill: 'var(--color-accent-soft)' }}
-              />
-              <Bar
-                dataKey="metaShare"
-                fill="var(--color-chart-1)"
-                radius={[0, 6, 6, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <Table
-          columns={columns}
-          data={visibleItems}
-          emptyMessage="Пока нет данных о том, какими колодами играли по этим фильтрам."
-          getRowKey={(row) => row.deck.id}
-          getRowClassName={(_, index) => (index < 3 ? 'table__row--top' : undefined)}
-        />
-      </div>
+      <Table
+        columns={columns}
+        data={visibleItems}
+        emptyMessage="Пока нет данных о том, какими колодами играли по этим фильтрам."
+        getRowKey={(row) => row.deck.id}
+        getRowClassName={(_, index) => (index < 3 ? 'table__row--top' : undefined)}
+      />
     </Card>
   );
 }

@@ -35,7 +35,7 @@ const columns: TableColumn<DeckPerformanceItem>[] = [
             title={SMALL_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>

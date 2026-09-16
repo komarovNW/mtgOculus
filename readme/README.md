@@ -10,6 +10,10 @@
 
 - [PROJECT_AUDIT.md](PROJECT_AUDIT.md) — аудит от 2026-09-05: ценность продукта,
   данные на экранах и реальные ограничения API; контекст для backend-задач.
+- [PRODUCT_ANALYTICS_GAP_AUDIT.md](PRODUCT_ANALYTICS_GAP_AUDIT.md) — актуальный
+  аудит недостающей статистики, приоритеты новых агрегатов и примеры контрактов.
+- [SCREEN_REVIEW_CHECKPOINT.md](SCREEN_REVIEW_CHECKPOINT.md) — принятые решения
+  по главной, дейликам и игрокам, к которым не возвращаемся без новой причины.
 - [ROUTES.md](ROUTES.md) — карта экранов, доступ и навигация.
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — устройство frontend-кода и
   границы слоёв.
@@ -24,6 +28,8 @@
   экранов, обязательные данные и состояния.
 - [UI_GUIDELINES.md](UI_GUIDELINES.md) — требования к читаемости, состояниям,
   темам и адаптивности.
+- [UI_TEXT_AUDIT.md](UI_TEXT_AUDIT.md) — аудит сложности и понятности текстов.
+- [UI_COPY_GUIDE.md](UI_COPY_GUIDE.md) — правила для новых интерфейсных текстов.
 
 ## Для frontend-разработчика
 

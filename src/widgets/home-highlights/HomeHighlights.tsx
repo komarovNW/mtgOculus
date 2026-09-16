@@ -48,11 +48,8 @@ export function HomeHighlights({
     >
       <div className="section-header">
         <div>
-          <h2 className="section-header__title">Главное прямо сейчас</h2>
-          <p className="section-header__description">
-            Коротко собрали главное. Результаты колод сравниваем только после 30 матчей
-            минимум в 10 турнирах.
-          </p>
+          <h2 className="section-header__title">Главное</h2>
+          <p className="section-header__description">Краткая сводка по текущим фильтрам.</p>
         </div>
       </div>
 
@@ -61,10 +58,9 @@ export function HomeHighlights({
           <div className="insights-summary__value">{summary.tournamentsCount}</div>
           <div className="insights-summary__title">турниров в статистике</div>
           <p className="insights-summary__description">
-            Это {summary.playedMatchesCount ?? summary.matchesCount} сыгранных
-            матчей, {summary.uniquePlayersCount} уникальных игроков и{' '}
-            {summary.uniqueDecksCount} колод
-            {summary.byesCount ? `; ещё ${summary.byesCount} BYE показано отдельно` : ''}.
+            Это {summary.matchesCount} матчей в статистике,{' '}
+            {summary.uniquePlayersCount} уникальных игроков и{' '}
+            {summary.uniqueDecksCount} колод.
           </p>
         </div>
 
@@ -87,7 +83,7 @@ export function HomeHighlights({
           {bestEstablishedDeck && bestEstablishedDeckMetagame ? (
             <article className="insight-item">
               <div className="insight-item__title">
-                Лучший результат на достаточной выборке
+                Лучший процент побед
               </div>
               <div className="insight-item__body">
                 <EntityLink

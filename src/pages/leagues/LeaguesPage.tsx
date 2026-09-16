@@ -215,7 +215,7 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
       <div className="section-header">
         <div>
           <h2 className="section-header__title">Таблица лиги</h2>
-          <p className="section-header__description">«Место» меняется вместе с сортировкой, «В лиге» сохраняет основной рейтинг сезона.</p>
+          <p className="section-header__description">Официальное место сохраняется при любой дополнительной сортировке.</p>
         </div>
         {isFetching ? <Badge variant="accent">Обновляем порядок…</Badge> : <Badge>{league.standings.length} игроков</Badge>}
       </div>
@@ -223,8 +223,8 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
         <table className="table league-table">
           <thead>
             <tr>
-              <th className="table__cell">Место</th>
-              <th className="table__cell">В лиге</th>
+              <th className="table__cell">В сортировке</th>
+              <th className="table__cell">Официальное место</th>
               <th className="table__cell">Игрок</th>
               <th className="table__cell table__cell--right">Турнирные</th>
               <th className="table__cell table__cell--right">Бонусные</th>
@@ -274,6 +274,7 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
 }
 
 export function LeaguesPage() {
+  const [showSort, setShowSort] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const cityId = searchParams.get('cityId') || undefined;
   const clubId = searchParams.get('clubId') || undefined;
@@ -347,10 +348,13 @@ export function LeaguesPage() {
             <div className="section-header">
               <div>
                 <h2 className="section-header__title">Порядок в таблице</h2>
-                <p className="section-header__description">Показатели применяются по очереди. Новый порядок рассчитывает сервер.</p>
+                <p className="section-header__description">По умолчанию используем официальный порядок лиги.</p>
               </div>
+              <Button type="button" variant="secondary" aria-expanded={showSort} onClick={() => setShowSort((value) => !value)}>
+                {showSort ? 'Скрыть настройки' : 'Изменить порядок'}
+              </Button>
             </div>
-            <div className="league-sort-grid">
+            {showSort ? <div className="league-sort-grid">
               {['Главный показатель', 'Первый тай-брейк', 'Второй тай-брейк'].map((label, index) => {
                 const current = activeSort[index] ?? '';
                 return (
@@ -363,7 +367,7 @@ export function LeaguesPage() {
                   />
                 );
               })}
-            </div>
+            </div> : null}
           </Card>
           <LeagueStandings key={`${detailsQuery.data.id}-${activeSort.join('-')}`} league={detailsQuery.data} isFetching={detailsQuery.isFetching} />
         </>

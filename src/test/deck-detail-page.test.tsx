@@ -31,6 +31,8 @@ const detail: DeckDetailsResponse = {
     playersCount: 2,
     uniquePlayersCount: 1,
     matchesCount: 30,
+    playedMatchesCount: 30,
+    byesCount: 0,
     matchWins: 18,
     matchLosses: 12,
     matchDraws: 0,
@@ -77,6 +79,8 @@ const detail: DeckDetailsResponse = {
       player: { id: 'player', name: 'Игрок' },
       tournamentsCount: 10,
       matchesCount: 30,
+      playedMatchesCount: 30,
+      byesCount: 0,
       matchWins: 18,
       matchLosses: 12,
       matchDraws: 0,
@@ -93,7 +97,7 @@ const detail: DeckDetailsResponse = {
       losses: 5,
       draws: 0,
       winRate: 72.22,
-      isSmallSample: true,
+      isSmallSample: false,
     },
     {
       opponentDeck: { id: 'bad', name: 'Плохой матчап' },
@@ -114,6 +118,8 @@ const metagameDecks: DeckListItem[] = [
     tournamentsCount: 10,
     playersCount: 2,
     matchesCount: 30,
+    playedMatchesCount: 30,
+    byesCount: 0,
     matchWins: 18,
     matchLosses: 12,
     matchDraws: 0,
@@ -127,6 +133,8 @@ const metagameDecks: DeckListItem[] = [
     tournamentsCount: 20,
     playersCount: 8,
     matchesCount: 80,
+    playedMatchesCount: 80,
+    byesCount: 0,
     matchWins: 40,
     matchLosses: 40,
     matchDraws: 0,
@@ -168,8 +176,10 @@ describe('DeckDetailPage', () => {
     });
 
     expect(await screen.findByText('20.0%')).toBeInTheDocument();
-    expect(screen.getAllByText('Хороший матчап')).toHaveLength(2);
-    expect(screen.getByText('Плохой матчап')).toBeInTheDocument();
+    expect(screen.getAllByText('Хороший матчап')).toHaveLength(3);
+    expect(screen.getAllByText('Плохой матчап')).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Матчапы колоды' }))
+      .toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Динамика колоды' }))
       .toBeInTheDocument();
     expect(screen.queryByText('Лучшее место')).not.toBeInTheDocument();

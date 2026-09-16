@@ -82,7 +82,7 @@ export function EstablishedDeckResults({ items }: EstablishedDeckResultsProps) {
       <div className="section-header">
         <div>
           <h2 className="section-header__title">
-            Лучшие результаты на достаточной выборке
+            Лучшие результаты
           </h2>
           <p className="section-header__description">
             Топ-5 по проценту побед только среди колод с 30+ матчами минимум в

@@ -15,7 +15,6 @@ import {
 import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { EntityLink } from '@/shared/ui/EntityLink';
-import { MetricBar } from '@/shared/ui/MetricBar';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 
 type RankedTopPlayerItem = TopPlayerItem & {
@@ -47,7 +46,7 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
             title={SMALL_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -63,11 +62,11 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Результатов учтено',
+    header: 'Сыграно матчей',
     align: 'right',
     defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
-    sortValue: (row) => row.matchesCount,
+    render: (row) => row.playedMatchesCount,
+    sortValue: (row) => row.playedMatchesCount,
   },
   {
     id: 'record',
@@ -75,23 +74,16 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
     align: 'right',
     defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
-    render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
-    sortValue: (row) => getRecordSortValue(row.matchWins, row.matchLosses, row.matchDraws),
+    render: (row) => formatRecord(row.playedWins, row.matchLosses, row.matchDraws),
+    sortValue: (row) => getRecordSortValue(row.playedWins, row.matchLosses, row.matchDraws),
   },
   {
     id: 'winrate',
     header: WIN_RATE_LABEL,
+    align: 'right',
     headerTitle: WIN_RATE_HINT,
     defaultSortDirection: 'desc',
-    render: (row) => (
-      <MetricBar
-        compact
-        label={formatPercent(row.matchWinRate)}
-        tone="success"
-        title={`Процент побед: ${formatPercent(row.matchWinRate)}`}
-        value={row.matchWinRate}
-      />
-    ),
+    render: (row) => formatPercent(row.matchWinRate),
     sortValue: (row) => row.matchWinRate,
   },
   {
@@ -137,7 +129,7 @@ const compactColumns: TableColumn<RankedTopPlayerItem>[] = [
             title={SMALL_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -145,26 +137,19 @@ const compactColumns: TableColumn<RankedTopPlayerItem>[] = [
   },
   {
     id: 'matches',
-    header: 'Результатов',
+    header: 'Матчей',
     align: 'right',
     defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
-    sortValue: (row) => row.matchesCount,
+    render: (row) => row.playedMatchesCount,
+    sortValue: (row) => row.playedMatchesCount,
   },
   {
     id: 'winrate',
     header: WIN_RATE_LABEL,
+    align: 'right',
     headerTitle: WIN_RATE_HINT,
     defaultSortDirection: 'desc',
-    render: (row) => (
-      <MetricBar
-        compact
-        label={formatPercent(row.matchWinRate)}
-        tone="success"
-        title={`Процент побед: ${formatPercent(row.matchWinRate)}`}
-        value={row.matchWinRate}
-      />
-    ),
+    render: (row) => formatPercent(row.matchWinRate),
     sortValue: (row) => row.matchWinRate,
   },
   {
@@ -219,8 +204,8 @@ export function TopPlayersTable({
           <h2 className="section-header__title">Игроки с лучшими результатами</h2>
           <p className="section-header__description">
             {showSpotlight
-              ? 'Сравниваем винрейт только у игроков с 20+ матчами минимум в 5 турнирах.'
-              : 'Сравниваем игроков по проценту побед и результату матчей.'}
+              ? 'Игроки с лучшим процентом побед и достаточным числом матчей.'
+              : 'Процент побед и результаты матчей.'}
             {scopeDescription ? ` ${scopeDescription}` : ''}
           </p>
         </div>
@@ -251,7 +236,7 @@ export function TopPlayersTable({
                     title={SMALL_SAMPLE_HINT}
                     variant="warning"
                   >
-                    Малая выборка
+                    Мало данных
                   </Badge>
                 ) : null}
               </div>
@@ -265,7 +250,7 @@ export function TopPlayersTable({
               </div>
 
               <div className="spotlight-card__subtitle">
-                {item.tournamentsCount} турниров · {item.matchesCount} матчей
+                {item.tournamentsCount} турниров · {item.playedMatchesCount} матчей
               </div>
 
               <div className="spotlight-card__stats">
@@ -275,7 +260,7 @@ export function TopPlayersTable({
                 </div>
                 <div className="spotlight-card__stat">
                   <span>{MATCH_RECORD_LABEL}</span>
-                  <strong>{formatRecord(item.matchWins, item.matchLosses, item.matchDraws)}</strong>
+                  <strong>{formatRecord(item.playedWins, item.matchLosses, item.matchDraws)}</strong>
                 </div>
               </div>
 

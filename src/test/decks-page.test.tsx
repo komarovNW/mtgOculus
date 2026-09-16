@@ -22,6 +22,8 @@ const establishedDeck: DeckListItem = {
   tournamentsCount: 20,
   playersCount: 30,
   matchesCount: 80,
+  playedMatchesCount: 80,
+  byesCount: 0,
   matchWins: 48,
   matchLosses: 30,
   matchDraws: 2,
@@ -36,12 +38,14 @@ const oneOffDeck: DeckListItem = {
   tournamentsCount: 1,
   playersCount: 1,
   matchesCount: 4,
+  playedMatchesCount: 4,
+  byesCount: 0,
   matchWins: 4,
   matchLosses: 0,
   matchDraws: 0,
   matchWinRate: 100,
   bestRank: 1,
-  isSmallSample: false,
+  isSmallSample: true,
 };
 
 describe('DecksPage', () => {
@@ -85,7 +89,7 @@ describe('DecksPage', () => {
       .not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'По винрейту' }))
       .toBeInTheDocument();
-    expect(screen.getByText('Одна игра').parentElement).toHaveTextContent('Малая выборка');
+    expect(screen.getByText('Одна игра').parentElement).toHaveTextContent('Мало данных');
 
     const allDecksSection = screen.getByRole('heading', { name: 'Все колоды' })
       .closest('section');

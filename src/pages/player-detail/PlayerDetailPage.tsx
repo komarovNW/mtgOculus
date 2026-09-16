@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { getPlayerDetails } from '@/entities/player/api';
+import { getTournamentDetails } from '@/entities/tournament/api';
 import type {
   PlayerDeckItem,
   PlayerMatchItem,
@@ -24,14 +25,17 @@ import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { LIST_PAGE_SIZE } from '@/shared/lib/pagination';
 import {
   PLAYER_DETAIL_MIN_MATCHES,
-  PLAYER_DETAIL_MIN_TOURNAMENTS,
   PLAYER_DETAIL_SAMPLE_HINT,
+  countCompletedWinOnlyTournaments,
   getPlayerDetailInsights,
+  getPlayerDeckMatchups,
   getPlayerMatchKind,
   getPlayerScopedMatches,
+  getWinOnlyTournamentWins,
   groupPlayerMatchesByTournament,
   isEstablishedPlayerDeck,
   sortPlayerMatches,
+  type PlayerDeckMatchup,
 } from '@/shared/lib/playerDetailInsights';
 import {
   getPlayerOpponentList,
@@ -127,7 +131,7 @@ const deckColumns: TableColumn<PlayerDeckItem>[] = [
             title={PLAYER_DETAIL_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -146,8 +150,8 @@ const deckColumns: TableColumn<PlayerDeckItem>[] = [
     header: 'Матчей',
     align: 'right',
     defaultSortDirection: 'desc',
-    render: (row) => row.matchesCount,
-    sortValue: (row) => row.matchesCount,
+    render: (row) => row.playedMatchesCount,
+    sortValue: (row) => row.playedMatchesCount,
   },
   {
     id: 'record',
@@ -156,10 +160,10 @@ const deckColumns: TableColumn<PlayerDeckItem>[] = [
     defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
     render: (row) =>
-      formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
+      formatRecord(row.playedWins, row.matchLosses, row.matchDraws),
     sortValue: (row) =>
       getRecordSortValue(
-        row.matchWins,
+        row.playedWins,
         row.matchLosses,
         row.matchDraws,
       ),
@@ -172,6 +176,53 @@ const deckColumns: TableColumn<PlayerDeckItem>[] = [
     headerTitle: WIN_RATE_HINT,
     render: (row) => formatPercent(row.matchWinRate),
     sortValue: (row) => row.matchWinRate,
+  },
+];
+
+const deckMatchupColumns: TableColumn<PlayerDeckMatchup>[] = [
+  {
+    id: 'opponentDeck',
+    header: 'Колода соперника',
+    render: (row) => (
+      <div className="entity-cell">
+        <EntityLink
+          colors={row.opponentDeck.colors}
+          id={row.opponentDeck.id}
+          name={row.opponentDeck.name}
+          type="deck"
+        />
+        {row.matchesCount < PLAYER_DETAIL_MIN_MATCHES ? (
+          <Badge variant="warning" title={`Для устойчивого сравнения нужно минимум ${PLAYER_DETAIL_MIN_MATCHES} матчей.`}>
+            Мало данных
+          </Badge>
+        ) : null}
+      </div>
+    ),
+    sortValue: (row) => row.opponentDeck.name,
+  },
+  {
+    id: 'matches',
+    header: 'Матчей',
+    align: 'right',
+    defaultSortDirection: 'desc',
+    render: (row) => row.matchesCount,
+    sortValue: (row) => row.matchesCount,
+  },
+  {
+    id: 'record',
+    header: MATCH_RECORD_LABEL,
+    align: 'right',
+    headerTitle: MATCH_RECORD_HINT,
+    render: (row) => formatRecord(row.wins, row.losses, row.draws),
+    sortValue: (row) => getRecordSortValue(row.wins, row.losses, row.draws),
+  },
+  {
+    id: 'winrate',
+    header: WIN_RATE_LABEL,
+    align: 'right',
+    headerTitle: 'Процент побед этого игрока выбранной колодой против указанной колоды соперника.',
+    render: (row) => formatPercent(row.winRate),
+    sortValue: (row) => row.winRate,
   },
 ];
 
@@ -201,7 +252,7 @@ const opponentColumns: TableColumn<PlayerOpponentStat>[] = [
             title={`Для устойчивого сравнения с оппонентом нужно минимум ${OPPONENT_WIN_RATE_MIN_MATCHES} матчей.`}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -367,6 +418,7 @@ export function PlayerDetailPage() {
   const { id = '' } = useParams();
   const [activeTab, setActiveTab] = useState('tournaments');
   const [deckSort, setDeckSort] = useState<PlayerDeckSort>('matches');
+  const [expandedDeckId, setExpandedDeckId] = useState<string | null>(null);
   const [visibleTournamentsCount, setVisibleTournamentsCount] =
     useState(LIST_PAGE_SIZE);
   const [visibleDecksCount, setVisibleDecksCount] = useState(LIST_PAGE_SIZE);
@@ -387,6 +439,17 @@ export function PlayerDetailPage() {
     queryKey: ['player-detail', id, {}],
     queryFn: ({ signal }) => getPlayerDetails(id, {}, { signal }),
   });
+  const winOnlyCandidates = (playerQuery.data?.tournaments ?? []).filter(
+    (item) => getWinOnlyTournamentWins(item.record) !== null,
+  );
+  const candidateTournamentQueries = useQueries({
+    queries: winOnlyCandidates.map((item) => ({
+      queryKey: ['tournament-detail', item.tournament.id],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        getTournamentDetails(item.tournament.id, { signal }),
+      staleTime: 30_000,
+    })),
+  });
   const filterKey = JSON.stringify(apiFilters);
 
   useEffect(() => {
@@ -394,6 +457,7 @@ export function PlayerDetailPage() {
     setVisibleDecksCount(LIST_PAGE_SIZE);
     setVisibleOpponentsCount(LIST_PAGE_SIZE);
     setVisibleMatchGroupsCount(PLAYER_MATCH_GROUP_PAGE_SIZE);
+    setExpandedDeckId(null);
   }, [filterKey, id]);
 
   if (playerQuery.isLoading) {
@@ -454,6 +518,39 @@ export function PlayerDetailPage() {
   const favoriteDeck = insights.favoriteDeck;
   const favoriteFormat = insights.favoriteFormat;
   const mostFrequentOpponent = insights.mostFrequentOpponent;
+  const winOnlyTournamentsCount = countCompletedWinOnlyTournaments(
+    playerQuery.data,
+    new Map(
+      winOnlyCandidates.flatMap((item, index) => {
+        const tournament = candidateTournamentQueries[index]?.data;
+        return tournament
+          ? [[item.tournament.id, tournament.rounds.length] as const]
+          : [];
+      }),
+    ),
+  );
+  const deckTableColumns: TableColumn<PlayerDeckItem>[] = [
+    ...deckColumns,
+    {
+      id: 'matchups',
+      header: 'Матчапы',
+      align: 'right',
+      render: (row) => {
+        const expanded = expandedDeckId === row.deck.id;
+        return (
+          <Button
+            aria-controls={`player-deck-matchups-${row.deck.id}`}
+            aria-expanded={expanded}
+            onClick={() => setExpandedDeckId(expanded ? null : row.deck.id)}
+            type="button"
+            variant={expanded ? 'secondary' : 'ghost'}
+          >
+            {expanded ? 'Скрыть' : 'Показать'}
+          </Button>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="page-stack">
@@ -469,7 +566,7 @@ export function PlayerDetailPage() {
                   title={PLAYER_DETAIL_SAMPLE_HINT}
                   variant="warning"
                 >
-                  Малая выборка
+                  Мало данных
                 </Badge>,
               ]
             : []),
@@ -486,22 +583,22 @@ export function PlayerDetailPage() {
       />
 
       <SummaryCards
-        description="Учитываем сыгранные матчи и подтверждённые BYE. Записи без понятного типа или оппонента показываем в истории, но исключаем из расчётов."
+        description="Общие результаты игрока. BYE показаны отдельно от сыгранных матчей."
         title="Общая статистика"
         items={[
           { title: 'Турниров', value: summary.tournamentsCount },
           {
-            title: 'Первых мест',
-            value: insights.tournamentWinsCount ?? '—',
-            subtitle: 'Сколько раз игрок занимал топ-1',
+            title: 'Топов без поражений',
+            value: winOnlyTournamentsCount ?? '—',
+            subtitle: 'Все раунды сыграны и выиграны — без поражений и ничьих',
           },
           {
-            title: 'Результатов учтено',
+            title: 'Сыграно матчей',
             value: record?.matchesCount ?? '—',
             subtitle:
               [
                 record.byesCount > 0
-                  ? `Включая ${record.byesCount} BYE`
+                  ? `Ещё ${record.byesCount} BYE показано отдельно`
                   : '',
                 insights.excludedMatchesCount > 0
                   ? `${insights.excludedMatchesCount} неизвестных исключено`
@@ -522,12 +619,8 @@ export function PlayerDetailPage() {
             titleHint: WIN_RATE_HINT,
             value: record ? formatPercent(record.winRate) : '—',
             subtitle: insights.isEstablished
-              ? 'Достаточно данных для личной статистики'
-              : `Нужно ${PLAYER_DETAIL_MIN_MATCHES} матчей в ${PLAYER_DETAIL_MIN_TOURNAMENTS} событиях`,
-          },
-          {
-            title: 'Разных колод',
-            value: summary.uniqueDecksCount,
+              ? 'Сервер считает выборку достаточной'
+              : 'Сервер помечает результат как малую выборку',
           },
         ]}
       />
@@ -542,28 +635,21 @@ export function PlayerDetailPage() {
           </div>
         </div>
 
-        <div className="insights-grid">
-          <div className="insights-summary">
-            <div className="insights-summary__value">
-              {record?.matchesCount ?? '—'}
-            </div>
-            <div className="insights-summary__title">
-              результатов учтено в личной статистике
-            </div>
-            <p className="insights-summary__description">
+        <div className="insights-list">
+            <article className="insight-item">
+              <div className="insight-item__title">Период выступлений</div>
+              <div className="insight-item__body">
               {insights.firstTournament && insights.latestTournament ? (
                 <>
-                  В доступной статистике с{' '}
+                  С{' '}
                   {formatDate(insights.firstTournament.tournament.date)} по{' '}
                   {formatDate(insights.latestTournament.tournament.date)}.
                 </>
               ) : (
                 'Период выступлений пока нельзя определить по полной истории.'
               )}
-            </p>
-          </div>
-
-          <div className="insights-list">
+              </div>
+            </article>
             <article className="insight-item">
               <div className="insight-item__title">Любимая колода</div>
               <div className="insight-item__body">
@@ -630,7 +716,6 @@ export function PlayerDetailPage() {
                 )}
               </div>
             </article>
-          </div>
         </div>
       </Card>
 
@@ -701,8 +786,8 @@ export function PlayerDetailPage() {
               <h2 className="section-header__title">Колоды игрока</h2>
               <p className="section-header__description">
                 По умолчанию первыми идут наиболее сыгранные колоды. Можно
-                переключить порядок на винрейт; результаты меньше чем за 5
-                матчей в 2 событиях помечаем как малую выборку.
+                переключить порядок на винрейт; малую выборку отмечаем по
+                признаку, который возвращает API.
               </p>
             </div>
           </div>
@@ -712,6 +797,7 @@ export function PlayerDetailPage() {
               onChange={(event) => {
                 setDeckSort(event.target.value as PlayerDeckSort);
                 setVisibleDecksCount(LIST_PAGE_SIZE);
+                setExpandedDeckId(null);
               }}
               options={playerDeckSortOptions}
               value={deckSort}
@@ -719,7 +805,7 @@ export function PlayerDetailPage() {
           </div>
           <Table
             key={deckSort}
-            columns={deckColumns}
+            columns={deckTableColumns}
             data={visibleDecks}
             isPartial={visibleDecks.length < sortedDecks.length}
             defaultSort={{
@@ -728,7 +814,44 @@ export function PlayerDetailPage() {
             }}
             emptyMessage="С этими фильтрами пока не видно, какими колодами играл этот игрок."
             getRowKey={(row) => row.deck.id}
-            minWidth={760}
+            getRowClassName={(row) => expandedDeckId === row.deck.id ? 'player-deck-row--expanded' : undefined}
+            renderAfterRow={(row) => {
+              if (expandedDeckId !== row.deck.id) {
+                return null;
+              }
+
+              const matchups = getPlayerDeckMatchups(sortedMatches, row.deck.id);
+
+              return (
+                <tr className="player-deck-matchups-row">
+                  <td colSpan={deckTableColumns.length} id={`player-deck-matchups-${row.deck.id}`}>
+                    <div className="player-deck-matchups">
+                      <div className="section-header">
+                        <div>
+                          <h3 className="section-header__title">Матчапы на {row.deck.name}</h3>
+                          <p className="section-header__description">
+                            Результат показан с позиции этого игрока. BYE, неизвестные оппоненты и матчи без колоды соперника исключены.
+                            {!insights.isMatchHistoryComplete
+                              ? ' История матчей загружена не полностью, поэтому таблица отражает только доступные результаты.'
+                              : ''}
+                          </p>
+                        </div>
+                        {!insights.isMatchHistoryComplete ? <Badge variant="warning">Неполная история</Badge> : null}
+                      </div>
+                      <Table
+                        columns={deckMatchupColumns}
+                        data={matchups}
+                        defaultSort={{ columnId: 'matches', direction: 'desc' }}
+                        emptyMessage="Для этой колоды пока нет матчей с известной колодой соперника."
+                        getRowKey={(matchup) => matchup.opponentDeck.id}
+                        minWidth={640}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            }}
+            minWidth={880}
           />
           <LoadMorePagination
             hasMore={visibleDecks.length < playerQuery.data.decks.length}

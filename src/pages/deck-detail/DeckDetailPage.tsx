@@ -6,14 +6,11 @@ import { allDecksQueryOptions } from '@/entities/deck/queries';
 import type { DeckMatchupItem, DeckPlayerItem, TournamentDeckResultItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import {
-  ESTABLISHED_MATCHUP_MIN_MATCHES,
   getDeckDetailInsights,
   isEstablishedDeckPlayer,
   isEstablishedMatchup,
 } from '@/shared/lib/deckDetailInsights';
 import {
-  ESTABLISHED_DECK_MIN_MATCHES,
-  ESTABLISHED_DECK_MIN_TOURNAMENTS,
   ESTABLISHED_DECK_SAMPLE_HINT,
 } from '@/shared/lib/establishedDecks';
 import { ESTABLISHED_PLAYER_SAMPLE_HINT } from '@/shared/lib/establishedPlayers';
@@ -115,7 +112,7 @@ const playerColumns: TableColumn<DeckPlayerItem>[] = [
             title={ESTABLISHED_PLAYER_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -177,10 +174,10 @@ function getMatchupColumns(
           {row.opponentDeck.id === deckId ? <Badge>Зеркало</Badge> : null}
           {!isEstablishedMatchup(row) ? (
             <Badge
-              title={`Для сравнения матчапов нужно минимум ${ESTABLISHED_MATCHUP_MIN_MATCHES} матчей.`}
+              title="Сервер помечает этот матчап как малую выборку."
               variant="warning"
             >
-              Малая выборка
+              Мало данных
             </Badge>
           ) : null}
         </div>
@@ -229,7 +226,7 @@ function getMatchupColumns(
 
 export function DeckDetailPage() {
   const { id = '' } = useParams();
-  const [activeTab, setActiveTab] = useState('results');
+  const [activeTab, setActiveTab] = useState('matchups');
   const [visibleResultsCount, setVisibleResultsCount] = useState(LIST_PAGE_SIZE);
   const [visiblePlayersCount, setVisiblePlayersCount] = useState(LIST_PAGE_SIZE);
   const [visibleMatchupsCount, setVisibleMatchupsCount] = useState(LIST_PAGE_SIZE);
@@ -285,7 +282,7 @@ export function DeckDetailPage() {
       : null;
   const matchupComparisonMessage =
     insights.establishedMatchupsCount < 2
-      ? `Для сравнения нужны хотя бы два незеркальных матчапа с ${ESTABLISHED_MATCHUP_MIN_MATCHES}+ матчами.`
+      ? 'Для сравнения нужны хотя бы два незеркальных матчапа с достаточным числом матчей.'
       : 'У подтверждённых матчапов одинаковый процент побед — выделить лучший и худший пока нельзя.';
   const matchupColumns = getMatchupColumns(
     deck.id,
@@ -332,7 +329,7 @@ export function DeckDetailPage() {
                   title={ESTABLISHED_DECK_SAMPLE_HINT}
                   variant="warning"
                 >
-                  Малая выборка
+                  Мало данных
                 </Badge>,
               ]
             : []),
@@ -360,7 +357,6 @@ export function DeckDetailPage() {
         description="Коротко о результатах этой колоды по этим фильтрам."
         title="Общая статистика колоды"
         items={[
-          { title: 'Турниров', value: summary.tournamentsCount },
           {
             title: TOURNAMENT_PARTICIPATIONS_LABEL,
             titleHint: TOURNAMENT_PARTICIPATIONS_HINT,
@@ -385,8 +381,8 @@ export function DeckDetailPage() {
             titleHint: WIN_RATE_HINT,
             value: formatPercent(summary.matchWinRate),
             subtitle: insights.isEstablished
-              ? 'Достаточная выборка для сравнения'
-              : `Нужно ${ESTABLISHED_DECK_MIN_MATCHES} матчей в ${ESTABLISHED_DECK_MIN_TOURNAMENTS} турнирах`,
+              ? 'Сервер считает выборку достаточной'
+              : 'Сервер помечает результат как малую выборку',
           },
           {
             title: 'Доля метагейма',
@@ -415,41 +411,7 @@ export function DeckDetailPage() {
           </div>
         </div>
 
-        <div className="insights-grid">
-          <div className="insights-summary">
-            <div className="insights-summary__value">
-              {insights.playedMatchesCount}
-            </div>
-            <div className="insights-summary__title">
-              матчей против соперника в статистике
-            </div>
-            <p className="insights-summary__description">
-              {insights.isEstablished
-                ? `Колода прошла порог ${ESTABLISHED_DECK_MIN_MATCHES} матчей в ${ESTABLISHED_DECK_MIN_TOURNAMENTS} турнирах — общий процент побед уже можно сравнивать с другими колодами.`
-                : `До устойчивой выборки нужно набрать ${ESTABLISHED_DECK_MIN_MATCHES} матчей минимум в ${ESTABLISHED_DECK_MIN_TOURNAMENTS} турнирах.`}
-            </p>
-          </div>
-
-          <div className="insights-list">
-            <article className="insight-item">
-              <div className="insight-item__title">Самый активный игрок</div>
-              <div className="insight-item__body">
-                {insights.mostActivePlayer ? (
-                  <>
-                    <EntityLink
-                      id={insights.mostActivePlayer.player.id}
-                      name={insights.mostActivePlayer.player.name}
-                      type="player"
-                    />
-                    — {insights.mostActivePlayer.matchesCount} матчей в{' '}
-                    {insights.mostActivePlayer.tournamentsCount} турнирах.
-                  </>
-                ) : (
-                  'Недостаточно полной истории игроков для достоверного вывода.'
-                )}
-              </div>
-            </article>
-
+        <div className="insights-list">
             <article className="insight-item">
               <div className="insight-item__title">Самый частый матчап</div>
               <div className="insight-item__body">
@@ -530,7 +492,6 @@ export function DeckDetailPage() {
                 )}
               </div>
             </article>
-          </div>
         </div>
 
         {insights.unknownOpponentDeckCount > 0 ||
@@ -558,14 +519,14 @@ export function DeckDetailPage() {
         activeId={activeTab}
         items={[
           {
+            id: 'matchups',
+            label: `Матчапы (${sortedMatchups.length})`,
+          },
+          {
             id: 'results',
             label: `Турниры (${deckQuery.data.tournamentResults.length})`,
           },
           { id: 'players', label: `Игроки (${deckQuery.data.players.length})` },
-          {
-            id: 'matchups',
-            label: `Матчапы (${sortedMatchups.length})`,
-          },
         ]}
         onChange={setActiveTab}
       />
@@ -645,8 +606,8 @@ export function DeckDetailPage() {
                 <h2 className="section-header__title">Матчапы колоды</h2>
                 <p className="section-header__description">
                   По умолчанию первыми идут самые частые соперники. Для
-                  сравнения процента побед нужен минимум{' '}
-                  {ESTABLISHED_MATCHUP_MIN_MATCHES} матчей.
+                  сравнения процента побед используем оценку достаточности
+                  выборки, которую возвращает API.
                 </p>
               </div>
             </div>

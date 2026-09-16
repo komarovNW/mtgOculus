@@ -22,7 +22,10 @@ const details: TournamentDetailsResponse = {
     playersCount: 3,
     roundsCount: 2,
     matchesCount: 3,
-    aetherhubUrl: 'https://aetherhub.com/Tourney/RoundTourney/145',
+    pairingsCount: 2,
+    playedMatchesCount: 1,
+    byesCount: 1,
+    sourceUrl: 'https://aetherhub.com/Tourney/RoundTourney/145',
     winner: {
       player: { id: 'winner', name: 'Победитель' },
       deck: { id: 'forge', name: 'Forge' },
@@ -136,7 +139,7 @@ describe('TournamentDetailPage', () => {
         'https://aetherhub.com/Tourney/RoundTourney/145',
       );
     expect(screen.getByText('1 BYE показано отдельно')).toBeInTheDocument();
-    expect(screen.getByText('Колоды указаны у 2 из 3 участников')).toBeInTheDocument();
+    expect(screen.getByText(/Колоды указаны у 2 из 3 участников/)).toBeInTheDocument();
     expect(screen.getByText('Без колоды: 1')).toBeInTheDocument();
     expect(screen.getByText('Лидеры по представительству')).toBeInTheDocument();
     expect(screen.getByText(/Единоличного лидера нет/)).toBeInTheDocument();

@@ -18,7 +18,10 @@ describe('mapTournamentDetailsResponse', () => {
         playersCount: 1,
         roundsCount: 1,
         matchesCount: 1,
-        aetherhubUrl: 'https://aetherhub.com/Tourney/RoundTourney/1',
+        pairingsCount: 1,
+        playedMatchesCount: 0,
+        byesCount: 0,
+        sourceUrl: 'https://aetherhub.com/Tourney/RoundTourney/1',
         winner: {
           player: { id: 10, name: 'Игрок' },
           deck: { id: 20, name: 'Каноническая колода' },
@@ -69,7 +72,7 @@ describe('mapTournamentDetailsResponse', () => {
 
     expect(match.isBye).toBe(false);
     expect(match.kind).toBe('unknown');
-    expect(result.tournament.aetherhubUrl)
+    expect(result.tournament.sourceUrl)
       .toBe('https://aetherhub.com/Tourney/RoundTourney/1');
     expect(match.playerB.id).toBe('player_unknown');
     expect(match.playerA.deck).toEqual(

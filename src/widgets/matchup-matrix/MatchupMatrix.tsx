@@ -81,7 +81,7 @@ export function MatchupMatrix({ data, isFetching = false }: { data: MatchupMatri
     const selected = active?.row === rowIndex && active.column === column;
     const label = `${row.deck.name} против ${opponent}: ${mirror
       ? `зеркальных матчей ${row.mirrorMatches}`
-      : hasMatches ? `${matchupPercent(stats.winRate)} побед, матчей ${stats.matchesCount}${stats.isSmallSample ? ', малая выборка' : ''}`
+      : hasMatches ? `${matchupPercent(stats.winRate)} побед, матчей ${stats.matchesCount}${stats.isSmallSample ? ', мало данных' : ''}`
         : 'нет матчей'}`;
 
     return (
@@ -147,7 +147,7 @@ export function MatchupMatrix({ data, isFetching = false }: { data: MatchupMatri
             {[0, 25, 50, 75, 100].map((value) => <span key={value}>{value}%</span>)}
           </div>
         </div>
-        <span><b>*</b> Малая выборка</span>
+        <span><b>*</b> Мало данных</span>
         <span>— Нет матчей</span>
       </div>
       <div className="matchup-matrix-scroll" role="region" aria-label="Матрица результатов матчапов" tabIndex={0}>

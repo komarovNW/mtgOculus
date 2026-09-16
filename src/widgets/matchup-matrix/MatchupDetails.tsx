@@ -57,7 +57,7 @@ export function MatchupDetails({
             <div><dt>Доверительный интервал</dt><dd>{stats.winRateLow !== null && stats.winRateHigh !== null
               ? `${matchupPercent(stats.winRateLow)} – ${matchupPercent(stats.winRateHigh)}` : 'Нет данных'}</dd></div>
           </dl>
-          {stats.isSmallSample ? <Badge variant="warning">Малая выборка</Badge> : null}
+          {stats.isSmallSample ? <Badge variant="warning">Мало данных</Badge> : null}
           {stats.isSmallSample ? <p>Матчей пока мало: процент побед может заметно измениться.</p> : null}
         </>
       )}

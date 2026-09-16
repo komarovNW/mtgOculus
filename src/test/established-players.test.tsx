@@ -17,12 +17,15 @@ function player(
     player: { id, name: id },
     tournamentsCount,
     matchesCount,
+    playedMatchesCount: matchesCount,
+    byesCount: 0,
     matchWins,
     matchLosses: matchesCount - matchWins,
     matchDraws: 0,
+    playedWins: matchWins,
     matchWinRate,
     bestRank: 1,
-    isSmallSample: false,
+    isSmallSample: id === 'one-match' || id === 'few-tournaments',
   };
 }
 
@@ -57,7 +60,7 @@ describe('established player results', () => {
     );
 
     expect(screen.queryByText(/Лучшее место|Лучший результат/)).not.toBeInTheDocument();
-    expect(screen.getByText('20+ матчами минимум в 5 турнирах', { exact: false }))
+    expect(screen.getByText('с лучшим процентом побед', { exact: false }))
       .toBeInTheDocument();
   });
 });

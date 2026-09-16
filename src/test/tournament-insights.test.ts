@@ -30,6 +30,9 @@ const details: TournamentDetailsResponse = {
     playersCount: 11,
     roundsCount: 2,
     matchesCount: 3,
+    pairingsCount: 2,
+    playedMatchesCount: 1,
+    byesCount: 1,
     winner: {
       player: { id: 'winner', name: 'Победитель' },
       deck: decks[0],

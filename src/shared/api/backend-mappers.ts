@@ -61,6 +61,10 @@ type BackendAppliedFilters = {
   tournamentType?: TournamentType | null;
   dateFrom?: string | null;
   dateTo?: string | null;
+  league?: {
+    id: number;
+    name: string;
+  } | null;
 };
 
 type BackendPlayer = {
@@ -88,12 +92,17 @@ type BackendTournamentListItem = {
   city?: BackendCity | null;
   club?: BackendClub | null;
   format?: BackendFormat | null;
+  league?: {
+    id: number;
+    name: string;
+  } | null;
   playersCount: number;
   roundsCount: number;
   matchesCount: number;
-  playedMatchesCount?: number | null;
-  byesCount?: number | null;
-  unknownResultsCount?: number | null;
+  pairingsCount: number;
+  playedMatchesCount: number;
+  byesCount: number;
+  sourceUrl?: string | null;
   winner?: BackendWinner;
 };
 
@@ -151,9 +160,7 @@ type BackendRoundMatch = {
 
 type BackendTournamentDetailsResponse = {
   appliedFilters?: BackendAppliedFilters | null;
-  tournament: BackendTournamentListItem & {
-    aetherhubUrl?: string | null;
-  };
+  tournament: BackendTournamentListItem;
   standings: BackendTournamentStandingItem[];
   rounds: Array<{
     roundNumber: number;
@@ -176,13 +183,15 @@ type BackendTournamentDetailsResponse = {
 type BackendPlayersListItem = {
   player: BackendPlayer;
   tournamentsCount: number;
+  lastTournamentDate?: string | null;
+  undefeatedTopsCount?: number | null;
   matchesCount: number;
-  playedMatchesCount?: number | null;
-  byesCount?: number | null;
-  unknownResultsCount?: number | null;
+  playedMatchesCount: number;
+  byesCount: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
+  playedWins: number;
   matchWinRate: number;
   bestRank?: number | null;
   mostPlayedDeck?: BackendDeck | null;
@@ -197,12 +206,12 @@ type BackendPlayerDetailsResponse = {
   summary: {
     tournamentsCount: number;
     matchesCount: number;
-    playedMatchesCount?: number | null;
-    byesCount?: number | null;
-    unknownResultsCount?: number | null;
+    playedMatchesCount: number;
+    byesCount: number;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
+    playedWins: number;
     matchWinRate: number;
     gameWins?: number | null;
     gameLosses?: number | null;
@@ -227,9 +236,12 @@ type BackendPlayerDetailsResponse = {
     deck: BackendDeck;
     tournamentsCount: number;
     matchesCount: number;
+    playedMatchesCount: number;
+    byesCount: number;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
+    playedWins: number;
     matchWinRate: number;
     bestRank?: number | null;
     isSmallSample: boolean;
@@ -262,9 +274,8 @@ type BackendDeckListItem = {
   tournamentsCount: number;
   playersCount: number;
   matchesCount: number;
-  playedMatchesCount?: number | null;
-  byesCount?: number | null;
-  unknownResultsCount?: number | null;
+  playedMatchesCount: number;
+  byesCount: number;
   matchWins: number;
   matchLosses: number;
   matchDraws: number;
@@ -285,8 +296,8 @@ type BackendDeckDetailsResponse = {
     playersCount: number;
     uniquePlayersCount: number;
     matchesCount: number;
-    playedMatchesCount?: number | null;
-    byesCount?: number | null;
+    playedMatchesCount: number;
+    byesCount: number;
     unknownResultsCount?: number | null;
     matchesWithKnownOpponentDeckCount?: number | null;
     matchesWithUnknownOpponentDeckCount?: number | null;
@@ -308,6 +319,8 @@ type BackendDeckDetailsResponse = {
     player: BackendPlayer;
     tournamentsCount: number;
     matchesCount: number;
+    playedMatchesCount: number;
+    byesCount: number;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
@@ -351,6 +364,8 @@ type BackendHomeResponse = {
   deckPerformance: Array<{
     deck: BackendDeck;
     matchesCount: number;
+    playedMatchesCount: number;
+    byesCount: number;
     matchWins: number;
     matchLosses: number;
     matchDraws: number;
@@ -458,12 +473,16 @@ function mapTournamentListItem(raw: BackendTournamentListItem): TournamentListIt
     city: mapCity(raw.city),
     club: mapClub(raw.club, raw.city?.id ?? ''),
     format: mapFormat(raw.format),
+    league: raw.league
+      ? { id: String(raw.league.id), name: raw.league.name }
+      : null,
     playersCount: raw.playersCount,
     roundsCount: raw.roundsCount,
     matchesCount: raw.matchesCount,
-    playedMatchesCount: raw.playedMatchesCount ?? undefined,
-    byesCount: raw.byesCount ?? undefined,
-    unknownResultsCount: raw.unknownResultsCount ?? undefined,
+    pairingsCount: raw.pairingsCount,
+    playedMatchesCount: raw.playedMatchesCount,
+    byesCount: raw.byesCount,
+    sourceUrl: raw.sourceUrl ?? null,
     winner: mapWinner(raw.winner),
   };
 }
@@ -498,6 +517,9 @@ function mapAppliedFilters(raw?: BackendAppliedFilters | null): AppliedFilters {
     tournamentType: raw?.tournamentType ?? null,
     dateFrom: raw?.dateFrom ?? null,
     dateTo: raw?.dateTo ?? null,
+    league: raw?.league
+      ? { id: String(raw.league.id), name: raw.league.name }
+      : null,
   };
 }
 
@@ -577,6 +599,8 @@ export function mapHomeResponse(raw: BackendHomeResponse, appliedFilters: Applie
     deckPerformance: raw.deckPerformance.map<DeckPerformanceItem>((item) => ({
       deck: mapDeckOrFallback(item.deck),
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
@@ -588,12 +612,12 @@ export function mapHomeResponse(raw: BackendHomeResponse, appliedFilters: Applie
       player: mapPlayerShort(item.player)!,
       tournamentsCount: item.tournamentsCount,
       matchesCount: item.matchesCount,
-      playedMatchesCount: item.playedMatchesCount ?? undefined,
-      byesCount: item.byesCount ?? undefined,
-      unknownResultsCount: item.unknownResultsCount ?? undefined,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
+      playedWins: item.playedWins,
       matchWinRate: item.matchWinRate,
       bestRank: item.bestRank ?? null,
       mostPlayedDeck: mapDeckShort(item.mostPlayedDeck ?? null),
@@ -636,7 +660,7 @@ export function mapTournamentDetailsResponse(raw: BackendTournamentDetailsRespon
   return {
     tournament: {
       ...mapTournamentListItem(raw.tournament),
-      aetherhubUrl: raw.tournament.aetherhubUrl ?? null,
+      sourceUrl: raw.tournament.sourceUrl ?? null,
     },
     standings: raw.standings.map<TournamentStandingItem>((item) => ({
       rank: item.rank,
@@ -684,13 +708,15 @@ export function mapPlayersListResponse(
     items: raw.results.map<PlayerListItem>((item) => ({
       player: mapPlayerShort(item.player)!,
       tournamentsCount: item.tournamentsCount,
+      lastTournamentDate: item.lastTournamentDate ?? null,
+      undefeatedTopsCount: item.undefeatedTopsCount ?? null,
       matchesCount: item.matchesCount,
-      playedMatchesCount: item.playedMatchesCount ?? undefined,
-      byesCount: item.byesCount ?? undefined,
-      unknownResultsCount: item.unknownResultsCount ?? undefined,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
+      playedWins: item.playedWins,
       matchWinRate: item.matchWinRate,
       bestRank: item.bestRank ?? null,
       mostPlayedDeck: mapDeckShort(item.mostPlayedDeck ?? null),
@@ -709,12 +735,12 @@ export function mapPlayerDetailsResponse(
     summary: {
       tournamentsCount: raw.summary.tournamentsCount,
       matchesCount: raw.summary.matchesCount,
-      playedMatchesCount: raw.summary.playedMatchesCount ?? undefined,
-      byesCount: raw.summary.byesCount ?? undefined,
-      unknownResultsCount: raw.summary.unknownResultsCount ?? undefined,
+      playedMatchesCount: raw.summary.playedMatchesCount,
+      byesCount: raw.summary.byesCount,
       matchWins: raw.summary.matchWins,
       matchLosses: raw.summary.matchLosses,
       matchDraws: raw.summary.matchDraws,
+      playedWins: raw.summary.playedWins,
       matchWinRate: raw.summary.matchWinRate,
       gameWins: raw.summary.gameWins ?? undefined,
       gameLosses: raw.summary.gameLosses ?? undefined,
@@ -739,9 +765,12 @@ export function mapPlayerDetailsResponse(
       deck: mapDeckOrFallback(item.deck),
       tournamentsCount: item.tournamentsCount,
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
+      playedWins: item.playedWins,
       matchWinRate: item.matchWinRate,
       bestRank: item.bestRank ?? null,
       isSmallSample: item.isSmallSample,
@@ -796,9 +825,8 @@ export function mapDecksListResponse(
       tournamentsCount: item.tournamentsCount,
       playersCount: item.playersCount,
       matchesCount: item.matchesCount,
-      playedMatchesCount: item.playedMatchesCount ?? undefined,
-      byesCount: item.byesCount ?? undefined,
-      unknownResultsCount: item.unknownResultsCount ?? undefined,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,
@@ -826,8 +854,8 @@ export function mapDeckDetailsResponse(
       playersCount: raw.summary.playersCount,
       uniquePlayersCount: raw.summary.uniquePlayersCount,
       matchesCount: raw.summary.matchesCount,
-      playedMatchesCount: raw.summary.playedMatchesCount ?? undefined,
-      byesCount: raw.summary.byesCount ?? undefined,
+      playedMatchesCount: raw.summary.playedMatchesCount,
+      byesCount: raw.summary.byesCount,
       unknownResultsCount: raw.summary.unknownResultsCount ?? undefined,
       matchesWithKnownOpponentDeckCount:
         raw.summary.matchesWithKnownOpponentDeckCount ?? undefined,
@@ -851,6 +879,8 @@ export function mapDeckDetailsResponse(
       player: mapPlayerShort(item.player)!,
       tournamentsCount: item.tournamentsCount,
       matchesCount: item.matchesCount,
+      playedMatchesCount: item.playedMatchesCount,
+      byesCount: item.byesCount,
       matchWins: item.matchWins,
       matchLosses: item.matchLosses,
       matchDraws: item.matchDraws,

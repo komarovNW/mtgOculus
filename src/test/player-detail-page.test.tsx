@@ -3,12 +3,17 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { getPlayerDetails } from '@/entities/player/api';
+import { getTournamentDetails } from '@/entities/tournament/api';
 import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
 import type { PlayerDetailsResponse } from '@/shared/api/types';
 import { TestProviders } from '@/test/test-utils';
 
 vi.mock('@/entities/player/api', () => ({
   getPlayerDetails: vi.fn(),
+}));
+
+vi.mock('@/entities/tournament/api', () => ({
+  getTournamentDetails: vi.fn(),
 }));
 
 vi.mock('@/entities/dictionaries/api', () => ({
@@ -26,10 +31,13 @@ const details: PlayerDetailsResponse = {
   summary: {
     tournamentsCount: 2,
     matchesCount: 3,
+    playedMatchesCount: 2,
+    byesCount: 1,
     matchWins: 2,
     matchLosses: 1,
     matchDraws: 0,
-    matchWinRate: 66.67,
+    playedWins: 1,
+    matchWinRate: 50,
     bestRank: 1,
     averageRank: 2,
     uniqueDecksCount: 1,
@@ -49,8 +57,8 @@ const details: PlayerDetailsResponse = {
       },
       deck: { id: 'tempo', name: 'Tempo' },
       rank: 2,
-      record: '1-1',
-      points: 3,
+      record: '2-0',
+      points: 6,
     },
     {
       tournament: {
@@ -65,8 +73,8 @@ const details: PlayerDetailsResponse = {
       },
       deck: { id: 'tempo', name: 'Tempo' },
       rank: 1,
-      record: '1-0',
-      points: 3,
+      record: '1-0-1',
+      points: 4,
     },
   ],
   decks: [
@@ -74,10 +82,13 @@ const details: PlayerDetailsResponse = {
       deck: { id: 'tempo', name: 'Tempo' },
       tournamentsCount: 2,
       matchesCount: 3,
+      playedMatchesCount: 2,
+      byesCount: 1,
       matchWins: 2,
       matchLosses: 1,
       matchDraws: 0,
-      matchWinRate: 66.67,
+      playedWins: 1,
+      matchWinRate: 50,
       bestRank: 1,
       isSmallSample: false,
     },
@@ -142,6 +153,7 @@ const details: PlayerDetailsResponse = {
 describe('PlayerDetailPage', () => {
   it('shows honest real-match statistics and simplified tables', async () => {
     vi.mocked(getPlayerDetails).mockResolvedValue(details);
+    vi.mocked(getTournamentDetails).mockResolvedValue({ rounds: [{}, {}] } as never);
     const user = userEvent.setup();
 
     render(
@@ -163,9 +175,11 @@ describe('PlayerDetailPage', () => {
       expect(getPlayerDetails).toHaveBeenCalledWith('3', {}, { signal: expect.any(AbortSignal) });
     });
 
-    expect(screen.getByText('Результатов учтено')).toBeInTheDocument();
-    expect(screen.getByText('Первых мест')).toBeInTheDocument();
-    expect(screen.getByText('Включая 1 BYE')).toBeInTheDocument();
+    expect(screen.getByText('Сыграно матчей')).toBeInTheDocument();
+    expect(screen.getByText('Топов без поражений')).toBeInTheDocument();
+    expect(screen.getByText('Все раунды сыграны и выиграны — без поражений и ничьих')).toBeInTheDocument();
+    await waitFor(() => expect(getTournamentDetails).toHaveBeenCalledWith('one', { signal: expect.any(AbortSignal) }));
+    expect(screen.getByText('Ещё 1 BYE показано отдельно')).toBeInTheDocument();
     expect(screen.getByText('Частый оппонент')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Динамика игрока' }))
       .toBeInTheDocument();
@@ -178,6 +192,14 @@ describe('PlayerDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Колоды (1)' }));
     expect(screen.queryByRole('columnheader', { name: 'Лучшее место' }))
       .not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Показать' }));
+    expect(screen.getByRole('heading', { name: 'Матчапы на Tempo' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Колода соперника' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Control' })).toHaveAttribute('href', '/decks/control');
+    expect(screen.getAllByText('1-1')).not.toHaveLength(0);
+    expect(screen.getAllByText('50.0%')).not.toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Скрыть' }));
+    expect(screen.queryByRole('heading', { name: 'Матчапы на Tempo' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Оппоненты (1)' }));
     expect(screen.getByRole('heading', { name: 'Личные встречи' }))
@@ -186,7 +208,7 @@ describe('PlayerDetailPage', () => {
       .not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Последняя встреча' }))
       .not.toBeInTheDocument();
-    expect(screen.getByText('50.0%')).toBeInTheDocument();
+    expect(screen.getAllByText('50.0%')).not.toHaveLength(0);
 
     await user.click(screen.getByRole('button', { name: 'История (3)' }));
     expect(screen.getByRole('heading', { name: 'История матчей' }))

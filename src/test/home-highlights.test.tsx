@@ -40,15 +40,19 @@ const deckPerformance: DeckPerformanceItem[] = [
   {
     deck: smallDeck,
     matchesCount: 8,
+    playedMatchesCount: 8,
+    byesCount: 0,
     matchWins: 6,
     matchLosses: 2,
     matchDraws: 0,
     matchWinRate: 75,
-    isSmallSample: false,
+    isSmallSample: true,
   },
   {
     deck: establishedDeck,
     matchesCount: 52,
+    playedMatchesCount: 52,
+    byesCount: 0,
     matchWins: 38,
     matchLosses: 14,
     matchDraws: 0,
@@ -90,7 +94,7 @@ describe('HomeHighlights', () => {
       </TestProviders>,
     );
 
-    expect(screen.getByText('Лучший результат на достаточной выборке'))
+    expect(screen.getByText('Лучший процент побед'))
       .toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Established Deck' })).toHaveLength(2);
     expect(screen.queryByText('75.0%')).not.toBeInTheDocument();

@@ -356,7 +356,7 @@ export function TournamentDetailPage() {
 
   const tournament = detailQuery.data.tournament;
   const insights = getTournamentInsights(detailQuery.data);
-  const aetherhubUrl = getSafeAetherhubUrl(tournament.aetherhubUrl);
+  const aetherhubUrl = getSafeAetherhubUrl(tournament.sourceUrl);
   const metagameChartData = insights.metagameChartData.map((item) => ({
     name: item.name,
     metaShare: Number(item.metaShare.toFixed(1)),
@@ -410,12 +410,7 @@ export function TournamentDetailPage() {
                 .filter(Boolean)
                 .join(' · ') || 'Все пары сыграны против оппонента',
           },
-          { title: 'Раундов', value: detailQuery.data.rounds.length },
-          {
-            title: 'Уникальных колод',
-            value: insights.uniqueDecksCount,
-            subtitle: `Колоды указаны у ${insights.deckCoverageCount} из ${tournament.playersCount} участников`,
-          },
+          { title: 'Раундов', value: tournament.roundsCount },
         ]}
       />
 
@@ -554,14 +549,6 @@ export function TournamentDetailPage() {
             </div>
           </article>
           <article className="insight-item">
-            <div className="insight-item__title">Разнообразие поля</div>
-            <div className="insight-item__body">
-              {insights.uniqueDecksCount} разных колод у{' '}
-              {insights.deckCoverageCount} участников. Колод, представленных
-              только одним игроком: {insights.singlePlayerDecksCount}.
-            </div>
-          </article>
-          <article className="insight-item">
             <div className="insight-item__title">Без поражений</div>
             <div className="insight-item__body">
               {insights.undefeatedPlayers.length ? (
@@ -598,7 +585,7 @@ export function TournamentDetailPage() {
                 </Badge>
               </div>
               <p className="section-header__description">
-                Метагейм рассчитан только по участникам, для которых указана колода.
+                {`Колоды указаны у ${insights.deckCoverageCount} из ${tournament.playersCount} участников. Метагейм рассчитан только по этим данным.`}
               </p>
             </div>
           </div>

@@ -19,6 +19,8 @@ const baseDetail: DeckDetailsResponse = {
     playersCount: 3,
     uniquePlayersCount: 2,
     matchesCount: 34,
+    playedMatchesCount: 34,
+    byesCount: 0,
     matchWins: 20,
     matchLosses: 13,
     matchDraws: 1,
@@ -65,6 +67,8 @@ const baseDetail: DeckDetailsResponse = {
       player: { id: 'one', name: 'Первый' },
       tournamentsCount: 5,
       matchesCount: 20,
+      playedMatchesCount: 20,
+      byesCount: 0,
       matchWins: 13,
       matchLosses: 7,
       matchDraws: 0,
@@ -76,6 +80,8 @@ const baseDetail: DeckDetailsResponse = {
       player: { id: 'two', name: 'Второй' },
       tournamentsCount: 4,
       matchesCount: 14,
+      playedMatchesCount: 14,
+      byesCount: 0,
       matchWins: 7,
       matchLosses: 6,
       matchDraws: 1,
@@ -101,7 +107,7 @@ const baseDetail: DeckDetailsResponse = {
       losses: 2,
       draws: 0,
       winRate: 80,
-      isSmallSample: true,
+      isSmallSample: false,
     },
     {
       opponentDeck: { id: 'bad', name: 'Bad matchup' },
@@ -119,18 +125,18 @@ const baseDetail: DeckDetailsResponse = {
       losses: 0,
       draws: 0,
       winRate: 100,
-      isSmallSample: false,
+      isSmallSample: true,
     },
   ],
 };
 
 describe('deck detail insights', () => {
-  it('uses explicit sample thresholds instead of backend flags', () => {
-    expect(isEstablishedDeckPlayer(baseDetail.players[0])).toBe(true);
-    expect(isEstablishedDeckPlayer(baseDetail.players[1])).toBe(false);
+  it('uses backend sample flags as the source of truth', () => {
+    expect(isEstablishedDeckPlayer(baseDetail.players[0])).toBe(false);
+    expect(isEstablishedDeckPlayer(baseDetail.players[1])).toBe(true);
     expect(isEstablishedMatchup(baseDetail.matchups[1])).toBe(true);
     expect(isEstablishedMatchup(baseDetail.matchups[3])).toBe(false);
-    expect(getDeckDetailInsights(baseDetail).isEstablished).toBe(true);
+    expect(getDeckDetailInsights(baseDetail).isEstablished).toBe(false);
   });
 
   it('chooses reliable non-mirror matchups and keeps unknown coverage explicit', () => {

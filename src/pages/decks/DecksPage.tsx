@@ -34,8 +34,6 @@ import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
-import { DeckActivityOverview } from '@/widgets/deck-activity/DeckActivityOverview';
-import { EstablishedDeckResults } from '@/widgets/established-deck-results/EstablishedDeckResults';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
 const columns: TableColumn<DeckListItem>[] = [
@@ -55,7 +53,7 @@ const columns: TableColumn<DeckListItem>[] = [
             title={ESTABLISHED_DECK_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>
@@ -79,7 +77,7 @@ const columns: TableColumn<DeckListItem>[] = [
     id: 'matches',
     header: 'Матчей против соперника',
     align: 'right',
-    render: (row) => row.playedMatchesCount ?? row.matchesCount,
+    render: (row) => row.playedMatchesCount,
   },
   {
     id: 'record',
@@ -129,13 +127,11 @@ function sortDecks(items: DeckListItem[], sort: DeckSort) {
       if (winRateDifference !== 0) return winRateDifference;
 
       const matchesDifference =
-        (right.playedMatchesCount ?? right.matchesCount) -
-        (left.playedMatchesCount ?? left.matchesCount);
+        right.playedMatchesCount - left.playedMatchesCount;
       if (matchesDifference !== 0) return matchesDifference;
     } else if (sort === 'matchesCount_desc') {
       const matchesDifference =
-        (right.playedMatchesCount ?? right.matchesCount) -
-        (left.playedMatchesCount ?? left.matchesCount);
+        right.playedMatchesCount - left.playedMatchesCount;
 
       if (matchesDifference !== 0) return matchesDifference;
     } else {
@@ -251,7 +247,7 @@ export function DecksPage() {
         badges={getAppliedFilterLabels(appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Здесь удобно сравнивать популярность колод, их результаты и быстро переходить к турнирам и матчапам."
+        description="Популярность, результаты и матчапы колод."
         eyebrow="Колоды"
         title="Колоды"
       />
@@ -313,11 +309,11 @@ export function DecksPage() {
           >
             <div className="section-header">
               <div>
-                <h2 className="section-header__title">Быстрый ориентир</h2>
+                <h2 className="section-header__title">Сводка</h2>
                 <p className="section-header__description">
                   {isSearchMode
                     ? `Сводка построена только по колодам, найденным по запросу «${search.trim()}».`
-                    : 'Сводка строится по всем колодам из текущей выборки и не зависит от сортировки или загруженной страницы.'}
+                    : 'Все колоды по текущим фильтрам.'}
                 </p>
               </div>
             </div>
@@ -335,18 +331,17 @@ export function DecksPage() {
               <div className="insights-list">
                 {!isSearchMode && deckInsightsQuery.isLoading ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">Собираем ориентир</div>
+                    <div className="insight-item__title">Загружаем сводку</div>
                     <div className="insight-item__body">
-                      Собираем общую статистику по выбранным фильтрам.
+                      Это займёт немного времени.
                     </div>
                   </article>
                 ) : null}
                 {!isSearchMode && deckInsightsQuery.isError ? (
                   <article className="insight-item">
-                    <div className="insight-item__title">Ориентир временно недоступен</div>
+                    <div className="insight-item__title">Не удалось загрузить сводку</div>
                     <div className="insight-item__body">
-                      Не получилось собрать общую статистику. Таблица колод ниже
-                      продолжает работать.
+                      Таблица колод ниже остаётся доступной.
                     </div>
                   </article>
                 ) : null}
@@ -370,7 +365,7 @@ export function DecksPage() {
                 {deckInsights.bestEstablishedDeck ? (
                   <article className="insight-item">
                     <div className="insight-item__title">
-                      Лучший результат на достаточной выборке
+                      Лучший процент побед
                     </div>
                     <div className="insight-item__body">
                       <EntityLink
@@ -392,25 +387,9 @@ export function DecksPage() {
                   </article>
                 ) : null}
 
-                {deckInsightsQuery.isSuccess ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Достаточная выборка</div>
-                    <div className="insight-item__body">
-                      Порог 30 матчей в 10 турнирах прошли{' '}
-                      {deckInsights.establishedDecksCount} из {totalCount} колод.
-                    </div>
-                  </article>
-                ) : null}
               </div>
             </div>
           </Card>
-
-          {deckInsightsQuery.isSuccess ? (
-            <>
-              <DeckActivityOverview insights={deckInsights} />
-              <EstablishedDeckResults items={deckInsights.establishedDecks} />
-            </>
-          ) : null}
 
           <Card>
             <div className="section-header">
@@ -422,8 +401,7 @@ export function DecksPage() {
                   {isSearchMode
                     ? `По запросу «${search.trim()}» ${getDeckSearchResultText(totalCount)}.`
                     : `Найдено ${totalCount} колод.`}{' '}
-                  Нажмите на колоду, чтобы открыть турниры, игроков и матчапы.
-                  По умолчанию первыми идут самые популярные колоды.
+                  Откройте колоду, чтобы посмотреть её турниры, игроков и матчапы.
                 </p>
               </div>
             </div>

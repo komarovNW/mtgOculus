@@ -2,10 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPlayers } from '@/entities/player/api';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
-import { getEstablishedDeckPerformance } from '@/shared/lib/establishedDecks';
 import { getEstablishedPlayers } from '@/shared/lib/establishedPlayers';
-import { formatDate } from '@/shared/lib/formatDate';
-import { TOURNAMENT_PARTICIPATIONS_HINT, TOURNAMENT_PARTICIPATIONS_LABEL } from '@/shared/lib/formatRecord';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
@@ -14,9 +11,7 @@ import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { DeckMetagameSection } from '@/widgets/deck-metagame/DeckMetagameSection';
-import { DeckPerformanceTable } from '@/widgets/deck-performance/DeckPerformanceTable';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
-import { HomeHighlights } from '@/widgets/home-highlights/HomeHighlights';
 import { PopularMatchupsTable } from '@/widgets/popular-matchups/PopularMatchupsTable';
 import { RecentTournamentsTable } from '@/widgets/recent-tournaments/RecentTournamentsTable';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
@@ -24,11 +19,14 @@ import { TopPlayersTable } from '@/widgets/top-players/TopPlayersTable';
 
 export function HomePage() {
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const hasSelectedFormat = Boolean(filters.formatId);
   const homeQuery = useQuery({
     queryKey: ['home', apiFilters],
     queryFn: ({ signal }) => getHomeData(apiFilters, { signal }),
   });
   const establishedPlayersQuery = useQuery({
+    enabled: hasActiveFilters,
     queryKey: ['home', 'established-players', apiFilters],
     queryFn: ({ signal }) =>
       getPlayers({
@@ -53,12 +51,6 @@ export function HomePage() {
     cityLabel,
     appliedFilters?.club?.name ?? 'Все клубы',
   ].join(' · ');
-  const periodLabel =
-    appliedFilters?.dateFrom || appliedFilters?.dateTo
-      ? `Период: ${appliedFilters?.dateFrom ? formatDate(appliedFilters.dateFrom) : '—'} - ${
-          appliedFilters?.dateTo ? formatDate(appliedFilters.dateTo) : '—'
-        }`
-      : 'За все загруженные турниры';
   const selectedCityName = appliedFilters?.city?.name ?? (filters.cityId === 'moscow' ? 'Москва' : undefined);
   const cityTitle = selectedCityName === 'Москва' ? 'Москве' : selectedCityName;
   const homeTitle = !filters.formatId && !filters.cityId
@@ -75,7 +67,11 @@ export function HomePage() {
         badges={[
           ...appliedLabels.map((label) => <Badge key={label}>{label}</Badge>),
         ]}
-        description="Собрали метагейм, результаты колод, лучших игроков и частые матчапы по этим фильтрам."
+        description={!hasActiveFilters
+          ? 'Общий объём загруженной статистики и последние турниры.'
+          : hasSelectedFormat
+            ? 'Метагейм, результаты колод, игроки и матчапы.'
+            : 'Игроки и последние турниры по выбранным фильтрам.'}
         eyebrow="Статистика по загруженным турнирам"
         title={homeTitle}
       />
@@ -103,30 +99,14 @@ export function HomePage() {
             items={[
               { title: 'Турниров', value: homeQuery.data.summary.tournamentsCount, subtitle: sliceLabel },
               {
-                title: TOURNAMENT_PARTICIPATIONS_LABEL,
-                titleHint: TOURNAMENT_PARTICIPATIONS_HINT,
-                value: homeQuery.data.summary.tournamentPlayersCount,
-                subtitle: periodLabel,
-              },
-              {
                 title: 'Уникальных игроков',
                 value: homeQuery.data.summary.uniquePlayersCount,
-                subtitle: 'Сколько разных игроков попало в эту статистику',
+                subtitle: 'В текущей выборке',
               },
               {
-                title: 'Сыгранных матчей',
-                value:
-                  homeQuery.data.summary.playedMatchesCount ??
-                  homeQuery.data.summary.matchesCount,
-                subtitle:
-                  homeQuery.data.summary.byesCount
-                    ? `${homeQuery.data.summary.byesCount} BYE показано отдельно и не входит в это число`
-                    : 'Только игры против реального оппонента',
-              },
-              {
-                title: 'Уникальных колод',
-                value: homeQuery.data.summary.uniqueDecksCount,
-                subtitle: 'Сколько разных колод встретилось в этой статистике',
+                title: 'Матчей в статистике',
+                value: homeQuery.data.summary.matchesCount,
+                subtitle: 'В текущей выборке',
               },
             ]}
           />
@@ -138,56 +118,50 @@ export function HomePage() {
             />
           ) : (
             <>
-              <HomeHighlights
-                deckMetagame={homeQuery.data.deckMetagame}
-                deckPerformance={homeQuery.data.deckPerformance}
-                popularMatchups={homeQuery.data.popularMatchups}
-                recentTournaments={homeQuery.data.recentTournaments}
-                summary={homeQuery.data.summary}
-              />
-              <DeckMetagameSection
-                actionHref="/decks"
-                items={homeQuery.data.deckMetagame}
-                limit={10}
-              />
-              <DeckPerformanceTable
-                actionHref="/decks"
-                items={getEstablishedDeckPerformance(
-                  homeQuery.data.deckPerformance,
-                  homeQuery.data.deckMetagame,
-                )}
-                limit={10}
-              />
-              {establishedPlayersQuery.isLoading ? (
-                <LoadingState description="Собираем результаты активных игроков." />
+              {hasActiveFilters ? (
+                <>
+                  {hasSelectedFormat ? (
+                    <DeckMetagameSection
+                      actionHref="/decks"
+                      items={homeQuery.data.deckMetagame}
+                      performanceItems={homeQuery.data.deckPerformance}
+                      limit={8}
+                    />
+                  ) : null}
+                  {establishedPlayersQuery.isLoading ? (
+                    <LoadingState description="Собираем результаты активных игроков." />
+                  ) : null}
+                  {establishedPlayersQuery.isError ? (
+                    <ErrorState
+                      description={getErrorMessage(
+                        establishedPlayersQuery.error,
+                        'Не получилось загрузить результаты активных игроков.',
+                      )}
+                      onRetry={() => {
+                        void establishedPlayersQuery.refetch();
+                      }}
+                    />
+                  ) : null}
+                  {establishedPlayersQuery.isSuccess ? (
+                    <TopPlayersTable
+                      actionHref="/players"
+                      items={getEstablishedPlayers(establishedPlayersQuery.data.items)}
+                      limit={10}
+                      showSpotlight
+                      scopeDescription={establishedPlayersQuery.data.pagination.hasMore
+                        ? `Среди ${establishedPlayersQuery.data.items.length} самых активных игроков из ${establishedPlayersQuery.data.pagination.total} в выбранной статистике.`
+                        : undefined}
+                    />
+                  ) : null}
+                  {hasSelectedFormat ? (
+                    <PopularMatchupsTable
+                      expandable
+                      initialLimit={5}
+                      items={homeQuery.data.popularMatchups}
+                    />
+                  ) : null}
+                </>
               ) : null}
-              {establishedPlayersQuery.isError ? (
-                <ErrorState
-                  description={getErrorMessage(
-                    establishedPlayersQuery.error,
-                    'Не получилось загрузить результаты активных игроков.',
-                  )}
-                  onRetry={() => {
-                    void establishedPlayersQuery.refetch();
-                  }}
-                />
-              ) : null}
-              {establishedPlayersQuery.isSuccess ? (
-                <TopPlayersTable
-                  actionHref="/players"
-                  items={getEstablishedPlayers(establishedPlayersQuery.data.items)}
-                  limit={10}
-                  showSpotlight
-                  scopeDescription={establishedPlayersQuery.data.pagination.hasMore
-                    ? `Среди ${establishedPlayersQuery.data.items.length} самых активных игроков из ${establishedPlayersQuery.data.pagination.total} в выбранной статистике.`
-                    : undefined}
-                />
-              ) : null}
-              <PopularMatchupsTable
-                expandable
-                initialLimit={5}
-                items={homeQuery.data.popularMatchups}
-              />
               <RecentTournamentsTable
                 actionHref="/tournaments"
                 compact

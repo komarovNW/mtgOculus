@@ -1,0 +1,21 @@
+{
+  "name": "Magic Oculus",
+  "short_name": "Oculus",
+  "description": "Аналитика турниров Magic: The Gathering",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icons/magic-oculus-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/magic-oculus-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

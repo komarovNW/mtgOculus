@@ -39,6 +39,43 @@ function getBodyRows() {
 }
 
 describe('Table sorting', () => {
+  test('provides a labelled scroll region and a mobile scroll hint', () => {
+    render(
+      <Table
+        accessibleLabel="Результаты игроков"
+        columns={columns}
+        data={rows}
+        emptyMessage="Нет данных"
+        getRowKey={(row) => row.id}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: 'Результаты игроков' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByText('Прокрутите таблицу вбок, чтобы увидеть все столбцы.'))
+      .toBeInTheDocument();
+  });
+
+  test('keeps the partial-list note outside the horizontal scroll region', () => {
+    render(
+      <Table
+        accessibleLabel="Результаты игроков"
+        columns={columns}
+        data={rows}
+        emptyMessage="Нет данных"
+        getRowKey={(row) => row.id}
+        isPartial
+      />,
+    );
+
+    const region = screen.getByRole('region', { name: 'Результаты игроков' });
+    const note = screen.getByRole('note');
+
+    expect(note).toHaveTextContent(
+      'Загружена часть списка. Сортировка работает в пределах показанных строк.',
+    );
+    expect(region).not.toContainElement(note);
+  });
+
   test('sorts by string columns on header click', async () => {
     const user = userEvent.setup();
 

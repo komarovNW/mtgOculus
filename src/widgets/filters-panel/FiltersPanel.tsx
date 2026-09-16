@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dictionaryQueries } from '@/entities/dictionaries/queries';
 import type { DashboardFilters } from '@/shared/api/types';
@@ -31,6 +32,27 @@ export function FiltersPanel({
     enabled: showFormat,
   });
   const clubsQuery = useQuery(dictionaryQueries.clubs(filters.cityId));
+  const [draftDateFrom, setDraftDateFrom] = useState(filters.dateFrom);
+  const [draftDateTo, setDraftDateTo] = useState(filters.dateTo);
+
+  useEffect(() => {
+    setDraftDateFrom(filters.dateFrom);
+    setDraftDateTo(filters.dateTo);
+  }, [filters.dateFrom, filters.dateTo]);
+
+  const dateRangeDirty = draftDateFrom !== filters.dateFrom || draftDateTo !== filters.dateTo;
+  const dateRangeInvalid = Boolean(draftDateFrom && draftDateTo && draftDateFrom > draftDateTo);
+
+  function resetDraftDates() {
+    setDraftDateFrom(filters.dateFrom);
+    setDraftDateTo(filters.dateTo);
+  }
+
+  function handleReset() {
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    onReset();
+  }
 
   const cityOptions = [
     { value: '', label: citiesQuery.isLoading ? 'Загружаем города...' : 'Все города' },
@@ -77,18 +99,17 @@ export function FiltersPanel({
         <div>
           <div className="section-header__title-row">
             <h2 className="section-header__title">Фильтры</h2>
-            <Badge>{activeExtraFiltersCount > 0 ? `Изменено фильтров: ${activeExtraFiltersCount}` : 'По умолчанию'}</Badge>
+            <Badge>{activeExtraFiltersCount > 0 ? `Выбрано: ${activeExtraFiltersCount}` : 'Все данные'}</Badge>
           </div>
           <p className="section-header__description">
-            Эти фильтры меняют всю статистику на странице. Можно быстро сузить
-            данные по городу, клубу
+            Выберите город, клуб
             {showFormat ? ', формату' : ''}
-            {showTournamentType ? ', типу события' : ''} и датам.
+            {showTournamentType ? ', тип события' : ''} и период.
           </p>
         </div>
         <Button
           variant="ghost"
-          onClick={onReset}
+          onClick={handleReset}
           type="button"
         >
           Сбросить фильтры
@@ -128,18 +149,41 @@ export function FiltersPanel({
             value={filters.tournamentType}
           />
         ) : null}
-        <Input
-          label="Дата от"
-          onChange={(event) => onChange({ dateFrom: event.target.value })}
-          type="date"
-          value={filters.dateFrom}
-        />
-        <Input
-          label="Дата до"
-          onChange={(event) => onChange({ dateTo: event.target.value })}
-          type="date"
-          value={filters.dateTo}
-        />
+        <form
+          className="filters-date-range"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (dateRangeDirty && !dateRangeInvalid) {
+              onChange({ dateFrom: draftDateFrom, dateTo: draftDateTo });
+            }
+          }}
+        >
+          <Input
+            label="Дата от"
+            onChange={(event) => setDraftDateFrom(event.target.value)}
+            type="date"
+            value={draftDateFrom}
+          />
+          <Input
+            label="Дата до"
+            onChange={(event) => setDraftDateTo(event.target.value)}
+            type="date"
+            value={draftDateTo}
+          />
+          <div className="filters-date-range__actions">
+            <Button disabled={!dateRangeDirty || dateRangeInvalid} type="submit" variant="secondary">
+              Применить период
+            </Button>
+            <Button disabled={!dateRangeDirty} onClick={resetDraftDates} type="button" variant="ghost">
+              Отменить
+            </Button>
+          </div>
+          {dateRangeInvalid ? (
+            <span className="filters-date-range__error" role="alert">
+              Дата начала должна быть не позже даты окончания.
+            </span>
+          ) : null}
+        </form>
       </div>
     </Card>
   );

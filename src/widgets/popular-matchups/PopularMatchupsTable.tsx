@@ -34,7 +34,7 @@ const columns: TableColumn<PopularMatchupItem>[] = [
             title={MATCHUP_SMALL_SAMPLE_HINT}
             variant="warning"
           >
-            Малая выборка
+            Мало данных
           </Badge>
         ) : null}
       </div>

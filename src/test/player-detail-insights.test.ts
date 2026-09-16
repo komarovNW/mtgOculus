@@ -4,10 +4,13 @@ import type {
   PlayerMatchItem,
 } from '@/shared/api/types';
 import {
+  countCompletedWinOnlyTournaments,
+  getPlayerDeckMatchups,
   getPlayerDetailInsights,
   getPlayerMonthlyActivity,
   groupPlayerMatchesByTournament,
   isEstablishedPlayerDeck,
+  isWinOnlyTournamentRecord,
 } from '@/shared/lib/playerDetailInsights';
 
 function createMatch(
@@ -81,9 +84,12 @@ const detail: PlayerDetailsResponse = {
   summary: {
     tournamentsCount: 11,
     matchesCount: 12,
+    playedMatchesCount: 12,
+    byesCount: 0,
     matchWins: 7,
     matchLosses: 4,
     matchDraws: 1,
+    playedWins: 7,
     matchWinRate: 58.33,
     bestRank: 1,
     averageRank: 4,
@@ -108,9 +114,12 @@ const detail: PlayerDetailsResponse = {
       deck: { id: 'tempo', name: 'Tempo' },
       tournamentsCount: 9,
       matchesCount: 10,
+      playedMatchesCount: 10,
+      byesCount: 0,
       matchWins: 6,
       matchLosses: 3,
       matchDraws: 1,
+      playedWins: 6,
       matchWinRate: 60,
       bestRank: 1,
       isSmallSample: false,
@@ -119,34 +128,58 @@ const detail: PlayerDetailsResponse = {
       deck: { id: 'control', name: 'Control' },
       tournamentsCount: 2,
       matchesCount: 2,
+      playedMatchesCount: 2,
+      byesCount: 0,
       matchWins: 1,
       matchLosses: 1,
       matchDraws: 0,
+      playedWins: 1,
       matchWinRate: 50,
       bestRank: 2,
-      isSmallSample: false,
+      isSmallSample: true,
     },
   ],
   recentMatches: matches,
 };
 
 describe('player detail insights', () => {
-  it('uses known matches and reports records without details separately', () => {
+  it.each([
+    ['4-0', true],
+    ['4-0-0', true],
+    ['2-0', true],
+    ['4-1', false],
+    ['3-0-1', false],
+    ['0-0', false],
+    ['invalid', false],
+  ])('recognizes a win-only tournament record %s', (record, expected) => {
+    expect(isWinOnlyTournamentRecord(record)).toBe(expected);
+  });
+
+  it('uses the backend summary while reporting incomplete match details separately', () => {
     const insights = getPlayerDetailInsights(detail, detail);
 
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.realMatchRecord).toEqual({
-      matchesCount: 11,
-      playedMatchesCount: 11,
+      matchesCount: 12,
+      playedMatchesCount: 12,
       byesCount: 0,
-      unknownResultsCount: 0,
-      wins: 6,
+      unknownResultsCount: 1,
+      wins: 7,
       losses: 4,
       draws: 1,
-      winRate: 54.54545454545454,
+      winRate: 58.33,
     });
     expect(insights.excludedMatchesCount).toBe(1);
-    expect(insights.tournamentWinsCount).toBe(1);
+  });
+
+  it('counts only win-only records that cover every tournament round, regardless of rank', () => {
+    const candidates = detail.tournaments.filter((item) => isWinOnlyTournamentRecord(item.record));
+    const roundsByTournamentId = new Map(
+      candidates.map((item, index) => [item.tournament.id, index === 1 ? 1 : 4]),
+    );
+
+    expect(detail.tournaments[1].rank).toBe(2);
+    expect(countCompletedWinOnlyTournaments(detail, roundsByTournamentId)).toBe(1);
   });
 
   it('builds factual profile metrics from complete real matches', () => {
@@ -158,6 +191,20 @@ describe('player detail insights', () => {
       'Частый оппонент',
     );
     expect(insights.mostFrequentOpponent?.matchesCount).toBe(6);
+  });
+
+  it('groups a player deck by known opposing decks from the player perspective', () => {
+    const matchups = getPlayerDeckMatchups(matches, 'tempo');
+
+    expect(matchups).toHaveLength(1);
+    expect(matchups[0]).toMatchObject({
+      opponentDeck: { id: 'other', name: 'Other' },
+      matchesCount: 9,
+      wins: 6,
+      losses: 3,
+      draws: 0,
+      winRate: 66.66666666666666,
+    });
   });
 
   it('aggregates activity by month without technical wins', () => {
@@ -197,14 +244,14 @@ describe('player detail insights', () => {
     });
   });
 
-  it('derives insights only from known matches when history is incomplete', () => {
+  it('keeps backend totals while deriving unavailable breakdowns from known history', () => {
     const insights = getPlayerDetailInsights(
       { ...detail, recentMatches: matches.slice(0, 5) },
       detail,
     );
 
     expect(insights.isMatchHistoryComplete).toBe(false);
-    expect(insights.realMatchRecord?.matchesCount).toBe(5);
+    expect(insights.realMatchRecord?.matchesCount).toBe(12);
     expect(insights.favoriteDeck?.deck.name).toBe('Tempo');
     expect(insights.mostFrequentOpponent?.opponent.name).toBe(
       'Частый оппонент',
@@ -220,8 +267,8 @@ describe('player detail insights', () => {
     });
 
     expect(insights.isMatchHistoryComplete).toBe(false);
-    expect(insights.realMatchRecord?.matchesCount).toBe(11);
-    expect(insights.realMatchRecord?.wins).toBe(6);
+    expect(insights.realMatchRecord?.matchesCount).toBe(12);
+    expect(insights.realMatchRecord?.wins).toBe(7);
   });
 
   it('does not infer results when a whole event is absent from match history', () => {
@@ -239,8 +286,11 @@ describe('player detail insights', () => {
         ...detail.summary,
         tournamentsCount: 12,
         matchesCount: 16,
+        playedMatchesCount: 16,
         matchWins: 10,
         matchLosses: 5,
+        playedWins: 10,
+        matchWinRate: 62.5,
       },
       tournaments: [...detail.tournaments, missingTournament],
       decks: detail.decks.map((item, index) =>
@@ -257,14 +307,14 @@ describe('player detail insights', () => {
 
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.realMatchRecord).toEqual({
-      matchesCount: 11,
-      playedMatchesCount: 11,
+      matchesCount: 16,
+      playedMatchesCount: 16,
       byesCount: 0,
-      unknownResultsCount: 0,
-      wins: 6,
-      losses: 4,
+      unknownResultsCount: 5,
+      wins: 10,
+      losses: 5,
       draws: 1,
-      winRate: 54.54545454545454,
+      winRate: 62.5,
     });
     expect(insights.excludedMatchesCount).toBe(5);
     expect(insights.mostFrequentOpponent?.opponent.name).toBe(
@@ -277,34 +327,46 @@ describe('player detail insights', () => {
     const third = { ...first, roundNumber: 3 };
     const incompleteDetail: PlayerDetailsResponse = {
       ...detail,
-      summary: { ...detail.summary, tournamentsCount: 1, matchesCount: 3, matchWins: 0, matchLosses: 3, matchDraws: 0 },
+      summary: {
+        ...detail.summary,
+        tournamentsCount: 1,
+        matchesCount: 3,
+        playedMatchesCount: 3,
+        byesCount: 0,
+        matchWins: 0,
+        playedWins: 0,
+        matchLosses: 3,
+        matchDraws: 0,
+        matchWinRate: 0,
+      },
       tournaments: [{ ...detail.tournaments[0], record: '0-3-0' }],
       recentMatches: [first, third],
     };
 
     const insights = getPlayerDetailInsights(incompleteDetail);
-    expect(insights.realMatchRecord).toMatchObject({ matchesCount: 2, wins: 0, losses: 2, byesCount: 0 });
+    expect(insights.realMatchRecord).toMatchObject({ matchesCount: 3, wins: 0, losses: 3, byesCount: 0 });
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.excludedMatchesCount).toBe(1);
     expect(insights.monthlyActivity[0]).toMatchObject({ matchesCount: 2, byesCount: 0 });
   });
 
-  it('does not count tournament wins from an incomplete tournament list', () => {
-    const insights = getPlayerDetailInsights({
+  it('does not count win-only tournaments from an incomplete tournament list', () => {
+    const incompleteDetail = {
       ...detail,
       tournaments: detail.tournaments.slice(0, 5),
-    });
+    };
 
-    expect(insights.isTournamentHistoryComplete).toBe(false);
-    expect(insights.tournamentWinsCount).toBeNull();
+    expect(getPlayerDetailInsights(incompleteDetail).isTournamentHistoryComplete).toBe(false);
+    expect(countCompletedWinOnlyTournaments(incompleteDetail, new Map())).toBeNull();
   });
 
-  it('uses the lowered personal-page sample rule for a player on one deck', () => {
+  it('uses the backend sample flag for each player deck', () => {
     expect(
       isEstablishedPlayerDeck({
         ...detail.decks[0],
         matchesCount: 20,
         tournamentsCount: 5,
+        isSmallSample: false,
       }),
     ).toBe(true);
     expect(isEstablishedPlayerDeck(detail.decks[0])).toBe(true);
