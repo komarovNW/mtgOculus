@@ -24,6 +24,7 @@ it('opens a direct lazy route and navigates to the changelog and import form', a
     await act(() => router.navigate('/digest?cityId=moscow&formatId=&top=7'));
     const matrixLink = screen.getByRole('link', { name: 'Матрица матчапов' });
     expect(matrixLink).toHaveAttribute('href', '/matchups?cityId=moscow&formatId=');
+    expect(screen.getByRole('link', { name: 'Лиги' })).toHaveAttribute('href', '/leagues?cityId=moscow&formatId=');
     await user.click(matrixLink);
     expect(await screen.findByRole('heading', { name: 'Матрица матчапов' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Выберите формат' })).toBeInTheDocument();

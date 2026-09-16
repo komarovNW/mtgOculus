@@ -67,6 +67,83 @@ export type AppliedFilters = {
   tournamentType?: TournamentType | null;
   dateFrom?: string | null;
   dateTo?: string | null;
+  league?: {
+    id: string;
+    name: string;
+  } | null;
+};
+
+export type LeagueSortField = 'tournamentPoints' | 'bonusPoints' | 'tournamentsPlayed';
+
+export type LeagueListItem = {
+  id: string;
+  name: string;
+  club: Club;
+  format: Format;
+  dateStart: string;
+  dateEnd: string;
+  bestTournamentsCount: number | null;
+  sort: LeagueSortField[];
+  tournamentsCount: number;
+  playersCount: number;
+};
+
+export type LeagueListResponse = {
+  items: LeagueListItem[];
+  pagination: Pagination;
+  appliedFilters: AppliedFilters;
+};
+
+export type LeagueRule = {
+  kind: string;
+  label: string;
+  threshold: number;
+  requireUndefeated: boolean;
+  points: number;
+};
+
+export type LeagueTournament = {
+  id: string;
+  title: string;
+  date: string;
+  playersCount: number;
+};
+
+export type LeagueRuleBreakdown = LeagueRule & {
+  timesApplied: number;
+  pointsPerTime: number;
+};
+
+export type LeagueParticipation = {
+  tournamentId: string;
+  tournamentTitle: string;
+  date: string;
+  tournamentPoints: number;
+  rulePoints: number;
+  manualBonusPoints: number;
+  bonusReason: string;
+  counted: boolean;
+};
+
+export type LeagueStanding = {
+  leagueRank: number;
+  rank: number;
+  player: PlayerShort;
+  tournamentPoints: number;
+  bonusPoints: number;
+  rulePoints: number;
+  manualBonusPoints: number;
+  droppedTournamentPoints: number;
+  tournamentsPlayed: number;
+  tournamentsCounted: number;
+  breakdown: LeagueRuleBreakdown[];
+  participations: LeagueParticipation[];
+};
+
+export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCount'> & {
+  rules: LeagueRule[];
+  tournaments: LeagueTournament[];
+  standings: LeagueStanding[];
 };
 
 export type MatchupStats = {

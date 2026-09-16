@@ -18,6 +18,7 @@ const headerLinks: HeaderLink[] = [
   { to: '/players', label: 'Игроки' },
   { to: '/decks', label: 'Колоды' },
   { to: '/matchups', label: 'Матрица матчапов' },
+  { to: '/leagues', label: 'Лиги' },
   { to: '/admin/tournaments/create', label: 'Добавить', preserveFilters: false },
 ];
 
