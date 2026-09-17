@@ -577,6 +577,12 @@ export function PlayerDetailPage() {
         onReset={resetFilters}
       />
 
+      {id === '64' ? (
+        <div className="recent-tournaments__empty-callout">
+          ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.
+        </div>
+      ) : null}
+
       <SummaryCards
         className="player-summary"
         description="В результат входят только сыгранные матчи. BYE и записи без результата показаны отдельно."

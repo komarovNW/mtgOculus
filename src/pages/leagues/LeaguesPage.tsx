@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { Fragment, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { leagueQueries } from '@/entities/league/queries';
-import type { LeagueDetails, LeagueListItem, LeagueSortField, LeagueStanding } from '@/shared/api/types';
+import type { LeagueColumn, LeagueDetails, LeagueListItem, LeagueStanding } from '@/shared/api/types';
 import { cn } from '@/shared/lib/cn';
 import { formatDate } from '@/shared/lib/formatDate';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
@@ -17,25 +17,16 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select } from '@/shared/ui/Select';
 import './leagues.css';
 
-const sortFields: Array<{ value: LeagueSortField; label: string }> = [
-  { value: 'tournamentPoints', label: 'Турнирные очки' },
-  { value: 'bonusPoints', label: 'Бонусные очки' },
-  { value: 'tournamentsPlayed', label: 'Сыграно турниров' },
-];
+function getStandingMetric(standing: LeagueStanding, column: LeagueColumn) {
+  const value = (standing as unknown as Record<string, unknown>)[column.key];
 
-function readSort(value: string | null) {
-  const allowed = new Set(sortFields.map((field) => field.value));
-  return (value?.split(',') ?? []).filter(
-    (field, index, all): field is LeagueSortField =>
-      allowed.has(field as LeagueSortField) && all.indexOf(field) === index,
-  ).slice(0, 3);
+  return typeof value === 'number' || typeof value === 'string' ? value : '—';
 }
 
-function getSortOptions(allowEmpty: boolean) {
-  return [
-    ...(allowEmpty ? [{ value: '', label: 'Не задан' }] : []),
-    ...sortFields.map((field) => ({ value: field.value, label: field.label })),
-  ];
+function getZoneLabel(zone: LeagueStanding['zone']) {
+  if (zone === 'qualify') return 'Проходит';
+  if (zone === 'reserve') return 'Резерв';
+  return null;
 }
 
 function LeagueOverview({ league }: { league: LeagueDetails }) {
@@ -129,14 +120,12 @@ function StandingDetails({ standing }: { standing: LeagueStanding }) {
 
 function LeagueStandings({
   league,
-  isCustomSort,
-  isFetching,
 }: {
   league: LeagueDetails;
-  isCustomSort: boolean;
-  isFetching: boolean;
 }) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const hasZones = Object.keys(league.cutoffs).length > 0;
+  const tableColumnCount = league.columns.length + 3;
 
   return (
     <Card className="league-standings-card">
@@ -144,33 +133,45 @@ function LeagueStandings({
         <div>
           <h2 className="section-header__title">Таблица лиги</h2>
           <p className="section-header__description">
-            {isCustomSort
-              ? 'Показываем выбранный порядок и место игрока в официальной таблице.'
-              : 'Игроки расположены в официальном порядке лиги.'}
+            Игроки расположены в официальном порядке лиги.
           </p>
         </div>
-        {isFetching ? <Badge variant="accent">Обновляем порядок…</Badge> : <Badge>{league.standings.length} игроков</Badge>}
+        <Badge>{league.standings.length} игроков</Badge>
       </div>
+      {hasZones ? (
+        <div className="league-zone-legend" aria-label="Зоны таблицы">
+          {league.cutoffs.qualify ? (
+            <span className="league-zone-legend__item league-zone-legend__item--qualify">
+              Проходят: места 1–{league.cutoffs.qualify}
+            </span>
+          ) : null}
+          {league.cutoffs.reserve ? (
+            <span className="league-zone-legend__item league-zone-legend__item--reserve">
+              Резерв: {league.cutoffs.qualify
+                ? `места ${league.cutoffs.qualify + 1}–${league.cutoffs.reserve}`
+                : `до ${league.cutoffs.reserve}-го места`}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <p className="table-region__mobile-hint">Таблицу можно прокручивать в сторону.</p>
       <div className="table-shell" tabIndex={0}>
         <table className="table table--fixed league-table">
           <colgroup>
             <col className="league-table__rank-column" />
-            {isCustomSort ? <col className="league-table__league-rank-column" /> : null}
             <col className="league-table__player-column" />
-            <col className="league-table__points-column" />
-            <col className="league-table__points-column" />
-            <col className="league-table__events-column" />
+            {league.columns.map((column) => (
+              <col className="league-table__metric-column" key={column.key} />
+            ))}
             <col className="league-table__details-column" />
           </colgroup>
           <thead>
             <tr>
-              <th className="table__cell table__cell--center">{isCustomSort ? 'По выбранному порядку' : 'Место'}</th>
-              {isCustomSort ? <th className="table__cell table__cell--center">Место в лиге</th> : null}
+              <th className="table__cell table__cell--center">Место</th>
               <th className="table__cell">Игрок</th>
-              <th className="table__cell table__cell--center">Турнирные</th>
-              <th className="table__cell table__cell--center">Бонусные</th>
-              <th className="table__cell table__cell--center">В зачёте / сыграно</th>
+              {league.columns.map((column) => (
+                <th className="table__cell table__cell--center" key={column.key}>{column.label}</th>
+              ))}
               <th className="table__cell table__cell--center"><span className="visually-hidden">Детали</span></th>
             </tr>
           </thead>
@@ -178,16 +179,30 @@ function LeagueStandings({
             {league.standings.map((standing) => {
               const expanded = expandedPlayerId === standing.player.id;
               const detailsId = `league-player-${standing.player.id}`;
-              const displayedRank = isCustomSort ? standing.rank : standing.leagueRank;
+              const displayedRank = standing.leagueRank;
+              const zoneLabel = getZoneLabel(standing.zone);
               return (
                 <Fragment key={standing.player.id}>
-                  <tr className={cn('table__row', displayedRank <= 3 && 'table__row--top', expanded && 'league-table__row--expanded')}>
+                  <tr className={cn(
+                    'table__row',
+                    displayedRank <= 3 && 'table__row--top',
+                    standing.zone && `league-table__row--${standing.zone}`,
+                    expanded && 'league-table__row--expanded',
+                  )}>
                     <td className="table__cell table__cell--center"><span className={cn('table__rank', displayedRank <= 3 && 'table__rank--top')}>{displayedRank}</span></td>
-                    {isCustomSort ? <td className="table__cell table__cell--center">{standing.leagueRank}</td> : null}
-                    <td className="table__cell"><EntityLink type="player" id={standing.player.id} name={standing.player.name} /></td>
-                    <td className="table__cell table__cell--center"><strong>{standing.tournamentPoints}</strong></td>
-                    <td className="table__cell table__cell--center">{standing.bonusPoints}</td>
-                    <td className="table__cell table__cell--center">{standing.tournamentsCounted} / {standing.tournamentsPlayed}</td>
+                    <td className="table__cell league-table__player-cell">
+                      <EntityLink type="player" id={standing.player.id} name={standing.player.name} />
+                      {zoneLabel ? (
+                        <span className={cn('league-zone-label', `league-zone-label--${standing.zone}`)}>{zoneLabel}</span>
+                      ) : null}
+                    </td>
+                    {league.columns.map((column, index) => (
+                      <td className="table__cell table__cell--center" key={column.key}>
+                        {index === 0
+                          ? <strong>{getStandingMetric(standing, column)}</strong>
+                          : getStandingMetric(standing, column)}
+                      </td>
+                    ))}
                     <td className="table__cell table__cell--center">
                       <Button
                         aria-label={expanded ? 'Скрыть подробности' : 'Подробнее'}
@@ -204,7 +219,7 @@ function LeagueStandings({
                   </tr>
                   {expanded ? (
                     <tr className="league-table__details-row">
-                      <td colSpan={isCustomSort ? 7 : 6} id={detailsId}><StandingDetails standing={standing} /></td>
+                      <td colSpan={tableColumnCount} id={detailsId}><StandingDetails standing={standing} /></td>
                     </tr>
                   ) : null}
                 </Fragment>
@@ -218,20 +233,23 @@ function LeagueStandings({
 }
 
 export function LeaguesPage() {
-  const [showSort, setShowSort] = useState(false);
+  const { id: routeLeagueId } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const listQuery = useQuery(leagueQueries.list({}));
-  const requestedLeagueId = searchParams.get('leagueId');
-  const selectedLeague = listQuery.data?.items.find((league) => league.id === requestedLeagueId)
-    ?? listQuery.data?.items[0];
-  const requestedSort = useMemo(() => readSort(searchParams.get('sort')), [searchParams]);
-  const activeSort = requestedSort.length ? requestedSort : selectedLeague?.sort ?? [];
-  const detailsQuery = useQuery({
-    ...leagueQueries.details(selectedLeague?.id ?? '', activeSort),
-    placeholderData: keepPreviousData,
-  });
+  const legacyLeagueId = searchParams.get('leagueId');
+  const requestedLeagueId = routeLeagueId ?? legacyLeagueId;
+  const selectedLeague = requestedLeagueId
+    ? listQuery.data?.items.find((league) => league.id === requestedLeagueId)
+    : listQuery.data?.items[0];
+  const detailsQuery = useQuery(leagueQueries.details(selectedLeague?.id ?? ''));
 
   useEffect(() => {
+    if (!routeLeagueId && legacyLeagueId) {
+      navigate(`/leagues/${legacyLeagueId}`, { replace: true });
+      return;
+    }
+
     const next = new URLSearchParams(searchParams);
     const obsoleteFilterKeys = [
       'cityId',
@@ -240,6 +258,7 @@ export function LeaguesPage() {
       'tournamentType',
       'dateFrom',
       'dateTo',
+      'sort',
     ];
     const hasObsoleteFilters = obsoleteFilterKeys.some((key) => next.has(key));
 
@@ -249,21 +268,7 @@ export function LeaguesPage() {
 
     obsoleteFilterKeys.forEach((key) => next.delete(key));
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
-
-  function updateParams(values: Record<string, string | undefined>) {
-    const next = new URLSearchParams(searchParams);
-    Object.entries(values).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
-    setSearchParams(next);
-  }
-
-  function updateSort(index: number, value: string) {
-    const next: Array<LeagueSortField | ''> = [activeSort[0] ?? 'tournamentPoints', activeSort[1] ?? '', activeSort[2] ?? ''];
-    next[index] = sortFields.some((field) => field.value === value) ? value as LeagueSortField : '';
-    const normalized = next.filter((field, fieldIndex, all): field is LeagueSortField =>
-      Boolean(field) && all.indexOf(field) === fieldIndex);
-    updateParams({ sort: normalized.join(',') });
-  }
+  }, [legacyLeagueId, navigate, routeLeagueId, searchParams, setSearchParams]);
 
   return (
     <div className="page-stack">
@@ -277,7 +282,10 @@ export function LeaguesPage() {
       {listQuery.isError ? (
         <ErrorState description={getErrorMessage(listQuery.error, 'Не удалось загрузить список лиг.')} onRetry={() => void listQuery.refetch()} />
       ) : null}
-      {listQuery.isSuccess && !selectedLeague ? (
+      {listQuery.isSuccess && requestedLeagueId && !selectedLeague ? (
+        <EmptyState title="Лига не найдена" description="Проверьте ссылку или выберите лигу в общем списке." />
+      ) : null}
+      {listQuery.isSuccess && !requestedLeagueId && !selectedLeague ? (
         <EmptyState title="Лиги пока не добавлены" description="Когда появится первая лига, здесь можно будет открыть её таблицу." />
       ) : null}
 
@@ -286,7 +294,7 @@ export function LeaguesPage() {
           <Select
             label="Лига"
             value={selectedLeague.id}
-            onChange={(event) => updateParams({ leagueId: event.target.value, sort: undefined })}
+            onChange={(event) => navigate(`/leagues/${event.target.value}`)}
             options={(listQuery.data?.items ?? []).map((league: LeagueListItem) => ({
               value: league.id,
               label: `${league.name} · ${league.club.name} · ${league.format.name}`,
@@ -303,46 +311,9 @@ export function LeaguesPage() {
       {detailsQuery.data ? (
         <>
           <LeagueOverview league={detailsQuery.data} />
-          <Card className={`league-sort-card${showSort ? ' league-sort-card--open' : ''}`}>
-            <div className="section-header">
-              <div>
-                <h2 className="section-header__title">Порядок в таблице</h2>
-              </div>
-              <div className="league-sort-actions">
-                {requestedSort.length ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => updateParams({ sort: undefined })}
-                  >
-                    Вернуть официальный порядок
-                  </Button>
-                ) : null}
-                <Button type="button" variant="secondary" aria-expanded={showSort} onClick={() => setShowSort((value) => !value)}>
-                  {showSort ? 'Скрыть настройки' : 'Изменить порядок'}
-                </Button>
-              </div>
-            </div>
-            {showSort ? <div className="league-sort-grid">
-              {['Главный показатель', 'Первый тай-брейк', 'Второй тай-брейк'].map((label, index) => {
-                const current = activeSort[index] ?? '';
-                return (
-                  <Select
-                    key={label}
-                    label={label}
-                    value={current}
-                    onChange={(event) => updateSort(index, event.target.value)}
-                    options={getSortOptions(index > 0)}
-                  />
-                );
-              })}
-            </div> : null}
-          </Card>
           <LeagueStandings
-            key={`${detailsQuery.data.id}-${activeSort.join('-')}`}
+            key={detailsQuery.data.id}
             league={detailsQuery.data}
-            isCustomSort={requestedSort.length > 0}
-            isFetching={detailsQuery.isFetching}
           />
         </>
       ) : null}

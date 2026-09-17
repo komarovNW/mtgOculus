@@ -6,7 +6,6 @@ import {
   type LeagueListParams,
   type LeagueOptionsParams,
 } from '@/entities/league/api';
-import type { LeagueSortField } from '@/shared/api/types';
 
 export const leagueQueries = {
   list: (params: LeagueListParams) => queryOptions({
@@ -19,9 +18,9 @@ export const leagueQueries = {
     queryFn: ({ signal }) => getLeagueOptions(params, { signal }),
     staleTime: 30_000,
   }),
-  details: (id: string, sort: LeagueSortField[]) => queryOptions({
-    queryKey: ['leagues', id, sort],
-    queryFn: ({ signal }) => getLeagueDetails(id, sort, { signal }),
+  details: (id: string) => queryOptions({
+    queryKey: ['leagues', id],
+    queryFn: ({ signal }) => getLeagueDetails(id, [], { signal }),
     enabled: Boolean(id),
     staleTime: 30_000,
   }),

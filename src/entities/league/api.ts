@@ -91,7 +91,7 @@ export function getLeagueOptions(params: LeagueOptionsParams, options?: RequestO
   })));
 }
 
-export function getLeagueDetails(id: string, sort: LeagueSortField[], options?: RequestOptions) {
+export function getLeagueDetails(id: string, sort: LeagueSortField[] = [], options?: RequestOptions) {
   return apiGet<BackendLeagueDetails>(endpoints.leagueById(id), {
     sort: sort.length ? sort.join(',') : undefined,
   }, options).then<LeagueDetails>((response) => ({
@@ -99,6 +99,8 @@ export function getLeagueDetails(id: string, sort: LeagueSortField[], options?: 
     id: String(response.id),
     club: { ...response.club, cityId: response.club.cityId ?? '' },
     bestTournamentsCount: response.bestTournamentsCount ?? null,
+    columns: [...response.columns].sort((left, right) => left.position - right.position),
+    cutoffs: response.cutoffs ?? {},
     tournaments: response.tournaments.map((tournament) => ({
       ...tournament,
       id: String(tournament.id),

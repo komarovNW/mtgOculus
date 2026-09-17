@@ -76,7 +76,16 @@ export const router = createBrowserRouter([
       },
       {
         path: 'leagues',
-        lazy: async () => ({ Component: (await import('@/pages/leagues/LeaguesPage')).LeaguesPage }),
+        children: [
+          {
+            index: true,
+            lazy: async () => ({ Component: (await import('@/pages/leagues/LeaguesPage')).LeaguesPage }),
+          },
+          {
+            path: ':id',
+            lazy: async () => ({ Component: (await import('@/pages/leagues/LeaguesPage')).LeaguesPage }),
+          },
+        ],
       },
       {
         path: '*',

@@ -59,7 +59,7 @@ describe('league API', () => {
     expect(result.items[0].bestTournamentsCount).toBeNull();
   });
 
-  it('passes the ordered server sort and normalizes nested entity IDs', async () => {
+  it('preserves the dynamic table contract and normalizes nested entity IDs', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       id: 1,
       name: 'Осенняя лига',
@@ -67,11 +67,17 @@ describe('league API', () => {
       format: { id: 'standard', name: 'Standard' },
       dateStart: '2026-09-01', dateEnd: '2026-11-30', bestTournamentsCount: null,
       sort: ['bonusPoints', 'tournamentPoints'], rules: [],
+      columns: [
+        { position: 2, key: 'xZeroCount', label: 'Все матчи выиграны' },
+        { position: 1, key: 'tournamentPoints', label: 'Турнирные очки' },
+      ],
+      cutoffs: { qualify: 8, reserve: 10 },
       tournaments: [{ id: 673, title: 'Daily', date: '2026-09-01', playersCount: 20 }],
       standings: [{
         leagueRank: 1, rank: 1, player: { id: 25, name: 'Игрок' }, tournamentPoints: 9,
         bonusPoints: 3, rulePoints: 3, manualBonusPoints: 0, droppedTournamentPoints: 0,
-        tournamentsPlayed: 1, tournamentsCounted: 1, breakdown: [],
+        tournamentsPlayed: 1, tournamentsCounted: 1, xZeroCount: 1, xOneCount: 0,
+        zone: 'qualify', breakdown: [],
         participations: [{ tournamentId: 673, tournamentTitle: 'Daily', date: '2026-09-01',
           tournamentPoints: 9, rulePoints: 3, manualBonusPoints: 0, bonusReason: '', counted: true }],
       }],
@@ -81,6 +87,9 @@ describe('league API', () => {
     const url = new URL(fetchMock.mock.calls[0][0]);
     expect(url.pathname).toBe('/api/v1/leagues/1');
     expect(url.searchParams.get('sort')).toBe('bonusPoints,tournamentPoints');
+    expect(result.columns.map((column) => column.key)).toEqual(['tournamentPoints', 'xZeroCount']);
+    expect(result.cutoffs).toEqual({ qualify: 8, reserve: 10 });
+    expect(result.standings[0].zone).toBe('qualify');
     expect(result.standings[0].player.id).toBe('25');
     expect(result.standings[0].participations[0].tournamentId).toBe('673');
   });

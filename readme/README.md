@@ -36,10 +36,14 @@
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — где искать и размещать код.
 - [API_INTEGRATION_CHECKLIST.md](API_INTEGRATION_CHECKLIST.md) — проверка
   интеграции и релизный smoke-check.
+- [LEAGUE_TABLE_HANDOFF.md](LEAGUE_TABLE_HANDOFF.md) — отложенная интеграция
+  динамической таблицы лиги, зон и персональных ссылок после обновления backend.
 - [ROUTES.md](ROUTES.md) — ожидаемое поведение маршрутов.
 
 ## Для backend-разработчика
 
+- [LEAGUE_TABLE_HANDOFF.md](LEAGUE_TABLE_HANDOFF.md) — согласованный контракт
+  динамических колонок, тай-брейков и отсечек таблицы лиги.
 - [BACKEND_MATCHUP_SELECTION.md](BACKEND_MATCHUP_SELECTION.md) — новая задача:
   выбор любых колод для матрицы, параметр `deckIds` и поиск названий.
 - [BACKEND_API_HANDOFF.md](BACKEND_API_HANDOFF.md) — текущий контракт API,

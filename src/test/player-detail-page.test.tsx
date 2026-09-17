@@ -180,6 +180,7 @@ describe('PlayerDetailPage', () => {
     expect(getPlayerDetails).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText('Сыграно матчей')).toBeInTheDocument();
+    expect(screen.queryByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.')).not.toBeInTheDocument();
     expect(screen.getByText('Дейликов')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Дейлик' })).toBeInTheDocument();
@@ -236,5 +237,31 @@ describe('PlayerDetailPage', () => {
     expect(screen.getAllByText(/Клуб · Legacy/)).toHaveLength(2);
     expect(screen.getByText(/результат 1-0/)).toBeInTheDocument();
     expect(screen.getAllByText('BYE').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows the tournament reminder only on Vitaly Krutov player page', async () => {
+    vi.mocked(getPlayerDetails).mockResolvedValue({
+      ...details,
+      player: { id: '64', name: 'Крутов Виталий' },
+    });
+
+    render(
+      <TestProviders initialEntry="/players/64">
+        <Routes>
+          <Route element={<PlayerDetailPage />} path="/players/:id" />
+        </Routes>
+      </TestProviders>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Крутов Виталий' }),
+    ).toBeInTheDocument();
+    const reminder = screen.getByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.');
+    const summary = screen.getByRole('heading', { name: 'Общая статистика' });
+
+    expect(reminder).toBeInTheDocument();
+    expect(
+      reminder.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

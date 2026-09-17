@@ -74,7 +74,25 @@ export type AppliedFilters = {
   } | null;
 };
 
-export type LeagueSortField = 'tournamentPoints' | 'bonusPoints' | 'tournamentsPlayed';
+export type LeagueSortField =
+  | 'tournamentPoints'
+  | 'bonusPoints'
+  | 'tournamentsPlayed'
+  | 'xZeroCount'
+  | 'xOneCount';
+
+export type LeagueColumn = {
+  position: number;
+  key: string;
+  label: string;
+};
+
+export type LeagueCutoffs = {
+  qualify?: number;
+  reserve?: number;
+};
+
+export type LeagueStandingZone = 'qualify' | 'reserve' | null;
 
 export type LeagueListItem = {
   id: string;
@@ -146,11 +164,16 @@ export type LeagueStanding = {
   droppedTournamentPoints: number;
   tournamentsPlayed: number;
   tournamentsCounted: number;
+  xZeroCount: number;
+  xOneCount: number;
+  zone: LeagueStandingZone;
   breakdown: LeagueRuleBreakdown[];
   participations: LeagueParticipation[];
 };
 
 export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCount'> & {
+  columns: LeagueColumn[];
+  cutoffs: LeagueCutoffs;
   rules: LeagueRule[];
   tournaments: LeagueTournament[];
   standings: LeagueStanding[];
