@@ -44,7 +44,7 @@ const columns: TableColumn<DeckPerformanceItem>[] = [
   {
     id: 'matches',
     header: 'Матчей против соперника',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
     sortValue: (row) => row.matchesCount,
@@ -52,7 +52,7 @@ const columns: TableColumn<DeckPerformanceItem>[] = [
   {
     id: 'record',
     header: MATCH_RECORD_LABEL,
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
     render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),

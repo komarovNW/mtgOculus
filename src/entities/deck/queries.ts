@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { getAllDecks } from '@/entities/deck/api';
 import type { DashboardFilters } from '@/shared/api/types';
 
-// Shared by the list insights/search and the detail metagame denominator.
+// Loads the full filtered catalogue for list-level insights and search.
 export function allDecksQueryOptions(filters: Partial<DashboardFilters>) {
   return queryOptions({
     queryKey: ['decks', 'all', filters],

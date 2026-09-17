@@ -1,13 +1,15 @@
 export const MATCH_RECORD_LABEL = 'Результат матчей';
-export const MATCH_RECORD_HINT = 'Сначала идут победы, потом поражения, а если были ничьи, показываем их третьим числом.';
+export const MATCH_RECORD_HINT = 'Сначала идут победы, потом поражения, затем ничьи.';
 export const WIN_RATE_LABEL = 'Процент побед';
-export const WIN_RATE_HINT = 'Доля выигранных матчей по этим фильтрам.';
+export const WIN_RATE_HINT =
+  'Процент побед по этим фильтрам. Значение рассчитывает сервер.';
 export const GAME_WIN_RATE_LABEL = 'Процент побед по играм';
-export const GAME_WIN_RATE_HINT = 'Доля выигранных игр внутри матчей.';
+export const GAME_WIN_RATE_HINT =
+  'Процент побед по играм внутри матчей. Значение рассчитывает сервер.';
 export const GAME_SCORE_HINT = 'Счёт по отдельным играм внутри матча: сначала победы одной стороны, потом другой.';
 export const TOURNAMENT_PARTICIPATIONS_LABEL = 'Участий в турнирах';
 export const TOURNAMENT_PARTICIPATIONS_HINT =
-  'Сколько раз игрок или колода вообще попадали в турниры. Если один и тот же игрок сыграл три турнира, это считается как три участия.';
+  'Сколько раз этой колодой играли на турнирах.';
 export const SMALL_SAMPLE_HINT = 'Матчей пока мало, поэтому процент побед здесь может заметно меняться.';
 export const MATCHUP_SMALL_SAMPLE_HINT =
   'Матчей в этом матчапе пока мало, поэтому расклад ещё может сильно измениться.';

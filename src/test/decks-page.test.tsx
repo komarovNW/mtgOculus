@@ -78,20 +78,27 @@ describe('DecksPage', () => {
         { signal: expect.any(AbortSignal) },
       );
     });
+    expect(getAllDecks).not.toHaveBeenCalled();
 
-    expect(await screen.findAllByRole('columnheader', { name: /Матчей/ }))
+    expect(await screen.findAllByRole('columnheader', { name: /матчей/i }))
       .not.toHaveLength(0);
     expect(screen.queryByRole('columnheader', { name: /Лучшее место/ }))
       .not.toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'По проценту побед' }))
+    expect(screen.queryByRole('columnheader', { name: 'Формат' }))
       .not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Сводка' }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Изменить фильтры' }))
+      .toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'По лучшему месту' }))
       .not.toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'По винрейту' }))
+    expect(screen.queryByRole('option', { name: 'По винрейту' }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'По проценту побед' }))
       .toBeInTheDocument();
     expect(screen.getByText('Одна игра').parentElement).toHaveTextContent('Мало данных');
 
-    const allDecksSection = screen.getByRole('heading', { name: 'Все колоды' })
+    const allDecksSection = screen.getByRole('heading', { name: 'Список колод' })
       .closest('section');
 
     expect(allDecksSection).not.toBeNull();
@@ -100,6 +107,39 @@ describe('DecksPage', () => {
         'Сортировать по колонке Процент побед',
       ),
     ).not.toBeInTheDocument();
+  });
+
+  it('uses backend win rates and event-specific labels', async () => {
+    vi.mocked(getDecks).mockResolvedValue({
+      appliedFilters: {},
+      items: [{
+        ...oneOffDeck,
+        matchWins: 3,
+        matchLosses: 0,
+        matchDraws: 1,
+        matchWinRate: 100,
+      }],
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: 1,
+        totalPages: 1,
+        hasMore: false,
+      },
+    });
+
+    render(
+      <TestProviders initialEntry="/decks?tournamentType=daily">
+        <DecksPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByRole('columnheader', { name: 'Дейликов' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Участий в дейликах/ }))
+      .toBeInTheDocument();
+    expect(screen.getByText('3-0-1')).toBeInTheDocument();
+    expect(screen.getByText('100.0%')).toBeInTheDocument();
   });
 
   it('filters deck search on the frontend when the backend returns an unfiltered list', async () => {

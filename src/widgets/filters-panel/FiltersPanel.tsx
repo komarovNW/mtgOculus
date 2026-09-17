@@ -16,6 +16,8 @@ type FiltersPanelProps = {
   showFormat?: boolean;
   requireFormat?: boolean;
   showTournamentType?: boolean;
+  collapsible?: boolean;
+  collapseOnMobile?: boolean;
 };
 
 export function FiltersPanel({
@@ -25,6 +27,8 @@ export function FiltersPanel({
   showFormat = true,
   requireFormat = false,
   showTournamentType = true,
+  collapsible = false,
+  collapseOnMobile = false,
 }: FiltersPanelProps) {
   const citiesQuery = useQuery(dictionaryQueries.cities());
   const formatsQuery = useQuery({
@@ -34,11 +38,29 @@ export function FiltersPanel({
   const clubsQuery = useQuery(dictionaryQueries.clubs(filters.cityId));
   const [draftDateFrom, setDraftDateFrom] = useState(filters.dateFrom);
   const [draftDateTo, setDraftDateTo] = useState(filters.dateTo);
+  const canCollapse = collapsible || collapseOnMobile;
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (collapsible) return false;
+    if (collapseOnMobile && typeof window !== 'undefined' && window.matchMedia) {
+      return !window.matchMedia('(max-width: 768px)').matches;
+    }
+    return true;
+  });
 
   useEffect(() => {
     setDraftDateFrom(filters.dateFrom);
     setDraftDateTo(filters.dateTo);
   }, [filters.dateFrom, filters.dateTo]);
+
+  useEffect(() => {
+    const clubs = clubsQuery.data?.items ?? [];
+
+    if (!filters.cityId || clubs.length !== 1 || filters.clubId === clubs[0].id) {
+      return;
+    }
+
+    onChange({ clubId: clubs[0].id });
+  }, [clubsQuery.data?.items, filters.cityId, filters.clubId, onChange]);
 
   const dateRangeDirty = draftDateFrom !== filters.dateFrom || draftDateTo !== filters.dateTo;
   const dateRangeInvalid = Boolean(draftDateFrom && draftDateTo && draftDateFrom > draftDateTo);
@@ -94,29 +116,43 @@ export function FiltersPanel({
   ].filter(Boolean).length;
 
   return (
-    <Card className="filters-panel">
+    <Card className={`filters-panel${canCollapse && !isExpanded ? ' filters-panel--collapsed' : ''}`}>
       <div className="section-header">
         <div>
           <div className="section-header__title-row">
             <h2 className="section-header__title">Фильтры</h2>
-            <Badge>{activeExtraFiltersCount > 0 ? `Выбрано: ${activeExtraFiltersCount}` : 'Все данные'}</Badge>
+            <Badge>{activeExtraFiltersCount > 0 ? `Выбрано: ${activeExtraFiltersCount}` : 'По умолчанию'}</Badge>
           </div>
           <p className="section-header__description">
             Выберите город, клуб
-            {showFormat ? ', формату' : ''}
-            {showTournamentType ? ', тип события' : ''} и период.
+            {showFormat ? ', формат' : ''}
+            {showTournamentType ? ', дейлик или турнир' : ''} и период.
           </p>
         </div>
-        <Button
-          variant="ghost"
-          onClick={handleReset}
-          type="button"
-        >
-          Сбросить фильтры
-        </Button>
+        <div className="filters-panel__header-actions">
+          {canCollapse ? (
+            <Button
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded((current) => !current)}
+              type="button"
+              variant="secondary"
+            >
+              {isExpanded ? 'Скрыть фильтры' : 'Изменить фильтры'}
+            </Button>
+          ) : null}
+          {!canCollapse || isExpanded ? (
+            <Button
+              variant="ghost"
+              onClick={handleReset}
+              type="button"
+            >
+              Сбросить фильтры
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="filters-grid">
+      {!canCollapse || isExpanded ? <div className="filters-grid">
         <Select
           label="Город"
           onChange={(event) => onChange({ cityId: event.target.value, clubId: '' })}
@@ -141,7 +177,7 @@ export function FiltersPanel({
         ) : null}
         {showTournamentType ? (
           <Select
-            label="Тип события"
+            label="Дейлик или турнир"
             onChange={(event) =>
               onChange({ tournamentType: event.target.value as DashboardFilters['tournamentType'] })
             }
@@ -184,7 +220,7 @@ export function FiltersPanel({
             </span>
           ) : null}
         </form>
-      </div>
+      </div> : null}
     </Card>
   );
 }

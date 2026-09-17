@@ -87,7 +87,8 @@ describe('PlayersPage', () => {
     expect(screen.queryByRole('option', { name: 'По лучшему месту' }))
       .not.toBeInTheDocument();
     expect(screen.getByText('Мало данных')).toBeInTheDocument();
-    expect(screen.getByText('Последний турнир · 12.09.2026')).toBeInTheDocument();
+    expect(screen.getByText('Последнее участие · 12.09.2026')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Дейлики \/ турниры/ })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Без поражений/ }))
       .toBeInTheDocument();
   });
@@ -130,7 +131,7 @@ describe('PlayersPage', () => {
       </TestProviders>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Все игроки' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Список игроков' })).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Любимая колода' }))
       .not.toBeInTheDocument();
   });
@@ -141,15 +142,34 @@ describe('PlayersPage', () => {
       pagination: { page: 1, limit: 50, total: 1, hasMore: false },
     });
     render(<TestProviders initialEntry="/players"><PlayersPage /></TestProviders>);
-    await screen.findByRole('heading', { name: 'Все игроки' });
+    await screen.findByRole('heading', { name: 'Список игроков' });
 
     await userEvent.setup().type(screen.getByLabelText('Найти игрока'), 'Новый');
-    expect(screen.queryByRole('heading', { name: 'Все игроки' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Список игроков' })).not.toBeInTheDocument();
     expect(getPlayers).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(getPlayers).toHaveBeenCalledTimes(2));
     expect(getPlayers).toHaveBeenLastCalledWith(
       expect.objectContaining({ search: 'Новый', page: 1 }),
       { signal: expect.any(AbortSignal) },
     );
+  });
+
+  it('uses daily-specific labels when the event type is selected', async () => {
+    vi.mocked(getPlayers).mockResolvedValue({
+      appliedFilters: { tournamentType: 'daily' },
+      items: [activePlayer],
+      pagination: { page: 1, limit: 50, total: 1, hasMore: false },
+    });
+
+    render(
+      <TestProviders initialEntry="/players?tournamentType=daily">
+        <PlayersPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByText('Последний дейлик · 12.09.2026')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Дейликов/ })).toBeInTheDocument();
+    expect(screen.getByText('Найдите игрока и посмотрите его результаты, колоды и матчи.'))
+      .toBeInTheDocument();
   });
 });

@@ -30,7 +30,7 @@ const columns: TableColumn<DeckListItem>[] = [
   {
     id: 'tournaments',
     header: 'Турниров',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,
     sortValue: (row) => row.tournamentsCount,
@@ -38,7 +38,7 @@ const columns: TableColumn<DeckListItem>[] = [
   {
     id: 'matches',
     header: 'Матчей против соперника',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
     sortValue: (row) => row.matchesCount,
@@ -46,7 +46,7 @@ const columns: TableColumn<DeckListItem>[] = [
   {
     id: 'record',
     header: MATCH_RECORD_LABEL,
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
     render: (row) =>
@@ -93,7 +93,7 @@ export function EstablishedDeckResults({ items }: EstablishedDeckResultsProps) {
       <Table
         columns={columns}
         data={items}
-        emptyMessage="По этим фильтрам пока нет колод с достаточной выборкой."
+        emptyMessage="По этим фильтрам пока нет колод с достаточным числом матчей."
         getRowKey={(row) => row.deck.id}
       />
     </Card>

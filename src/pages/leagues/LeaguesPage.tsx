@@ -1,7 +1,6 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { dictionaryQueries } from '@/entities/dictionaries/queries';
 import { leagueQueries } from '@/entities/league/queries';
 import type { LeagueDetails, LeagueListItem, LeagueSortField, LeagueStanding } from '@/shared/api/types';
 import { cn } from '@/shared/lib/cn';
@@ -39,91 +38,12 @@ function getSortOptions(allowEmpty: boolean) {
   ];
 }
 
-function LeagueFilters() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const cityId = searchParams.get('cityId') ?? '';
-  const clubId = searchParams.get('clubId') ?? '';
-  const formatId = searchParams.get('formatId') ?? '';
-  const citiesQuery = useQuery(dictionaryQueries.cities());
-  const clubsQuery = useQuery(dictionaryQueries.clubs(cityId));
-  const formatsQuery = useQuery(dictionaryQueries.formats());
-
-  function setFilter(key: 'cityId' | 'clubId' | 'formatId', value: string) {
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    if (key === 'cityId') next.delete('clubId');
-    next.delete('leagueId');
-    next.delete('sort');
-    setSearchParams(next);
-  }
-
-  const activeCount = [cityId, clubId, formatId].filter(Boolean).length;
-
-  return (
-    <Card className="league-filters">
-      <div className="section-header">
-        <div>
-          <div className="section-header__title-row">
-            <h2 className="section-header__title">Найти лигу</h2>
-            <Badge>{activeCount ? `Выбрано фильтров: ${activeCount}` : 'Все лиги'}</Badge>
-          </div>
-          <p className="section-header__description">Оставьте только лиги нужного города, клуба или формата.</p>
-        </div>
-        {activeCount ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              const next = new URLSearchParams(searchParams);
-              ['cityId', 'clubId', 'formatId', 'leagueId', 'sort'].forEach((key) => next.delete(key));
-              setSearchParams(next);
-            }}
-          >
-            Сбросить фильтры
-          </Button>
-        ) : null}
-      </div>
-      <div className="league-filters__grid">
-        <Select
-          label="Город"
-          value={cityId}
-          onChange={(event) => setFilter('cityId', event.target.value)}
-          options={[
-            { value: '', label: citiesQuery.isLoading ? 'Загружаем города…' : 'Все города' },
-            ...(citiesQuery.data?.items ?? []).map((city) => ({ value: city.id, label: city.name })),
-          ]}
-        />
-        <Select
-          label="Клуб"
-          value={clubId}
-          disabled={!cityId}
-          onChange={(event) => setFilter('clubId', event.target.value)}
-          options={[
-            { value: '', label: clubsQuery.isLoading ? 'Загружаем клубы…' : 'Все клубы' },
-            ...(clubsQuery.data?.items ?? []).map((club) => ({ value: club.id, label: club.name })),
-          ]}
-        />
-        <Select
-          label="Формат"
-          value={formatId}
-          onChange={(event) => setFilter('formatId', event.target.value)}
-          options={[
-            { value: '', label: formatsQuery.isLoading ? 'Загружаем форматы…' : 'Все форматы' },
-            ...(formatsQuery.data?.items ?? []).map((format) => ({ value: format.id, label: format.name })),
-          ]}
-        />
-      </div>
-    </Card>
-  );
-}
-
 function LeagueOverview({ league }: { league: LeagueDetails }) {
   return (
     <Card className="league-overview" tone="accent">
       <div className="league-overview__heading">
         <div>
-          <span className="league-overview__eyebrow">Текущий сезон</span>
+          <span className="league-overview__eyebrow">Сезон</span>
           <h2>{league.name}</h2>
         </div>
         <div className="league-overview__badges">
@@ -137,7 +57,7 @@ function LeagueOverview({ league }: { league: LeagueDetails }) {
         <div><strong>{formatDate(league.dateStart)} — {formatDate(league.dateEnd)}</strong><span>период лиги</span></div>
       </div>
       <div className="league-overview__rules">
-        <h3>Как начисляются бонусы</h3>
+        <h3>Бонусные очки</h3>
         {league.rules.length ? (
           <ul>
             {league.rules.map((rule, index) => (
@@ -185,7 +105,7 @@ function StandingDetails({ standing }: { standing: LeagueStanding }) {
         <ul className="league-participations">
           {standing.participations.map((participation) => (
             <li key={participation.tournamentId} className={cn(!participation.counted && 'league-participation--dropped')}>
-              <div>
+              <div className="league-participation__event">
                 <EntityLink type="tournament" id={participation.tournamentId} name={participation.tournamentTitle} />
                 <span>{formatDate(participation.date)}</span>
               </div>
@@ -194,11 +114,11 @@ function StandingDetails({ standing }: { standing: LeagueStanding }) {
                 {participation.rulePoints + participation.manualBonusPoints > 0
                   ? ` · +${participation.rulePoints + participation.manualBonusPoints} бонусных`
                   : ''}
-                <Badge variant={participation.counted ? 'accent' : 'warning'}>
-                  {participation.counted ? 'В зачёте' : 'Не в зачёте'}
-                </Badge>
               </div>
-              {participation.bonusReason ? <p>{participation.bonusReason}</p> : null}
+              <Badge variant={participation.counted ? 'accent' : 'warning'}>
+                {participation.counted ? 'В зачёте' : 'Не в зачёте'}
+              </Badge>
+              {participation.bonusReason ? <p className="league-participation__reason">{participation.bonusReason}</p> : null}
             </li>
           ))}
         </ul>
@@ -207,7 +127,15 @@ function StandingDetails({ standing }: { standing: LeagueStanding }) {
   );
 }
 
-function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetching: boolean }) {
+function LeagueStandings({
+  league,
+  isCustomSort,
+  isFetching,
+}: {
+  league: LeagueDetails;
+  isCustomSort: boolean;
+  isFetching: boolean;
+}) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   return (
@@ -215,38 +143,54 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
       <div className="section-header">
         <div>
           <h2 className="section-header__title">Таблица лиги</h2>
-          <p className="section-header__description">Официальное место сохраняется при любой дополнительной сортировке.</p>
+          <p className="section-header__description">
+            {isCustomSort
+              ? 'Показываем выбранный порядок и место игрока в официальной таблице.'
+              : 'Игроки расположены в официальном порядке лиги.'}
+          </p>
         </div>
         {isFetching ? <Badge variant="accent">Обновляем порядок…</Badge> : <Badge>{league.standings.length} игроков</Badge>}
       </div>
-      <div className="table-shell">
-        <table className="table league-table">
+      <p className="table-region__mobile-hint">Таблицу можно прокручивать в сторону.</p>
+      <div className="table-shell" tabIndex={0}>
+        <table className="table table--fixed league-table">
+          <colgroup>
+            <col className="league-table__rank-column" />
+            {isCustomSort ? <col className="league-table__league-rank-column" /> : null}
+            <col className="league-table__player-column" />
+            <col className="league-table__points-column" />
+            <col className="league-table__points-column" />
+            <col className="league-table__events-column" />
+            <col className="league-table__details-column" />
+          </colgroup>
           <thead>
             <tr>
-              <th className="table__cell">В сортировке</th>
-              <th className="table__cell">Официальное место</th>
+              <th className="table__cell table__cell--center">{isCustomSort ? 'По выбранному порядку' : 'Место'}</th>
+              {isCustomSort ? <th className="table__cell table__cell--center">Место в лиге</th> : null}
               <th className="table__cell">Игрок</th>
-              <th className="table__cell table__cell--right">Турнирные</th>
-              <th className="table__cell table__cell--right">Бонусные</th>
-              <th className="table__cell table__cell--right">Турниров</th>
-              <th className="table__cell"><span className="visually-hidden">Детали</span></th>
+              <th className="table__cell table__cell--center">Турнирные</th>
+              <th className="table__cell table__cell--center">Бонусные</th>
+              <th className="table__cell table__cell--center">В зачёте / сыграно</th>
+              <th className="table__cell table__cell--center"><span className="visually-hidden">Детали</span></th>
             </tr>
           </thead>
           <tbody>
             {league.standings.map((standing) => {
               const expanded = expandedPlayerId === standing.player.id;
               const detailsId = `league-player-${standing.player.id}`;
+              const displayedRank = isCustomSort ? standing.rank : standing.leagueRank;
               return (
                 <Fragment key={standing.player.id}>
-                  <tr className={cn('table__row', standing.rank <= 3 && 'table__row--top', expanded && 'league-table__row--expanded')}>
-                    <td className="table__cell"><span className={cn('table__rank', standing.rank <= 3 && 'table__rank--top')}>{standing.rank}</span></td>
-                    <td className="table__cell">{standing.leagueRank}</td>
+                  <tr className={cn('table__row', displayedRank <= 3 && 'table__row--top', expanded && 'league-table__row--expanded')}>
+                    <td className="table__cell table__cell--center"><span className={cn('table__rank', displayedRank <= 3 && 'table__rank--top')}>{displayedRank}</span></td>
+                    {isCustomSort ? <td className="table__cell table__cell--center">{standing.leagueRank}</td> : null}
                     <td className="table__cell"><EntityLink type="player" id={standing.player.id} name={standing.player.name} /></td>
-                    <td className="table__cell table__cell--right"><strong>{standing.tournamentPoints}</strong></td>
-                    <td className="table__cell table__cell--right">{standing.bonusPoints}</td>
-                    <td className="table__cell table__cell--right">{standing.tournamentsCounted} / {standing.tournamentsPlayed}</td>
-                    <td className="table__cell table__cell--right">
+                    <td className="table__cell table__cell--center"><strong>{standing.tournamentPoints}</strong></td>
+                    <td className="table__cell table__cell--center">{standing.bonusPoints}</td>
+                    <td className="table__cell table__cell--center">{standing.tournamentsCounted} / {standing.tournamentsPlayed}</td>
+                    <td className="table__cell table__cell--center">
                       <Button
+                        aria-label={expanded ? 'Скрыть подробности' : 'Подробнее'}
                         aria-controls={detailsId}
                         aria-expanded={expanded}
                         className="league-details-button"
@@ -254,13 +198,13 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
                         type="button"
                         variant={expanded ? 'secondary' : 'primary'}
                       >
-                        {expanded ? 'Скрыть' : 'Подробнее'}
+                        <span aria-hidden="true">{expanded ? '▴' : '▾'}</span>
                       </Button>
                     </td>
                   </tr>
                   {expanded ? (
                     <tr className="league-table__details-row">
-                      <td colSpan={7} id={detailsId}><StandingDetails standing={standing} /></td>
+                      <td colSpan={isCustomSort ? 7 : 6} id={detailsId}><StandingDetails standing={standing} /></td>
                     </tr>
                   ) : null}
                 </Fragment>
@@ -276,10 +220,7 @@ function LeagueStandings({ league, isFetching }: { league: LeagueDetails; isFetc
 export function LeaguesPage() {
   const [showSort, setShowSort] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const cityId = searchParams.get('cityId') || undefined;
-  const clubId = searchParams.get('clubId') || undefined;
-  const formatId = searchParams.get('formatId') || undefined;
-  const listQuery = useQuery(leagueQueries.list({ cityId, clubId, formatId }));
+  const listQuery = useQuery(leagueQueries.list({}));
   const requestedLeagueId = searchParams.get('leagueId');
   const selectedLeague = listQuery.data?.items.find((league) => league.id === requestedLeagueId)
     ?? listQuery.data?.items[0];
@@ -289,6 +230,26 @@ export function LeaguesPage() {
     ...leagueQueries.details(selectedLeague?.id ?? '', activeSort),
     placeholderData: keepPreviousData,
   });
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const obsoleteFilterKeys = [
+      'cityId',
+      'clubId',
+      'formatId',
+      'tournamentType',
+      'dateFrom',
+      'dateTo',
+    ];
+    const hasObsoleteFilters = obsoleteFilterKeys.some((key) => next.has(key));
+
+    if (!hasObsoleteFilters) {
+      return;
+    }
+
+    obsoleteFilterKeys.forEach((key) => next.delete(key));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   function updateParams(values: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams);
@@ -309,16 +270,15 @@ export function LeaguesPage() {
       <PageHeader
         eyebrow="Сезонный рейтинг"
         title="Лиги"
-        description="Следите за положением игроков, бонусными очками и турнирами, которые вошли в сезонный зачёт."
+        description="Выберите лигу, чтобы посмотреть таблицу игроков, правила начисления бонусов и зачтённые турниры."
       />
-      <LeagueFilters />
 
-      {listQuery.isLoading ? <LoadingState title="Загружаем лиги…" description="Ищем доступные сезоны по выбранным фильтрам." /> : null}
+      {listQuery.isLoading ? <LoadingState title="Загружаем лиги…" description="Получаем список доступных сезонов." /> : null}
       {listQuery.isError ? (
         <ErrorState description={getErrorMessage(listQuery.error, 'Не удалось загрузить список лиг.')} onRetry={() => void listQuery.refetch()} />
       ) : null}
       {listQuery.isSuccess && !selectedLeague ? (
-        <EmptyState title="Лиги не найдены" description="Попробуйте выбрать другой город, клуб или формат." />
+        <EmptyState title="Лиги пока не добавлены" description="Когда появится первая лига, здесь можно будет открыть её таблицу." />
       ) : null}
 
       {selectedLeague ? (
@@ -331,7 +291,6 @@ export function LeaguesPage() {
               value: league.id,
               label: `${league.name} · ${league.club.name} · ${league.format.name}`,
             }))}
-            helperText={`${listQuery.data?.pagination.total ?? 0} ${listQuery.data?.pagination.total === 1 ? 'лига найдена' : 'лиг найдено'}`}
           />
         </Card>
       ) : null}
@@ -344,15 +303,25 @@ export function LeaguesPage() {
       {detailsQuery.data ? (
         <>
           <LeagueOverview league={detailsQuery.data} />
-          <Card className="league-sort-card">
+          <Card className={`league-sort-card${showSort ? ' league-sort-card--open' : ''}`}>
             <div className="section-header">
               <div>
                 <h2 className="section-header__title">Порядок в таблице</h2>
-                <p className="section-header__description">По умолчанию используем официальный порядок лиги.</p>
               </div>
-              <Button type="button" variant="secondary" aria-expanded={showSort} onClick={() => setShowSort((value) => !value)}>
-                {showSort ? 'Скрыть настройки' : 'Изменить порядок'}
-              </Button>
+              <div className="league-sort-actions">
+                {requestedSort.length ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => updateParams({ sort: undefined })}
+                  >
+                    Вернуть официальный порядок
+                  </Button>
+                ) : null}
+                <Button type="button" variant="secondary" aria-expanded={showSort} onClick={() => setShowSort((value) => !value)}>
+                  {showSort ? 'Скрыть настройки' : 'Изменить порядок'}
+                </Button>
+              </div>
             </div>
             {showSort ? <div className="league-sort-grid">
               {['Главный показатель', 'Первый тай-брейк', 'Второй тай-брейк'].map((label, index) => {
@@ -369,7 +338,12 @@ export function LeaguesPage() {
               })}
             </div> : null}
           </Card>
-          <LeagueStandings key={`${detailsQuery.data.id}-${activeSort.join('-')}`} league={detailsQuery.data} isFetching={detailsQuery.isFetching} />
+          <LeagueStandings
+            key={`${detailsQuery.data.id}-${activeSort.join('-')}`}
+            league={detailsQuery.data}
+            isCustomSort={requestedSort.length > 0}
+            isFetching={detailsQuery.isFetching}
+          />
         </>
       ) : null}
     </div>

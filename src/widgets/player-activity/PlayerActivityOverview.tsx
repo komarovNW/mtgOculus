@@ -56,8 +56,7 @@ export function PlayerActivityOverview({ insights }: PlayerActivityOverviewProps
         <div>
           <h2 className="section-header__title">Активность сообщества</h2>
           <p className="section-header__description">
-            Показываем типичную активность, долю постоянных участников и насколько
-            статистика зависит от самых активных игроков.
+            Сколько играют постоянные и самые активные участники.
           </p>
         </div>
       </div>
@@ -70,8 +69,8 @@ export function PlayerActivityOverview({ insights }: PlayerActivityOverviewProps
             value={formatMedian(insights.medianTournaments)}
           />
           <StatCard
-            subtitle="Медиана устойчивее среднего и не зависит от рекордсменов"
-            title="Медиана результатов"
+            subtitle="У половины игроков результатов не больше"
+            title="Матчей у типичного игрока"
             value={formatMedian(insights.medianMatches)}
           />
           <StatCard
@@ -81,7 +80,7 @@ export function PlayerActivityOverview({ insights }: PlayerActivityOverviewProps
           />
           <StatCard
             subtitle="Доля всех учтённых результатов у десяти самых активных игроков"
-            title="Концентрация топ-10"
+            title="Матчи топ-10 игроков"
             value={formatPercent(insights.topTenMatchesShare)}
           />
         </div>

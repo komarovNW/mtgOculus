@@ -205,6 +205,7 @@ type BackendPlayerDetailsResponse = {
   player: BackendPlayer;
   summary: {
     tournamentsCount: number;
+    undefeatedTopsCount?: number | null;
     matchesCount: number;
     playedMatchesCount: number;
     byesCount: number;
@@ -295,6 +296,7 @@ type BackendDeckDetailsResponse = {
     tournamentsCount: number;
     playersCount: number;
     uniquePlayersCount: number;
+    metaShare?: number | null;
     matchesCount: number;
     playedMatchesCount: number;
     byesCount: number;
@@ -384,6 +386,41 @@ type BackendHomeResponse = {
     deckAWinRate: number;
     isSmallSample: boolean;
   }>;
+  overview?: {
+    cities: Array<{
+      city: BackendCity;
+      clubsCount: number;
+      dailiesCount: number;
+      tournamentsCount: number;
+      uniquePlayersCount: number;
+      averagePlayersCount: number;
+      formatsCount: number;
+    }>;
+    clubs: Array<{
+      club: BackendClub;
+      city: BackendCity;
+      dailiesCount: number;
+      tournamentsCount: number;
+      uniquePlayersCount: number;
+      averagePlayersCount: number;
+      formatsCount: number;
+    }>;
+    formats: Array<{
+      format: BackendFormat;
+      dailiesCount: number;
+      tournamentsCount: number;
+      tournamentPlayersCount: number;
+      uniquePlayersCount: number;
+      averagePlayersCount: number;
+      lastTournamentDate?: string | null;
+    }>;
+    cityFormats: Array<{
+      city: BackendCity;
+      leadingFormat: BackendFormat;
+      participationShare: number;
+      otherFormats: BackendFormat[];
+    }>;
+  };
 };
 
 const UNKNOWN_CITY_NAME = 'Неизвестный город';
@@ -633,6 +670,28 @@ export function mapHomeResponse(raw: BackendHomeResponse, appliedFilters: Applie
       deckAWinRate: item.deckAWinRate,
       isSmallSample: item.isSmallSample,
     })),
+    overview: raw.overview ? {
+      cities: raw.overview.cities.map((item) => ({
+        ...item,
+        city: mapCity(item.city),
+      })),
+      clubs: raw.overview.clubs.map((item) => ({
+        ...item,
+        club: mapClub(item.club, item.city.id),
+        city: mapCity(item.city),
+      })),
+      formats: raw.overview.formats.map((item) => ({
+        ...item,
+        format: mapFormat(item.format),
+        lastTournamentDate: item.lastTournamentDate ?? undefined,
+      })),
+      cityFormats: raw.overview.cityFormats.map((item) => ({
+        city: mapCity(item.city),
+        leadingFormat: mapFormat(item.leadingFormat),
+        participationShare: item.participationShare,
+        otherFormats: item.otherFormats.map((format) => mapFormat(format)),
+      })),
+    } : undefined,
   };
 }
 
@@ -734,6 +793,7 @@ export function mapPlayerDetailsResponse(
     player: mapPlayerShort(raw.player)!,
     summary: {
       tournamentsCount: raw.summary.tournamentsCount,
+      undefeatedTopsCount: raw.summary.undefeatedTopsCount ?? null,
       matchesCount: raw.summary.matchesCount,
       playedMatchesCount: raw.summary.playedMatchesCount,
       byesCount: raw.summary.byesCount,
@@ -853,6 +913,7 @@ export function mapDeckDetailsResponse(
       tournamentsCount: raw.summary.tournamentsCount,
       playersCount: raw.summary.playersCount,
       uniquePlayersCount: raw.summary.uniquePlayersCount,
+      metaShare: raw.summary.metaShare ?? null,
       matchesCount: raw.summary.matchesCount,
       playedMatchesCount: raw.summary.playedMatchesCount,
       byesCount: raw.summary.byesCount,

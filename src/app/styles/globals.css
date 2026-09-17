@@ -335,6 +335,7 @@ textarea {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 0 0 auto;
 }
 
 .brand__icon {
@@ -357,6 +358,7 @@ textarea {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .brand__title {
@@ -418,7 +420,8 @@ textarea {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .header-session {
@@ -443,13 +446,14 @@ textarea {
 
 .site-nav {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 4px;
 }
 
 .site-nav__link {
-  padding: 10px 14px;
+  padding: 10px 11px;
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--muted);
@@ -481,8 +485,13 @@ textarea {
 }
 
 .theme-switch__button {
-  min-height: 34px;
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -492,6 +501,16 @@ textarea {
     background-color 0.18s ease,
     border-color 0.18s ease,
     color 0.18s ease;
+}
+
+.theme-switch__icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .theme-switch__button:hover {
@@ -512,6 +531,48 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.home-overview,
+.home-overview__locations {
+  display: grid;
+  gap: 24px;
+}
+
+.home-overview__group {
+  min-width: 0;
+}
+
+.home-overview__group h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.relationship-highlights__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.relationship-highlight {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-strong);
+}
+
+.relationship-highlight__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.relationship-highlight__detail {
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 .page-header {
@@ -909,6 +970,47 @@ textarea {
   font-size: 1rem;
 }
 
+.spotlight-card__stat small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.player-rating-method {
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.player-rating-method summary {
+  padding: 12px 14px;
+  color: var(--color-link);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.player-rating-method__body {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.player-rating-method__body p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.player-rating-method__body code {
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel);
+  overflow-wrap: anywhere;
+}
+
 .spotlight-card__deck {
   font-size: 0.92rem;
 }
@@ -1012,6 +1114,10 @@ textarea {
 
 .attendance-summary {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-matchup-highlights {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .insight-item {
@@ -1377,6 +1483,22 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.filters-panel__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.filters-panel--collapsed {
+  padding-block: 14px;
+}
+
+.filters-panel--collapsed > .section-header {
+  align-items: center;
+  margin-bottom: 0;
+}
+
 .filters-date-range {
   display: grid;
   grid-column: span 2;
@@ -1386,14 +1508,15 @@ textarea {
 }
 
 .filters-date-range__actions {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .filters-date-range__actions .button {
-  width: 100%;
+  width: auto;
   min-height: 40px;
   padding: 8px 14px;
 }
@@ -1641,6 +1764,64 @@ textarea {
   background: var(--accent-soft);
 }
 
+.player-decks-toolbar {
+  max-width: 360px;
+  margin-bottom: 16px;
+}
+
+.player-tournaments-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(1) {
+  width: 14%;
+}
+
+.player-tournaments-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(2) {
+  width: 28%;
+}
+
+.player-tournaments-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(3) {
+  width: 24%;
+}
+
+.player-tournaments-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(4) {
+  width: 19%;
+}
+
+.player-tournaments-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(5) {
+  width: 15%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > tbody .table__cell {
+  vertical-align: middle;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(1) {
+  width: 22%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(2) {
+  width: 12%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(3) {
+  width: 11%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(4) {
+  width: 21%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(5) {
+  width: 18%;
+}
+
+.player-decks-card > .table-region > .table-shell > .table > :is(thead, tbody) > tr > .table__cell:nth-child(6) {
+  width: 16%;
+}
+
+.player-deck-matchups-button {
+  min-height: 38px;
+  padding: 7px 12px;
+}
+
 .player-deck-matchups-row > td {
   padding: 0;
   background: var(--panel-strong);
@@ -1663,7 +1844,7 @@ textarea {
 .table__cell {
   padding: 14px 16px;
   font-size: 0.95rem;
-  vertical-align: top;
+  vertical-align: middle;
   overflow-wrap: break-word;
   word-break: normal;
 }
@@ -1679,7 +1860,7 @@ textarea {
 
 .table__header-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   width: 100%;
   min-width: 0;
@@ -1695,7 +1876,7 @@ textarea {
 
 .table__header-label {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   line-height: 1.2;
   white-space: normal;
   overflow-wrap: normal;
@@ -1704,7 +1885,7 @@ textarea {
 
 .table__sort-button {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   max-width: 100%;
   min-width: 0;
@@ -1760,6 +1941,10 @@ textarea {
 
 .table__cell--center {
   text-align: center;
+}
+
+.table__cell--center > .stacked-cell--end {
+  align-items: center;
 }
 
 .table__rank {
@@ -2013,6 +2198,14 @@ textarea {
 }
 
 @media (max-width: 768px) {
+  .relationship-highlights__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-matchup-highlights {
+    grid-template-columns: 1fr;
+  }
+
   .player-history-controls {
     justify-items: start;
   }
@@ -2103,6 +2296,19 @@ textarea {
 .state-card__actions {
   display: flex;
   gap: 10px;
+}
+
+.recent-tournaments__empty-callout {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 700;
+  text-align: center;
 }
 
 .import-feedback {
@@ -2262,25 +2468,12 @@ textarea {
     flex-direction: column;
   }
 
-  .site-header__inner {
-    align-items: flex-start;
-  }
-
-  .site-header__actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .header-session {
     justify-content: flex-start;
   }
 }
 
-@media (max-width: 768px) {
-  .player-deck-matchups {
-    padding: 18px 12px 20px;
-  }
-
+@media (max-width: 1100px) {
   .site-header__inner {
     flex-direction: column;
     align-items: stretch;
@@ -2322,16 +2515,23 @@ textarea {
   }
 
   .theme-switch {
-    width: 100%;
-    justify-content: space-between;
+    align-self: flex-start;
   }
 
   .theme-switch__button {
-    flex: 1 1 0;
+    flex: 0 0 34px;
   }
 }
 
 @media (max-width: 768px) {
+  .player-decks-toolbar {
+    max-width: none;
+  }
+
+  .player-deck-matchups {
+    padding: 18px 12px 20px;
+  }
+
   .page {
     padding: 20px 0 40px;
   }
@@ -2390,6 +2590,15 @@ textarea {
   .filters-date-range__actions .button {
     width: 100%;
     min-height: 44px;
+  }
+
+  .filters-panel__header-actions,
+  .filters-panel__header-actions .button {
+    width: 100%;
+  }
+
+  .filters-panel--collapsed > .section-header {
+    align-items: stretch;
   }
 
   .form-grid__spacer {
@@ -2484,7 +2693,7 @@ textarea {
   }
 
   .brand__eyebrow {
-    font-size: 0.67rem;
+    display: none;
   }
 
   .site-header__menu-button {
@@ -2513,6 +2722,28 @@ textarea {
 
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .player-summary .summary-grid,
+  .deck-summary .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .player-summary .stat-card,
+  .deck-summary .stat-card {
+    min-height: 112px;
+    padding: 14px;
+  }
+
+  .player-summary .stat-card__label,
+  .deck-summary .stat-card__label {
+    font-size: 0.72rem;
+  }
+
+  .player-summary .stat-card__subtitle,
+  .deck-summary .stat-card__subtitle {
+    font-size: 0.78rem;
   }
 
   .site-footer__inner {

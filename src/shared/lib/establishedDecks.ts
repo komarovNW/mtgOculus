@@ -5,7 +5,7 @@ import type {
 } from '@/shared/api/types';
 
 export const ESTABLISHED_DECK_SAMPLE_HINT =
-  'Достаточность выборки определяет сервер по единому правилу статистики.';
+  'Матчей пока мало, поэтому результат может заметно измениться.';
 
 export function isEstablishedDeck(
   item: Pick<DeckListItem, 'isSmallSample'>,

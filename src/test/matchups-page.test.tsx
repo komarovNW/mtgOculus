@@ -11,7 +11,12 @@ import { TestProviders } from '@/test/test-utils';
 vi.mock('@/entities/matchup/api', () => ({ getMatchups: vi.fn() }));
 vi.mock('@/entities/dictionaries/api', () => ({
   getCities: vi.fn().mockResolvedValue({ items: [{ id: 'moscow', name: 'Москва' }, { id: 'spb', name: 'Петербург' }] }),
-  getClubs: vi.fn().mockResolvedValue({ items: [{ id: 'club', name: 'Клуб', cityId: 'moscow' }] }),
+  getClubs: vi.fn().mockResolvedValue({
+    items: [
+      { id: 'club', name: 'Клуб', cityId: 'moscow' },
+      { id: 'second-club', name: 'Второй клуб', cityId: 'moscow' },
+    ],
+  }),
   getFormats: vi.fn().mockResolvedValue({ items: [{ id: 'legacy', name: 'Legacy' }, { id: 'pauper', name: 'Pauper' }] }),
 }));
 

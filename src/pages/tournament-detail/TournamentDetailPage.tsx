@@ -27,7 +27,7 @@ import { Tabs } from '@/shared/ui/Tabs';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
 
 const standingsColumns: TableColumn<TournamentStandingItem>[] = [
-  { id: 'rank', header: 'Место', align: 'right', defaultSortDirection: 'asc', render: (row) => row.rank, sortValue: (row) => row.rank },
+  { id: 'rank', header: 'Место', align: 'center', defaultSortDirection: 'asc', render: (row) => row.rank, sortValue: (row) => row.rank },
   {
     id: 'player',
     header: 'Игрок',
@@ -59,17 +59,17 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
   {
     id: 'record',
     header: 'Результат',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: MATCH_RECORD_HINT,
     render: (row) => row.record,
     sortValue: (row) => getRecordSortValue(row.matchWins, row.matchLosses, row.matchDraws),
   },
-  { id: 'points', header: 'Очки', align: 'right', defaultSortDirection: 'desc', render: (row) => row.points, sortValue: (row) => row.points },
+  { id: 'points', header: 'Очки', align: 'center', defaultSortDirection: 'desc', render: (row) => row.points, sortValue: (row) => row.points },
   {
     id: 'omw',
     header: 'OMW',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: 'Тайбрейк по силе оппонентов: чем выше процент побед у ваших соперников, тем выше OMW.',
     render: (row) => formatPercent(row.omw),
@@ -78,7 +78,7 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
   {
     id: 'gw',
     header: 'GW',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: 'Процент выигранных игр внутри матчей этого турнира.',
     render: (row) => formatPercent(row.gw),
@@ -87,7 +87,7 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
   {
     id: 'ogw',
     header: 'OGW',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: 'Тайбрейк по проценту выигранных игр у оппонентов.',
     render: (row) => formatPercent(row.ogw),
@@ -109,11 +109,11 @@ const metagameColumns: TableColumn<TournamentMetagameItem>[] = [
       />
     ),
   },
-  { id: 'players', header: 'Игроков', align: 'right', defaultSortDirection: 'desc', render: (row) => row.playersCount, sortValue: (row) => row.playersCount },
+  { id: 'players', header: 'Игроков', align: 'center', defaultSortDirection: 'desc', render: (row) => row.playersCount, sortValue: (row) => row.playersCount },
   {
     id: 'share',
     header: 'Доля поля',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: 'Какую долю от всех участников турнира заняла эта колода.',
     render: (row) => formatPercent(row.metaShare),
@@ -178,7 +178,7 @@ const roundColumns: TableColumn<TournamentRound['matches'][number]>[] = [
   {
     id: 'playerB',
     header: 'Оппонент',
-    align: 'right',
+    align: 'center',
     render: (row) => (
       <div className={cn('stacked-cell stacked-cell--end', row.winnerPlayerId === row.playerB.id && 'match-player--winner')}>
         <div className="entity-cell">
@@ -387,7 +387,7 @@ export function TournamentDetailPage() {
           <Badge key="format">{tournament.format.name}</Badge>,
           <Badge key="club">{tournament.club.name}</Badge>,
         ]}
-        description="Итоги события, путь победителя, пары по раундам и состав метагейма."
+        description="Итоги события, пары по раундам и состав метагейма."
         eyebrow={tournament.type === 'daily' ? 'Дейлик' : 'Турнир'}
         title={tournament.title}
       />
@@ -421,9 +421,9 @@ export function TournamentDetailPage() {
         >
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Победитель и путь к победе</h2>
+              <h2 className="section-header__title">Результат победителя</h2>
               <p className="section-header__description">
-                Итоговый результат и все раунды победителя в порядке проведения.
+                Итоговый результат и матчи по раундам.
               </p>
             </div>
           </div>
@@ -513,41 +513,50 @@ export function TournamentDetailPage() {
           <div>
             <h2 className="section-header__title">Коротко о турнире</h2>
             <p className="section-header__description">
-              Описываем состав поля и итоги без выводов по винрейту на маленькой выборке.
+              Колоды участников, их доля в турнире и итоговые места.
             </p>
           </div>
         </div>
         <div className="insights-list">
-          <article className="insight-item">
-            <div className="insight-item__title">
-              {insights.mostPopularDecks.length === 1
-                ? 'Самая популярная колода'
-                : 'Лидеры по представительству'}
-            </div>
-            <div className="insight-item__body">
-              {insights.mostPopularDecks.length === 1 && insights.mostPopularDeck ? (
-                <>
-                  <EntityLink
-                    colors={insights.mostPopularDeck.deck.colors}
-                    id={insights.mostPopularDeck.deck.id}
-                    name={insights.mostPopularDeck.deck.name}
-                    type="deck"
-                  />{' '}
-                  — {insights.mostPopularDeck.playersCount} участников и{' '}
-                  {formatPercent(insights.mostPopularDeck.metaShare)} поля.
-                </>
-              ) : insights.mostPopularDecks.length > 1 && insights.mostPopularDeck ? (
-                <>
-                  Единоличного лидера нет. Колод с максимальным
-                  представительством: {insights.mostPopularDecks.length}. У каждой —{' '}
-                  {insights.mostPopularDeck.playersCount} участий и{' '}
-                  {formatPercent(insights.mostPopularDeck.metaShare)} поля.
-                </>
-              ) : (
-                'Данные о колодах пока не загружены.'
-              )}
-            </div>
-          </article>
+          {insights.mostPopularDeck && insights.mostPopularDeck.playersCount > 1 ? (
+            <article className="insight-item">
+              <div className="insight-item__title">
+                {insights.mostPopularDecks.length === 1
+                  ? 'Самая популярная колода'
+                  : 'Самые популярные колоды'}
+              </div>
+              <div className="insight-item__body">
+                {insights.mostPopularDecks.length === 1 ? (
+                  <>
+                    <EntityLink
+                      colors={insights.mostPopularDeck.deck.colors}
+                      id={insights.mostPopularDeck.deck.id}
+                      name={insights.mostPopularDeck.deck.name}
+                      type="deck"
+                    />{' '}
+                    — {insights.mostPopularDeck.playersCount} участников и{' '}
+                    {formatPercent(insights.mostPopularDeck.metaShare)} поля.
+                  </>
+                ) : (
+                  <>
+                    {insights.mostPopularDecks.map((item, index) => (
+                      <span key={item.deck.id}>
+                        {index > 0 ? ', ' : null}
+                        <EntityLink
+                          colors={item.deck.colors}
+                          id={item.deck.id}
+                          name={item.deck.name}
+                          type="deck"
+                        />
+                      </span>
+                    ))}{' '}
+                    — по {insights.mostPopularDeck.playersCount} участника и{' '}
+                    {formatPercent(insights.mostPopularDeck.metaShare)} поля.
+                  </>
+                )}
+              </div>
+            </article>
+          ) : null}
           <article className="insight-item">
             <div className="insight-item__title">Без поражений</div>
             <div className="insight-item__body">
@@ -633,8 +642,7 @@ export function TournamentDetailPage() {
               <div>
                 <h2 className="section-header__title">Метагейм турнира</h2>
                 <p className="section-header__description">
-                  Состав поля без попытки оценивать силу колод по результатам одного
-                  турнира. На графике редкие колоды объединены в «Другие».
+                  Редкие колоды объединены в «Другие».
                 </p>
               </div>
             </div>

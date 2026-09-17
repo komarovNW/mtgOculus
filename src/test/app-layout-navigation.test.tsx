@@ -32,9 +32,11 @@ describe('AppLayout navigation', () => {
       'href',
       '/admin/tournaments/create',
     );
-    expect(screen.getByRole('link', { name: 'v0.2.1 · Что нового' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'v0.3.0 · Что нового' })).toHaveAttribute(
       'href',
       '/changelog',
     );
+    expect(screen.getByRole('button', { name: 'Светлая тема' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Тёмная тема' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

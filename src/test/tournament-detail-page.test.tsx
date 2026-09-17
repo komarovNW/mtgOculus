@@ -141,13 +141,12 @@ describe('TournamentDetailPage', () => {
     expect(screen.getByText('1 BYE показано отдельно')).toBeInTheDocument();
     expect(screen.getByText(/Колоды указаны у 2 из 3 участников/)).toBeInTheDocument();
     expect(screen.getByText('Без колоды: 1')).toBeInTheDocument();
-    expect(screen.getByText('Лидеры по представительству')).toBeInTheDocument();
-    expect(screen.getByText(/Единоличного лидера нет/)).toBeInTheDocument();
+    expect(screen.queryByText('Самые популярные колоды')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Список колод' }))
       .not.toBeInTheDocument();
 
     const winnerSection = screen
-      .getByRole('heading', { name: 'Победитель и путь к победе' })
+      .getByRole('heading', { name: 'Результат победителя' })
       .closest('section');
 
     expect(winnerSection).not.toBeNull();

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   mapAppliedFilters,
+  mapDecksListResponse,
   mapPlayerDetailsResponse,
   mapPlayersListResponse,
+  type BackendDecksListResponse,
   type BackendPlayerDetailsResponse,
   type BackendPlayersListResponse,
 } from '@/shared/api/backend-mappers';
@@ -100,5 +102,31 @@ describe('backend source of truth', () => {
       lastTournamentDate: '2026-09-12',
       undefeatedTopsCount: 3,
     });
+  });
+
+  it('does not replace a deck win rate returned by the backend', () => {
+    const raw: BackendDecksListResponse = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{
+        deck: { id: 7, name: 'Deck' },
+        format: { id: 'pauper', name: 'Pauper' },
+        tournamentsCount: 1,
+        playersCount: 1,
+        matchesCount: 4,
+        playedMatchesCount: 4,
+        byesCount: 0,
+        matchWins: 3,
+        matchLosses: 0,
+        matchDraws: 1,
+        matchWinRate: 100,
+        isSmallSample: true,
+      }],
+    };
+
+    const result = mapDecksListResponse(raw, {}, 1, 50);
+
+    expect(result.items[0].matchWinRate).toBe(100);
   });
 });

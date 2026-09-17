@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { getPlayers } from '@/entities/player/api';
+import { getDecks } from '@/entities/deck/api';
+import { getAllPlayers } from '@/entities/player/api';
 import { getHomeData } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
-import { getEstablishedPlayers } from '@/shared/lib/establishedPlayers';
+import { getPlayerRating } from '@/shared/lib/establishedPlayers';
 import { useDashboardFilters } from '@/shared/lib/filters';
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import { Badge } from '@/shared/ui/Badge';
@@ -12,6 +13,7 @@ import { LoadingState } from '@/shared/ui/LoadingState';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { DeckMetagameSection } from '@/widgets/deck-metagame/DeckMetagameSection';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
+import { HomeOverview } from '@/widgets/home-overview/HomeOverview';
 import { PopularMatchupsTable } from '@/widgets/popular-matchups/PopularMatchupsTable';
 import { RecentTournamentsTable } from '@/widgets/recent-tournaments/RecentTournamentsTable';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
@@ -29,12 +31,21 @@ export function HomePage() {
     enabled: hasActiveFilters,
     queryKey: ['home', 'established-players', apiFilters],
     queryFn: ({ signal }) =>
-      getPlayers({
+      getAllPlayers({
         ...apiFilters,
         sort: 'matchesCount',
         order: 'desc',
+      }, { signal }),
+  });
+  const deckFormatsQuery = useQuery({
+    enabled: hasActiveFilters && !hasSelectedFormat,
+    queryKey: ['home', 'deck-formats', apiFilters],
+    queryFn: ({ signal }) =>
+      getDecks({
+        ...apiFilters,
+        sort: 'playersCount_desc',
         page: 1,
-        limit: 100,
+        limit: 8,
       }, { signal }),
   });
 
@@ -43,14 +54,6 @@ export function HomePage() {
   const formatLabel = filters.formatId
     ? (appliedFilters?.format?.name ?? (filters.formatId === 'legacy' ? 'Legacy' : 'Выбранный формат'))
     : 'Все форматы';
-  const cityLabel = filters.cityId
-    ? (appliedFilters?.city?.name ?? (filters.cityId === 'moscow' ? 'Москва' : 'Выбранный город'))
-    : 'Все города';
-  const sliceLabel = [
-    formatLabel,
-    cityLabel,
-    appliedFilters?.club?.name ?? 'Все клубы',
-  ].join(' · ');
   const selectedCityName = appliedFilters?.city?.name ?? (filters.cityId === 'moscow' ? 'Москва' : undefined);
   const cityTitle = selectedCityName === 'Москва' ? 'Москве' : selectedCityName;
   const homeTitle = !filters.formatId && !filters.cityId
@@ -60,6 +63,33 @@ export function HomePage() {
       : !filters.cityId
         ? `${formatLabel} · все города`
         : `${formatLabel} в ${cityTitle ?? 'выбранном городе'}`;
+  const eventCountTitle = filters.tournamentType === 'daily'
+    ? 'Дейликов'
+    : filters.tournamentType === 'tournament'
+      ? 'Турниров'
+      : 'Дейликов и турниров';
+  const emptyEventTitle = filters.tournamentType === 'daily'
+    ? 'Пока нет дейликов'
+    : filters.tournamentType === 'tournament'
+      ? 'Пока нет турниров'
+      : 'Пока нет дейликов и турниров';
+  const emptyEventDescription = filters.tournamentType === 'daily'
+    ? 'Когда появятся загруженные дейлики, здесь покажем колоды, игроков и матчапы.'
+    : filters.tournamentType === 'tournament'
+      ? 'Когда появятся загруженные турниры, здесь покажем колоды, игроков и матчапы.'
+      : 'Когда появятся загруженные дейлики или турниры, здесь покажем колоды, игроков и матчапы.';
+  const recentDailies = homeQuery.data?.recentTournaments.filter((item) => item.type === 'daily') ?? [];
+  const recentTournaments = homeQuery.data?.recentTournaments.filter((item) => item.type === 'tournament') ?? [];
+  const deckFormatById = new Map(
+    (deckFormatsQuery.data?.items ?? []).map((item) => [item.deck.id, item.format]),
+  );
+  const deckMetagame = (homeQuery.data?.deckMetagame ?? []).map((item) => ({
+    ...item,
+    format: hasSelectedFormat ? appliedFilters?.format ?? undefined : deckFormatById.get(item.deck.id),
+  }));
+  const playerRating = establishedPlayersQuery.data
+    ? getPlayerRating(establishedPlayersQuery.data)
+    : undefined;
 
   return (
     <div className="page-stack">
@@ -68,11 +98,11 @@ export function HomePage() {
           ...appliedLabels.map((label) => <Badge key={label}>{label}</Badge>),
         ]}
         description={!hasActiveFilters
-          ? 'Общий объём загруженной статистики и последние турниры.'
+          ? 'Общий объём загруженной статистики и последние события.'
           : hasSelectedFormat
             ? 'Метагейм, результаты колод, игроки и матчапы.'
-            : 'Игроки и последние турниры по выбранным фильтрам.'}
-        eyebrow="Статистика по загруженным турнирам"
+            : 'Игроки и последние события.'}
+        eyebrow="Статистика по загруженным событиям"
         title={homeTitle}
       />
 
@@ -97,37 +127,37 @@ export function HomePage() {
         <>
           <SummaryCards
             items={[
-              { title: 'Турниров', value: homeQuery.data.summary.tournamentsCount, subtitle: sliceLabel },
+              { title: eventCountTitle, value: homeQuery.data.summary.tournamentsCount },
               {
                 title: 'Уникальных игроков',
                 value: homeQuery.data.summary.uniquePlayersCount,
-                subtitle: 'В текущей выборке',
               },
               {
                 title: 'Матчей в статистике',
                 value: homeQuery.data.summary.matchesCount,
-                subtitle: 'В текущей выборке',
               },
             ]}
           />
 
           {homeQuery.data.summary.tournamentsCount === 0 ? (
             <EmptyState
-              description="Когда появятся загруженные турниры, здесь сразу покажем колоды, игроков и матчапы."
-              title="Пока нет турниров по этим фильтрам"
+              description={emptyEventDescription}
+              title={emptyEventTitle}
             />
           ) : (
             <>
+              {!hasActiveFilters && homeQuery.data.overview ? (
+                <HomeOverview overview={homeQuery.data.overview} />
+              ) : null}
               {hasActiveFilters ? (
                 <>
-                  {hasSelectedFormat ? (
-                    <DeckMetagameSection
-                      actionHref="/decks"
-                      items={homeQuery.data.deckMetagame}
-                      performanceItems={homeQuery.data.deckPerformance}
-                      limit={8}
-                    />
-                  ) : null}
+                  <DeckMetagameSection
+                    actionHref="/decks"
+                    items={deckMetagame}
+                    performanceItems={homeQuery.data.deckPerformance}
+                    limit={8}
+                    showFormat={!hasSelectedFormat}
+                  />
                   {establishedPlayersQuery.isLoading ? (
                     <LoadingState description="Собираем результаты активных игроков." />
                   ) : null}
@@ -145,12 +175,11 @@ export function HomePage() {
                   {establishedPlayersQuery.isSuccess ? (
                     <TopPlayersTable
                       actionHref="/players"
-                      items={getEstablishedPlayers(establishedPlayersQuery.data.items)}
+                      fieldWinRate={playerRating?.fieldWinRate ?? 0}
+                      items={playerRating?.players ?? []}
                       limit={10}
+                      minimumMatches={playerRating?.minimumMatches ?? 0}
                       showSpotlight
-                      scopeDescription={establishedPlayersQuery.data.pagination.hasMore
-                        ? `Среди ${establishedPlayersQuery.data.items.length} самых активных игроков из ${establishedPlayersQuery.data.pagination.total} в выбранной статистике.`
-                        : undefined}
                     />
                   ) : null}
                   {hasSelectedFormat ? (
@@ -163,10 +192,24 @@ export function HomePage() {
                 </>
               ) : null}
               <RecentTournamentsTable
+                actionHref="/dailies"
+                actionLabel="Смотреть все дейлики"
+                compact
+                emptyMessage="Пока нет дейликов по этим фильтрам."
+                itemLabel="Дейлик"
+                items={recentDailies}
+                limit={5}
+                showFormat={!hasSelectedFormat}
+                title="Последние дейлики"
+              />
+              <RecentTournamentsTable
                 actionHref="/tournaments"
                 compact
-                items={homeQuery.data.recentTournaments}
+                emptyCallout="ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ."
+                emptyMessage="Турниры пока не загружены."
+                items={recentTournaments}
                 limit={5}
+                showFormat={!hasSelectedFormat}
               />
             </>
           )}

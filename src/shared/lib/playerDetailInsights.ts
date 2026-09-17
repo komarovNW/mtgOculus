@@ -3,14 +3,10 @@ import type {
   PlayerDetailsResponse,
   PlayerMatchItem,
 } from '@/shared/api/types';
-import {
-  getPlayerFavoriteFormat,
-  getPlayerOpponentStats,
-} from '@/shared/lib/playerStats';
 
 export const PLAYER_DETAIL_MIN_MATCHES = 5;
 export const PLAYER_DETAIL_SAMPLE_HINT =
-  'Достаточность выборки определяет сервер по единому правилу статистики.';
+  'Матчей пока мало, поэтому результат может заметно измениться.';
 
 export type PlayerMatchRecord = {
   matchesCount: number;
@@ -230,45 +226,6 @@ export function getPlayerMonthlyActivity(matches: PlayerMatchItem[]) {
     }));
 }
 
-function getFavoriteDeck(matches: PlayerMatchItem[]) {
-  const decks = new Map<
-    string,
-    {
-      deck: NonNullable<PlayerMatchItem['playerDeck']>;
-      matchesCount: number;
-      tournamentsCount: number;
-      tournamentIds: Set<string>;
-    }
-  >();
-
-  matches
-    .filter((match) => getPlayerMatchKind(match) !== 'unknown')
-    .forEach((match) => {
-    if (!match.playerDeck) {
-      return;
-    }
-
-    const current = decks.get(match.playerDeck.id) ?? {
-      deck: match.playerDeck,
-      matchesCount: 0,
-      tournamentsCount: 0,
-      tournamentIds: new Set<string>(),
-    };
-
-    current.matchesCount += 1;
-    current.tournamentIds.add(match.tournament.id);
-    current.tournamentsCount = current.tournamentIds.size;
-    decks.set(match.playerDeck.id, current);
-    });
-
-  return [...decks.values()].sort(
-    (left, right) =>
-      right.matchesCount - left.matchesCount ||
-      right.tournamentsCount - left.tournamentsCount ||
-      compareNames(left.deck.name, right.deck.name),
-  )[0] ?? null;
-}
-
 export function getPlayerScopedMatches(detail: PlayerDetailsResponse) {
   const tournamentIds = new Set(
     detail.tournaments.map((item) => item.tournament.id),
@@ -281,24 +238,6 @@ export function getPlayerScopedMatches(detail: PlayerDetailsResponse) {
   return scopedMatches;
 }
 
-export function getWinOnlyTournamentWins(record: string) {
-  const match = record.trim().match(/^(\d+)-(\d+)(?:-(\d+))?$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const wins = Number(match[1]);
-  const losses = Number(match[2]);
-  const draws = Number(match[3] ?? 0);
-
-  return wins > 0 && losses === 0 && draws === 0 ? wins : null;
-}
-
-export function isWinOnlyTournamentRecord(record: string) {
-  return getWinOnlyTournamentWins(record) !== null;
-}
-
 function isMatchHistoryComplete(
   detail: PlayerDetailsResponse,
   matches = getPlayerScopedMatches(detail),
@@ -306,40 +245,8 @@ function isMatchHistoryComplete(
   return getPlayerMatchRecord(matches).matchesCount === detail.summary.matchesCount;
 }
 
-export function countCompletedWinOnlyTournaments(
-  detail: PlayerDetailsResponse,
-  roundsByTournamentId: ReadonlyMap<string, number>,
-) {
-  if (detail.tournaments.length !== detail.summary.tournamentsCount) {
-    return null;
-  }
-
-  let count = 0;
-
-  for (const item of detail.tournaments) {
-    const wins = getWinOnlyTournamentWins(item.record);
-
-    if (wins === null) {
-      continue;
-    }
-
-    const roundsCount = roundsByTournamentId.get(item.tournament.id);
-
-    if (roundsCount === undefined) {
-      return null;
-    }
-
-    if (wins === roundsCount) {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
 export function getPlayerDetailInsights(
   detail: PlayerDetailsResponse,
-  careerDetail?: PlayerDetailsResponse,
 ) {
   const matches = getPlayerScopedMatches(detail);
   const historyRecord = getPlayerMatchRecord(matches);
@@ -357,52 +264,33 @@ export function getPlayerDetailInsights(
     winRate: detail.summary.matchWinRate,
   };
   const hasCompleteMatchHistory = isMatchHistoryComplete(detail, matches);
-  const deckMatchesCount = detail.decks.reduce(
-    (total, item) => total + item.matchesCount,
-    0,
-  );
-  const isDeckHistoryComplete =
-    deckMatchesCount === detail.summary.matchesCount;
-  const isTournamentHistoryComplete =
-    detail.tournaments.length === detail.summary.tournamentsCount;
   const excludedMatchesCount = Math.max(
     historyRecord.unknownResultsCount,
     detail.summary.matchesCount - historyRecord.matchesCount,
   );
-  const favoriteDeck = getFavoriteDeck(matches);
-  const opponentStats = getPlayerOpponentStats(matches);
-  const careerMatches = careerDetail
-    ? getPlayerScopedMatches(careerDetail)
-    : [];
+  const favoriteDeck = [...detail.decks].sort(
+    (left, right) =>
+      right.tournamentsCount - left.tournamentsCount ||
+      right.playedMatchesCount - left.playedMatchesCount ||
+      compareNames(left.deck.name, right.deck.name),
+  )[0] ?? null;
+  const bestEstablishedDeck = detail.decks
+    .filter((item) => !item.isSmallSample && item.playedMatchesCount > 0)
+    .sort(
+      (left, right) =>
+        right.matchWinRate - left.matchWinRate ||
+        right.playedMatchesCount - left.playedMatchesCount ||
+        compareNames(left.deck.name, right.deck.name),
+    )[0] ?? null;
 
   return {
     isEstablished: !detail.summary.isSmallSample,
     isMatchHistoryComplete: hasCompleteMatchHistory,
-    isDeckHistoryComplete,
-    isTournamentHistoryComplete,
     realMatchRecord,
     excludedMatchesCount,
-    favoriteDeck,
-    favoriteDeckShare:
-      favoriteDeck && detail.summary.matchesCount > 0
-        ? (favoriteDeck.matchesCount / detail.summary.matchesCount) * 100
-        : null,
-    favoriteFormat: careerDetail
-      ? getPlayerFavoriteFormat(careerMatches)
-      : null,
-    mostFrequentOpponent:
-      opponentStats?.mostFrequentOpponent ?? null,
     monthlyActivity: getPlayerMonthlyActivity(matches),
-    firstTournament: isTournamentHistoryComplete
-      ? [...detail.tournaments].sort((left, right) =>
-          left.tournament.date.localeCompare(right.tournament.date),
-        )[0] ?? null
-      : null,
-    latestTournament: isTournamentHistoryComplete
-      ? [...detail.tournaments].sort((left, right) =>
-          right.tournament.date.localeCompare(left.tournament.date),
-        )[0] ?? null
-      : null,
+    favoriteDeck,
+    bestEstablishedDeck,
   };
 }
 

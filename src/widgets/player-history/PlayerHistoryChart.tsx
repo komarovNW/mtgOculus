@@ -9,16 +9,16 @@ import {
   YAxis,
 } from 'recharts';
 import type { PlayerMonthlyActivity } from '@/shared/lib/playerDetailInsights';
-import { formatPercent } from '@/shared/lib/formatPercent';
-import { formatRecord } from '@/shared/lib/formatRecord';
+import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { Tabs } from '@/shared/ui/Tabs';
 
 type PlayerHistoryChartProps = {
   items: PlayerMonthlyActivity[];
+  isComplete?: boolean;
+  eventsLabel?: string;
 };
 
-type ChartView = 'tournaments' | 'winRate';
 type ChartPeriod = 'latestYear' | 'all';
 
 type PlayerHistoryDatum = PlayerMonthlyActivity & {
@@ -37,7 +37,11 @@ function formatMonth(value: string, includeYear = true) {
   }).format(new Date(`${value}-01T00:00:00`));
 }
 
-function PlayerHistoryTooltip({ active, payload }: PlayerHistoryTooltipProps) {
+function PlayerHistoryTooltip({
+  active,
+  eventsLabel,
+  payload,
+}: PlayerHistoryTooltipProps & { eventsLabel: string }) {
   const item = payload?.[0]?.payload;
 
   if (!active || !item) {
@@ -47,38 +51,18 @@ function PlayerHistoryTooltip({ active, payload }: PlayerHistoryTooltipProps) {
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip__title">{formatMonth(item.month)}</div>
-      <div>Турниров: {item.tournamentsCount}</div>
-      <div>Учтено результатов: {item.matchesCount}</div>
-      <div>
-        Результат: {formatRecord(item.wins, item.losses, item.draws)}
-      </div>
-      <div>Процент побед: {formatPercent(item.winRate)}</div>
-      {item.matchesCount < 10 ? (
-        <div className="chart-tooltip__note">
-          Меньше 10 матчей за месяц — результат может сильно меняться.
-        </div>
-      ) : null}
+      <div>{eventsLabel[0].toUpperCase() + eventsLabel.slice(1)}: {item.tournamentsCount}</div>
+      <div>Сыграно матчей: {item.playedMatchesCount}</div>
+      {item.byesCount > 0 ? <div>BYE: {item.byesCount}</div> : null}
     </div>
   );
 }
 
-const viewCopy: Record<
-  ChartView,
-  { dataKey: keyof PlayerMonthlyActivity; description: string }
-> = {
-  tournaments: {
-    dataKey: 'tournamentsCount',
-    description: 'Сколько турниров игрок сыграл в каждом месяце.',
-  },
-  winRate: {
-    dataKey: 'winRate',
-    description:
-      'Процент побед по месяцам в известных матчах, включая BYE.',
-  },
-};
-
-export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
-  const [view, setView] = useState<ChartView>('tournaments');
+export function PlayerHistoryChart({
+  eventsLabel = 'событий',
+  items,
+  isComplete = true,
+}: PlayerHistoryChartProps) {
   const [period, setPeriod] = useState<ChartPeriod>('latestYear');
   const latestYear = [...items]
     .sort((left, right) => right.month.localeCompare(left.month))[0]
@@ -105,8 +89,6 @@ export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
       period === 'all' || !canLimitToLatestYear,
     ),
   }));
-  const currentView = viewCopy[view];
-
   if (chartData.length < 2) {
     return null;
   }
@@ -115,9 +97,12 @@ export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
     <Card>
       <div className="section-header">
         <div>
-          <h2 className="section-header__title">Динамика игрока</h2>
+          <div className="section-header__title-row">
+            <h2 className="section-header__title">Активность по месяцам</h2>
+            {!isComplete ? <Badge variant="warning">Неполная история</Badge> : null}
+          </div>
           <p className="section-header__description">
-            {currentView.description}{' '}
+            Сколько {eventsLabel} игрок сыграл в каждом месяце.{' '}
             {period === 'latestYear' && canLimitToLatestYear
               ? `Показан ${latestYear} год.`
               : 'Показана вся доступная история.'}
@@ -137,14 +122,6 @@ export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
               onChange={(id) => setPeriod(id as ChartPeriod)}
             />
           ) : null}
-          <Tabs
-            activeId={view}
-            items={[
-              { id: 'tournaments', label: 'Турниры' },
-              { id: 'winRate', label: 'Процент побед' },
-            ]}
-            onChange={(id) => setView(id as ChartView)}
-          />
         </div>
       </div>
 
@@ -175,20 +152,17 @@ export function PlayerHistoryChart({ items }: PlayerHistoryChartProps) {
               tickLine={false}
             />
             <YAxis
-              allowDecimals={view === 'winRate'}
+              allowDecimals={false}
               axisLine={false}
-              domain={view === 'winRate' ? [0, 100] : undefined}
               tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
-              tickFormatter={(value) =>
-                view === 'winRate' ? `${value}%` : String(value)
-              }
+              tickFormatter={(value) => String(value)}
               tickLine={false}
-              width={view === 'winRate' ? 48 : 34}
+              width={34}
             />
-            <Tooltip content={<PlayerHistoryTooltip />} />
+            <Tooltip content={<PlayerHistoryTooltip eventsLabel={eventsLabel} />} />
             <Line
               activeDot={{ r: 6 }}
-              dataKey={currentView.dataKey}
+              dataKey="tournamentsCount"
               dot={{ r: 3 }}
               stroke="var(--color-chart-1)"
               strokeWidth={3}

@@ -32,6 +32,9 @@ function payloadToFormData(payload: CreateTournamentPayload) {
   formData.set('clubId', payload.clubId);
   formData.set('tournamentType', payload.tournamentType);
   formData.set('formatId', payload.formatId);
+  if (payload.leagueId) {
+    formData.set('leagueId', payload.leagueId);
+  }
   formData.set('aetherhubUrl', payload.aetherhubUrl);
   formData.set('playerDecksText', payload.playerDecksText);
 
@@ -51,7 +54,7 @@ export function createTournament(payload: CreateTournamentPayload): Promise<Crea
         code: details[0]?.code ?? 'IMPORT_FAILED',
         message:
           details[0]?.message ??
-          'Backend не смог добавить событие, но не сообщил причину.',
+          'Не удалось добавить событие. Попробуйте ещё раз.',
         details,
         warnings: response.warnings ?? [],
       });

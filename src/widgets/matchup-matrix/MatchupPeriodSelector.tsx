@@ -43,11 +43,13 @@ export function MatchupPeriodSelector({ range, onChange }: MatchupPeriodSelector
           Всё время
         </Button>
       </div>
-      <div className="matchup-period__summary" role="status" aria-live="polite">
-        {active === 'all' ? 'За всё время' : `${active === null ? 'Свой период: ' : ''}${dates} · включительно`}
-      </div>
+      {active !== 'all' ? (
+        <div className="matchup-period__summary" role="status" aria-live="polite">
+          {`${active === null ? 'Свой период: ' : ''}${dates} · включительно`}
+        </div>
+      ) : null}
       <p className="field__hint matchup-period__hint">
-        Последние дни, включая сегодня. Выбор сразу обновляет даты в фильтрах выше.
+        Период включает сегодняшний день.
       </p>
     </div>
   );

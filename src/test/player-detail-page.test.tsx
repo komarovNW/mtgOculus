@@ -1,19 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPlayerDetails } from '@/entities/player/api';
-import { getTournamentDetails } from '@/entities/tournament/api';
 import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
 import type { PlayerDetailsResponse } from '@/shared/api/types';
 import { TestProviders } from '@/test/test-utils';
 
 vi.mock('@/entities/player/api', () => ({
   getPlayerDetails: vi.fn(),
-}));
-
-vi.mock('@/entities/tournament/api', () => ({
-  getTournamentDetails: vi.fn(),
 }));
 
 vi.mock('@/entities/dictionaries/api', () => ({
@@ -30,6 +25,7 @@ const details: PlayerDetailsResponse = {
   player: { id: '3', name: 'Тестовый игрок' },
   summary: {
     tournamentsCount: 2,
+    undefeatedTopsCount: 1,
     matchesCount: 3,
     playedMatchesCount: 2,
     byesCount: 1,
@@ -151,13 +147,16 @@ const details: PlayerDetailsResponse = {
 };
 
 describe('PlayerDetailPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('shows honest real-match statistics and simplified tables', async () => {
     vi.mocked(getPlayerDetails).mockResolvedValue(details);
-    vi.mocked(getTournamentDetails).mockResolvedValue({ rounds: [{}, {}] } as never);
     const user = userEvent.setup();
 
     render(
-      <TestProviders initialEntry="/players/3">
+      <TestProviders initialEntry="/players/3?tournamentType=daily">
         <Routes>
           <Route
             element={<PlayerDetailPage />}
@@ -172,17 +171,27 @@ describe('PlayerDetailPage', () => {
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(getPlayerDetails).toHaveBeenCalledWith('3', {}, { signal: expect.any(AbortSignal) });
+      expect(getPlayerDetails).toHaveBeenCalledWith(
+        '3',
+        expect.objectContaining({ cityId: 'moscow', formatId: 'legacy' }),
+        { signal: expect.any(AbortSignal) },
+      );
     });
+    expect(getPlayerDetails).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText('Сыграно матчей')).toBeInTheDocument();
+    expect(screen.getByText('Дейликов')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Дейлик' })).toBeInTheDocument();
     expect(screen.getByText('Топов без поражений')).toBeInTheDocument();
-    expect(screen.getByText('Все раунды сыграны и выиграны — без поражений и ничьих')).toBeInTheDocument();
-    await waitFor(() => expect(getTournamentDetails).toHaveBeenCalledWith('one', { signal: expect.any(AbortSignal) }));
+    expect(screen.getByText('Все раунды сыграны и выиграны')).toBeInTheDocument();
     expect(screen.getByText('Ещё 1 BYE показано отдельно')).toBeInTheDocument();
-    expect(screen.getByText('Частый оппонент')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Динамика игрока' }))
+    expect(screen.getByRole('button', { name: 'Изменить фильтры' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Активность по месяцам' }))
       .toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Главное о колодах' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('Любимая колода')).toBeInTheDocument();
     expect(screen.queryByText('Лучшее место')).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Очки' }))
       .not.toBeInTheDocument();
@@ -195,7 +204,10 @@ describe('PlayerDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Показать' }));
     expect(screen.getByRole('heading', { name: 'Матчапы на Tempo' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Колода соперника' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Control' })).toHaveAttribute('href', '/decks/control');
+    expect(screen.getByRole('link', { name: 'Control' })).toHaveAttribute(
+      'href',
+      '/decks/control?tournamentType=daily',
+    );
     expect(screen.getAllByText('1-1')).not.toHaveLength(0);
     expect(screen.getAllByText('50.0%')).not.toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Скрыть' }));
@@ -211,8 +223,8 @@ describe('PlayerDetailPage', () => {
     expect(screen.getAllByText('50.0%')).not.toHaveLength(0);
 
     await user.click(screen.getByRole('button', { name: 'История (3)' }));
-    expect(screen.getByRole('heading', { name: 'История матчей' }))
-      .toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'История матчей' }))
+      .not.toBeInTheDocument();
     expect(
       screen.getAllByRole('columnheader', { name: 'Оппонент' }),
     ).toHaveLength(2);

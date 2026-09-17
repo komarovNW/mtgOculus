@@ -107,6 +107,9 @@ describe('tournament list scope', () => {
     renderPage('tournament', '/tournaments?tournamentType=daily');
 
     expect(screen.getByRole('heading', { level: 1, name: 'Турниры' })).toBeInTheDocument();
+    expect(
+      await screen.findByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.'),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(getTournaments).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -7,6 +7,7 @@ export const endpoints = {
   decks: '/decks',
   matchups: '/matchups',
   leagues: '/leagues',
+  leagueOptions: '/leagues/options',
   leagueById: (id: string) => `/leagues/${id}`,
   deckById: (id: string) => `/decks/${id}`,
   cities: '/cities',

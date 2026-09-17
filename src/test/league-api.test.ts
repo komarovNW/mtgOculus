@@ -1,9 +1,35 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getLeagueDetails, getLeagues } from '@/entities/league/api';
+import { getLeagueDetails, getLeagueOptions, getLeagues } from '@/entities/league/api';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('league API', () => {
+  it('loads lightweight league options and normalizes IDs', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      id: 7,
+      name: 'Осенняя лига',
+      club: { id: 'portal', name: 'Портал', cityId: 'moscow' },
+      format: { id: 'standard', name: 'Standard' },
+      dateStart: '2026-09-01',
+      dateEnd: '2026-11-30',
+    }])));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getLeagueOptions({
+      cityId: 'moscow',
+      clubId: 'portal',
+      formatId: 'standard',
+      date: '2026-09-17',
+    });
+    const url = new URL(fetchMock.mock.calls[0][0]);
+
+    expect(url.pathname).toBe('/api/v1/leagues/options');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      cityId: 'moscow', clubId: 'portal', formatId: 'standard', date: '2026-09-17',
+    });
+    expect(result[0].id).toBe('7');
+  });
+
   it('sends list filters using the backend pagination contract and normalizes IDs', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       count: 1,

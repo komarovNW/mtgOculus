@@ -14,7 +14,7 @@ describe('metagame chart presentation', () => {
 
     const tooltip = screen.getByText('Grixis Reanimator').parentElement;
 
-    expect(tooltip).toHaveTextContent('Доля меты: 7.2%');
+    expect(tooltip).toHaveTextContent('Популярность: 7.2%');
     expect(tooltip).toHaveTextContent('Участий с колодой: 3');
   });
 

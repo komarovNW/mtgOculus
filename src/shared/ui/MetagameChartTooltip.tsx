@@ -21,7 +21,7 @@ export function MetagameChartTooltip({ active, payload }: MetagameChartTooltipPr
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip__title">{item.name}</div>
-      <div>Доля меты: {formatPercent(item.metaShare)}</div>
+      <div>Популярность: {formatPercent(item.metaShare)}</div>
       <div>Участий с колодой: {item.decksCount}</div>
     </div>
   );

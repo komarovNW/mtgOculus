@@ -39,7 +39,7 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   {
     id: 'players',
     header: 'Игроков',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.playersCount,
     sortValue: (row) => row.playersCount,
@@ -47,7 +47,7 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   {
     id: 'rounds',
     header: 'Раундов',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.roundsCount,
     sortValue: (row) => row.roundsCount,
@@ -88,73 +88,75 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   },
 ];
 
-const compactColumns: TableColumn<RecentTournamentItem>[] = [
-  {
-    id: 'date',
-    header: 'Дата',
-    defaultSortDirection: 'desc',
-    render: (row) => formatDate(row.date),
-    sortValue: (row) => row.date,
-  },
-  {
-    id: 'title',
-    header: 'Турнир',
-    sortValue: (row) => row.title,
-    render: (row) => (
-      <div className="stacked-cell stacked-cell--compact">
-        <EntityLink
-          id={row.id}
-          name={row.title}
-          type="tournament"
-        />
-        <span className="muted-text">
-          {row.club.name} · {row.type === 'daily' ? 'Дейлик' : 'Турнир'}
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: 'players',
-    header: 'Игроков',
-    align: 'right',
-    defaultSortDirection: 'desc',
-    render: (row) => row.playersCount,
-    sortValue: (row) => row.playersCount,
-  },
-  {
-    id: 'winner',
-    header: 'Победитель',
-    sortValue: (row) => row.winner?.player.name,
-    render: (row) => {
-      const winner = row.winner;
-      const deck = winner?.deck;
-
-      return winner ? (
+function getCompactColumns(itemLabel: string, showFormat: boolean): TableColumn<RecentTournamentItem>[] {
+  return [
+    {
+      id: 'date',
+      header: 'Дата',
+      defaultSortDirection: 'desc',
+      render: (row) => formatDate(row.date),
+      sortValue: (row) => row.date,
+    },
+    {
+      id: 'title',
+      header: itemLabel,
+      sortValue: (row) => row.title,
+      render: (row) => (
         <div className="stacked-cell stacked-cell--compact">
           <EntityLink
-            id={winner.player.id}
-            name={winner.player.name}
-            type="player"
+            id={row.id}
+            name={row.title}
+            type="tournament"
           />
           <span className="muted-text">
-            {deck ? (
-              <EntityLink
-                colors={deck.colors}
-                id={deck.id}
-                name={deck.name}
-                type="deck"
-              />
-            ) : (
-              'Колода не указана'
-            )}
+            {[row.club.name, showFormat ? row.format.name : null].filter(Boolean).join(' · ')}
           </span>
         </div>
-      ) : (
-        '—'
-      );
+      ),
     },
-  },
-];
+    {
+      id: 'players',
+      header: 'Игроков',
+      align: 'center',
+      defaultSortDirection: 'desc',
+      render: (row) => row.playersCount,
+      sortValue: (row) => row.playersCount,
+    },
+    {
+      id: 'winner',
+      header: 'Победитель',
+      sortValue: (row) => row.winner?.player.name,
+      render: (row) => {
+        const winner = row.winner;
+        const deck = winner?.deck;
+
+        return winner ? (
+          <div className="stacked-cell stacked-cell--compact">
+            <EntityLink
+              id={winner.player.id}
+              name={winner.player.name}
+              type="player"
+            />
+            <span className="muted-text">
+              {deck ? (
+                <EntityLink
+                  colors={deck.colors}
+                  id={deck.id}
+                  name={deck.name}
+                  type="deck"
+                />
+              ) : (
+                'Колода не указана'
+              )}
+            </span>
+          </div>
+        ) : (
+          '—'
+        );
+      },
+    },
+  ];
+}
 
 type RecentTournamentsTableProps = {
   items: RecentTournamentItem[];
@@ -162,6 +164,11 @@ type RecentTournamentsTableProps = {
   compact?: boolean;
   actionHref?: string;
   actionLabel?: string;
+  emptyMessage?: string;
+  emptyCallout?: string;
+  itemLabel?: string;
+  showFormat?: boolean;
+  title?: string;
 };
 
 export function RecentTournamentsTable({
@@ -170,6 +177,11 @@ export function RecentTournamentsTable({
   compact = false,
   actionHref,
   actionLabel = 'Смотреть все турниры',
+  emptyMessage = 'Пока нет турниров по этим фильтрам.',
+  emptyCallout,
+  itemLabel = 'Турнир',
+  showFormat = false,
+  title = 'Последние турниры',
 }: RecentTournamentsTableProps) {
   const location = useLocation();
   const dashboardFilterSearch = getDashboardFilterSearch(location.search);
@@ -179,12 +191,7 @@ export function RecentTournamentsTable({
     <Card>
       <div className="section-header">
         <div>
-          <h2 className="section-header__title">Последние турниры</h2>
-          <p className="section-header__description">
-            {compact
-              ? 'Показываем последние загруженные турниры, чтобы быстро понять, что уже есть в статистике.'
-              : 'Собрали последние загруженные турниры.'}
-          </p>
+          <h2 className="section-header__title">{title}</h2>
         </div>
         {actionHref ? (
           <Link
@@ -198,14 +205,20 @@ export function RecentTournamentsTable({
           </Link>
         ) : null}
       </div>
-      <Table
-        columns={compact ? compactColumns : columns}
-        data={visibleItems}
-        emptyMessage="Пока нет турниров по этим фильтрам."
-        getRowKey={(row) => row.id}
-        layout={compact ? 'auto' : 'fixed'}
-        minWidth={compact ? 680 : 880}
-      />
+      {emptyCallout && visibleItems.length === 0 ? (
+        <div className="recent-tournaments__empty-callout">
+          {emptyCallout}
+        </div>
+      ) : (
+        <Table
+          columns={compact ? getCompactColumns(itemLabel, showFormat) : columns}
+          data={visibleItems}
+          emptyMessage={emptyMessage}
+          getRowKey={(row) => row.id}
+          layout={compact ? 'auto' : 'fixed'}
+          minWidth={compact ? 680 : 880}
+        />
+      )}
     </Card>
   );
 }

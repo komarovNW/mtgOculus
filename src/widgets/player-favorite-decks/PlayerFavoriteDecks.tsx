@@ -26,7 +26,7 @@ const columns: TableColumn<FavoriteDeckItem>[] = [
   {
     id: 'players',
     header: 'Игроков',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.playersCount,
     sortValue: (row) => row.playersCount,

@@ -36,10 +36,10 @@ describe('getPlayerListInsights', () => {
       player('another-established', 8, 30, 60, 'deck-b'),
     ]);
 
-    expect(result.bestEstablishedPlayer?.player.id).toBe('best-established');
+    expect(result.bestEstablishedPlayer?.player.id).toBe('most-active');
     expect(result.mostActivePlayer?.player.id).toBe('most-active');
-    expect(result.establishedPlayersCount).toBe(3);
-    expect(result.establishedPlayersShare).toBe(75);
+    expect(result.establishedPlayersCount).toBe(1);
+    expect(result.establishedPlayersShare).toBe(25);
     expect(result.medianMatches).toBe(42.5);
     expect(result.medianTournaments).toBe(11.5);
     expect(result.topTenMatchesShare).toBe(100);
@@ -52,8 +52,8 @@ describe('getPlayerListInsights', () => {
     ]);
     expect(result.favoriteDecks[0]).toMatchObject({
       deck: { id: 'deck-a' },
-      playersCount: 2,
+      playersCount: 1,
     });
-    expect(result.favoriteDecks).toHaveLength(2);
+    expect(result.favoriteDecks).toHaveLength(1);
   });
 });

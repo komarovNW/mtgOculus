@@ -9,6 +9,7 @@ export type CreateTournamentPayload = {
   clubId: string;
   tournamentType: TournamentType;
   formatId: string;
+  leagueId?: string;
   aetherhubUrl: string;
   playerDecksText: string;
 };
@@ -92,6 +93,15 @@ export type LeagueListResponse = {
   items: LeagueListItem[];
   pagination: Pagination;
   appliedFilters: AppliedFilters;
+};
+
+export type LeagueOption = {
+  id: string;
+  name: string;
+  club: Club;
+  format: Format;
+  dateStart: string;
+  dateEnd: string;
 };
 
 export type LeagueRule = {
@@ -207,6 +217,7 @@ export type RecentTournamentItem = {
 
 export type DeckMetagameItem = {
   deck: DeckShort;
+  format?: Format;
   playersCount: number;
   tournamentsCount: number;
   metaShare: number;
@@ -253,6 +264,50 @@ export type PopularMatchupItem = {
   isSmallSample: boolean;
 };
 
+export type HomeCityOverviewItem = {
+  city: City;
+  clubsCount: number;
+  dailiesCount: number;
+  tournamentsCount: number;
+  uniquePlayersCount: number;
+  averagePlayersCount: number;
+  formatsCount: number;
+};
+
+export type HomeClubOverviewItem = {
+  club: Club;
+  city: City;
+  dailiesCount: number;
+  tournamentsCount: number;
+  uniquePlayersCount: number;
+  averagePlayersCount: number;
+  formatsCount: number;
+};
+
+export type HomeFormatOverviewItem = {
+  format: Format;
+  dailiesCount: number;
+  tournamentsCount: number;
+  tournamentPlayersCount: number;
+  uniquePlayersCount: number;
+  averagePlayersCount: number;
+  lastTournamentDate?: string;
+};
+
+export type HomeCityFormatOverviewItem = {
+  city: City;
+  leadingFormat: Format;
+  participationShare: number;
+  otherFormats: Format[];
+};
+
+export type HomeOverview = {
+  cities: HomeCityOverviewItem[];
+  clubs: HomeClubOverviewItem[];
+  formats: HomeFormatOverviewItem[];
+  cityFormats: HomeCityFormatOverviewItem[];
+};
+
 export type HomeResponse = {
   appliedFilters: AppliedFilters;
   summary: HomeSummary;
@@ -261,6 +316,7 @@ export type HomeResponse = {
   deckPerformance: DeckPerformanceItem[];
   topPlayers: TopPlayerItem[];
   popularMatchups: PopularMatchupItem[];
+  overview?: HomeOverview;
 };
 
 export type TournamentListQuery = Partial<DashboardFilters> & {
@@ -403,6 +459,7 @@ export type PlayersListResponse = {
 
 export type PlayerSummary = {
   tournamentsCount: number;
+  undefeatedTopsCount?: number | null;
   matchesCount: number;
   playedMatchesCount: number;
   byesCount: number;
@@ -520,6 +577,7 @@ export type DeckSummary = {
   tournamentsCount: number;
   playersCount: number;
   uniquePlayersCount: number;
+  metaShare?: number | null;
   matchesCount: number;
   playedMatchesCount: number;
   byesCount: number;

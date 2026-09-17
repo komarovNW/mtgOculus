@@ -350,4 +350,3 @@ Elo/Glicko может быть интересен локальному сооб�
 - [Castlog Analytics](https://castlog.gg/features/analytics) — хороший источник
   идей для личного профиля: изменения winrate, head-to-head и серии; для Magic
   Oculus серии имеют более низкий приоритет из-за полноты данных.
-

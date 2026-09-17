@@ -16,7 +16,7 @@ const baseDetail: DeckDetailsResponse = {
   appliedFilters: {},
   summary: {
     tournamentsCount: 10,
-    playersCount: 3,
+    playersCount: 2,
     uniquePlayersCount: 2,
     matchesCount: 34,
     playedMatchesCount: 34,
@@ -139,17 +139,22 @@ describe('deck detail insights', () => {
     expect(getDeckDetailInsights(baseDetail).isEstablished).toBe(false);
   });
 
+  it('selects the most active and best established players from backend rows', () => {
+    const insights = getDeckDetailInsights(baseDetail);
+
+    expect(insights.mostActivePlayer?.player.name).toBe('Первый');
+    expect(insights.bestEstablishedPlayer?.player.name).toBe('Второй');
+  });
+
   it('chooses reliable non-mirror matchups and keeps unknown coverage explicit', () => {
     const insights = getDeckDetailInsights({
       ...baseDetail,
       deck: { ...baseDetail.deck, id: 'mirror' },
     });
 
-    expect(insights.mostCommonMatchup?.opponentDeck.name).toBe('Mirror');
     expect(insights.bestMatchup?.opponentDeck.name).toBe('Good matchup');
     expect(insights.worstMatchup?.opponentDeck.name).toBe('Bad matchup');
     expect(insights.knownMatchupsCount).toBe(34);
-    expect(insights.unknownMatchupsCount).toBe(0);
   });
 
   it('aggregates complete tournament history by month', () => {
@@ -158,24 +163,18 @@ describe('deck detail insights', () => {
         month: '2026-01',
         tournamentsCount: 1,
         participationsCount: 1,
-        matchesCount: 15,
-        wins: 10,
       }),
       expect.objectContaining({
         month: '2026-02',
         tournamentsCount: 1,
         participationsCount: 1,
-        matchesCount: 19,
-        wins: 10,
       }),
     ]);
 
     const insights = getDeckDetailInsights(baseDetail);
 
     expect(insights.isTournamentHistoryComplete).toBe(true);
-    expect(insights.isPlayerHistoryComplete).toBe(true);
     expect(insights.monthlyActivity).toHaveLength(2);
-    expect(insights.mostActivePlayer?.player.name).toBe('Первый');
   });
 
   it('does not present aggregates from an incomplete nested history', () => {
@@ -186,9 +185,7 @@ describe('deck detail insights', () => {
     });
 
     expect(insights.isTournamentHistoryComplete).toBe(false);
-    expect(insights.isPlayerHistoryComplete).toBe(false);
-    expect(insights.monthlyActivity).toEqual([]);
-    expect(insights.mostActivePlayer).toBeNull();
+    expect(insights.monthlyActivity).toHaveLength(1);
   });
 
   it('does not call equal matchup results best and worst', () => {

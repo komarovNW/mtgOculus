@@ -160,7 +160,7 @@ export function MatchupMatrix({ data, isFetching = false }: { data: MatchupMatri
             <tr>
               <th scope="col" className="matchup-matrix__corner">Колода <span>Доля метагейма</span></th>
               <th scope="col" className={cn('matchup-matrix__overall-heading', active?.column === -1 && 'matchup-matrix__heading-active')}>
-                Против всего поля
+                Против поля
               </th>
               {data.decks.map((deck, index) => (
                 <th scope="col" key={deck.id} className={cn('matchup-matrix__opponent', active?.column === index && 'matchup-matrix__heading-active')}>
@@ -184,8 +184,9 @@ export function MatchupMatrix({ data, isFetching = false }: { data: MatchupMatri
         </table>
       </div>
       <p className="matchup-card__note">
-        «Против всего поля» — результат против всех колод по выбранным фильтрам, включая колоды за пределами матрицы.
-        На диагонали — число зеркальных матчей; в процент побед они не входят. При ничьих проценты двух сторон могут не давать 100% в сумме.
+        «Против поля» учитывает и колоды за пределами матрицы. Диагональ показывает
+        зеркальные матчи — они не входят в процент побед. Из-за ничьих встречные
+        проценты не всегда складываются в 100%.
       </p>
       {active && activeRow ? <MatchupDetails id={tooltipId} anchor={active.anchor} row={activeRow}
         opponent={active.column === -1 ? 'всё поле' : data.decks[active.column].name}

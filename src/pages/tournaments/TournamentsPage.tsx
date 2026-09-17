@@ -49,7 +49,7 @@ const columns: TableColumn<TournamentListItem>[] = [
   {
     id: 'players',
     header: 'Игроков',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.playersCount,
     sortValue: (row) => row.playersCount,
@@ -57,7 +57,7 @@ const columns: TableColumn<TournamentListItem>[] = [
   {
     id: 'rounds',
     header: 'Раундов',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.roundsCount,
     sortValue: (row) => row.roundsCount,
@@ -65,7 +65,7 @@ const columns: TableColumn<TournamentListItem>[] = [
   {
     id: 'matches',
     header: 'Сыгранных матчей',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.playedMatchesCount,
     sortValue: (row) => row.playedMatchesCount,
@@ -95,7 +95,6 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
   const isDaily = eventType === 'daily';
   const { filters, apiFilters, setFilters, resetFilters } = useDashboardFilters();
   const hasActiveFilters = Object.values(filters).some(Boolean);
-  const eventNoun = isDaily ? 'дейлик' : 'турнир';
   const eventPlural = isDaily ? 'дейлики' : 'турниры';
   const eventNounPlural = isDaily ? 'дейликов' : 'турниров';
   const eventTitle = isDaily ? 'Дейлики' : 'Турниры';
@@ -186,19 +185,24 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
         } на ${difference}.`;
       })()
     : undefined;
+  const headerFilterLabels = getAppliedFilterLabels(
+    firstPage
+      ? { ...firstPage.appliedFilters, tournamentType: null }
+      : undefined,
+  );
 
   return (
     <div className="page-stack">
       <PageHeader
-        badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
+        badges={headerFilterLabels.map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
         description={
           isDaily
-            ? 'Здесь собраны регулярные дейлики: можно открыть стендинги, пары и колоды участников.'
+            ? 'Результаты регулярных событий: стендинги, пары и колоды участников.'
             : 'Здесь собраны крупные турниры: можно открыть стендинги, пары и колоды участников.'
         }
-        eyebrow={eventTitle}
+        eyebrow={isDaily ? 'Регулярные события' : 'Крупные события'}
         title={eventTitle}
       />
 
@@ -301,19 +305,25 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
               <div>
                 <h2 className="section-header__title">Все {eventPlural}</h2>
                 <p className="section-header__description">
-                  Найдено {totalCount} {eventNounPlural}. Нажмите на {eventNoun}, чтобы открыть его страницу.
+                  Найдено {totalCount} {eventNounPlural}.
                 </p>
               </div>
             </div>
-            <Table
-              columns={tableColumns}
-              data={tournaments}
-              emptyMessage={`По этим фильтрам пока нет загруженных ${eventNounPlural}.`}
-              getRowKey={(row) => row.id}
-              layout="fixed"
-              minWidth={isDaily ? 720 : 880}
-              isPartial={tournaments.length < totalCount}
-            />
+            {!isDaily && tournaments.length === 0 ? (
+              <div className="recent-tournaments__empty-callout">
+                ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.
+              </div>
+            ) : (
+              <Table
+                columns={tableColumns}
+                data={tournaments}
+                emptyMessage={`По этим фильтрам пока нет загруженных ${eventNounPlural}.`}
+                getRowKey={(row) => row.id}
+                layout="fixed"
+                minWidth={isDaily ? 720 : 880}
+                isPartial={tournaments.length < totalCount}
+              />
+            )}
             <LoadMorePagination
               hasMore={tournamentsQuery.hasNextPage}
               isError={tournamentsQuery.isFetchNextPageError}

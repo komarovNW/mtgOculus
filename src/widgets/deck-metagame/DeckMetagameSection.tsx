@@ -27,9 +27,15 @@ const columns: TableColumn<DeckMetagameRow>[] = [
     ),
   },
   {
+    id: 'format',
+    header: 'Формат',
+    render: (row) => row.format ? <Badge>{row.format.name}</Badge> : '—',
+    sortValue: (row) => row.format?.name,
+  },
+  {
     id: 'players',
     header: TOURNAMENT_PARTICIPATIONS_LABEL,
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     headerTitle: TOURNAMENT_PARTICIPATIONS_HINT,
     render: (row) => row.playersCount,
@@ -38,16 +44,15 @@ const columns: TableColumn<DeckMetagameRow>[] = [
   {
     id: 'tournaments',
     header: 'Турниров',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,
     sortValue: (row) => row.tournamentsCount,
   },
   {
     id: 'share',
-    header: 'Доля меты',
-    align: 'right',
-    headerTitle: 'Какую часть поля заняла эта колода по этим фильтрам.',
+    header: 'Популярность',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => formatPercent(row.metaShare),
     sortValue: (row) => row.metaShare,
@@ -55,7 +60,7 @@ const columns: TableColumn<DeckMetagameRow>[] = [
   {
     id: 'winrate',
     header: 'Процент побед',
-    align: 'right',
+    align: 'center',
     headerTitle: 'Общий процент побед этой колоды против всех соперников по выбранным фильтрам.',
     defaultSortDirection: 'desc',
     render: (row) => row.performance ? (
@@ -76,6 +81,7 @@ type DeckMetagameSectionProps = {
   limit?: number;
   actionHref?: string;
   actionLabel?: string;
+  showFormat?: boolean;
 };
 
 export function DeckMetagameSection({
@@ -84,6 +90,7 @@ export function DeckMetagameSection({
   limit = 10,
   actionHref,
   actionLabel = 'Смотреть все колоды',
+  showFormat = false,
 }: DeckMetagameSectionProps) {
   const location = useLocation();
   const dashboardFilterSearch = getDashboardFilterSearch(location.search);
@@ -94,13 +101,16 @@ export function DeckMetagameSection({
     ...item,
     performance: performanceByDeckId.get(item.deck.id),
   }));
+  const visibleColumns = showFormat
+    ? columns
+    : columns.filter((column) => column.id !== 'format');
   return (
     <Card>
       <div className="section-header">
         <div>
           <h2 className="section-header__title">Метагейм по колодам</h2>
           <p className="section-header__description">
-            Топ-{limit} колод по популярности: доля поля и результат против всех соперников.
+            Топ-{limit} популярных колод и их процент побед.
           </p>
         </div>
         {actionHref ? (
@@ -117,7 +127,7 @@ export function DeckMetagameSection({
       </div>
 
       <Table
-        columns={columns}
+        columns={visibleColumns}
         data={visibleItems}
         emptyMessage="Пока нет данных о том, какими колодами играли по этим фильтрам."
         getRowKey={(row) => row.deck.id}

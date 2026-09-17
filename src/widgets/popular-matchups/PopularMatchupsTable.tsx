@@ -43,7 +43,7 @@ const columns: TableColumn<PopularMatchupItem>[] = [
   {
     id: 'matches',
     header: 'Матчей',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.matchesCount,
     sortValue: (row) => row.matchesCount,
@@ -51,9 +51,9 @@ const columns: TableColumn<PopularMatchupItem>[] = [
   {
     id: 'record',
     header: 'Счёт матчапа',
-    align: 'right',
+    align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: 'Сначала победы левой колоды, потом правой, а если были ничьи, показываем их третьим числом.',
+    headerTitle: 'Сначала победы левой колоды, потом правой.',
     render: (row) => formatRecord(row.deckAWins, row.deckBWins, row.draws),
     sortValue: (row) => getRecordSortValue(row.deckAWins, row.deckBWins, row.draws),
   },
@@ -111,8 +111,7 @@ export function PopularMatchupsTable({
         <div>
           <h2 className="section-header__title">Частые матчапы</h2>
           <p className="section-header__description">
-            Пары колод, которые чаще всего встречались между собой. Сначала показываем самые частые встречи, а ниже
-            можно раскрыть весь список.
+            Пары колод, которые чаще всего встречались между собой.
           </p>
         </div>
       </div>

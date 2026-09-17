@@ -88,4 +88,31 @@ describe('import API feedback', () => {
       warnings: backendFeedback.warnings,
     });
   });
+
+  it('sends the selected league with the import form', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        success: true,
+        tournament: { id: 145, title: 'Pauper Daily' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createTournament({
+      date: '2026-09-17',
+      cityId: 'moscow',
+      clubId: 'goldfish_msk',
+      tournamentType: 'daily',
+      formatId: 'pauper',
+      leagueId: '7',
+      aetherhubUrl: 'https://aetherhub.com/Tourney/RoundTourney/100523',
+      playerDecksText: 'Игрок - Колода',
+    });
+
+    const body = fetchMock.mock.calls[0][1]?.body as FormData;
+    expect(body.get('leagueId')).toBe('7');
+  });
 });

@@ -44,11 +44,17 @@ export function MatchupsPage() {
         description="Сравните колоды между собой: против кого они чаще побеждают и сколько матчей стоит за результатом."
         badges={query.isSuccess && filters.formatId && !invalidDates
           ? getAppliedFilterLabels(data?.appliedFilters).map((label) => <Badge key={label}>{label}</Badge>) : undefined} />
-      <FiltersPanel filters={filters} onChange={setFilters} onReset={resetFilters} requireFormat />
+      <FiltersPanel
+        collapseOnMobile
+        filters={filters}
+        onChange={setFilters}
+        onReset={resetFilters}
+        requireFormat
+      />
       <Card className="matchup-toolbar">
         <div>
           <h2 className="section-header__title">Параметры матрицы</h2>
-          <p className="section-header__description">От 2 до 40 колод за выбранный период. Город, клуб, формат и тип события задаются в фильтрах выше.</p>
+          <p className="section-header__description">Выберите число колод и период.</p>
         </div>
         <div className="matchup-controls">
           <MatrixSize key={top} top={top} onApply={(next) => updateQueryParams({ top: String(next) })} />

@@ -1,13 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { getAllDecks, getDeckDetails } from '@/entities/deck/api';
+import { getDeckDetails } from '@/entities/deck/api';
 import { DeckDetailPage } from '@/pages/deck-detail/DeckDetailPage';
-import type { DeckDetailsResponse, DeckListItem } from '@/shared/api/types';
+import type { DeckDetailsResponse } from '@/shared/api/types';
 import { TestProviders } from '@/test/test-utils';
 
 vi.mock('@/entities/deck/api', () => ({
-  getAllDecks: vi.fn(),
   getDeckDetails: vi.fn(),
 }));
 
@@ -30,6 +29,7 @@ const detail: DeckDetailsResponse = {
     tournamentsCount: 10,
     playersCount: 2,
     uniquePlayersCount: 1,
+    metaShare: 20,
     matchesCount: 30,
     playedMatchesCount: 30,
     byesCount: 0,
@@ -111,43 +111,9 @@ const detail: DeckDetailsResponse = {
   ],
 };
 
-const metagameDecks: DeckListItem[] = [
-  {
-    deck: detail.deck,
-    format: detail.deck.format,
-    tournamentsCount: 10,
-    playersCount: 2,
-    matchesCount: 30,
-    playedMatchesCount: 30,
-    byesCount: 0,
-    matchWins: 18,
-    matchLosses: 12,
-    matchDraws: 0,
-    matchWinRate: 60,
-    bestRank: 1,
-    isSmallSample: false,
-  },
-  {
-    deck: { id: 'other', name: 'Другая колода' },
-    format: detail.deck.format,
-    tournamentsCount: 20,
-    playersCount: 8,
-    matchesCount: 80,
-    playedMatchesCount: 80,
-    byesCount: 0,
-    matchWins: 40,
-    matchLosses: 40,
-    matchDraws: 0,
-    matchWinRate: 50,
-    bestRank: 1,
-    isSmallSample: false,
-  },
-];
-
 describe('DeckDetailPage', () => {
   it('shows reliable deck insights and removes weak aggregate fields', async () => {
     vi.mocked(getDeckDetails).mockResolvedValue(detail);
-    vi.mocked(getAllDecks).mockResolvedValue(metagameDecks);
 
     render(
       <TestProviders initialEntry="/decks/5?formatId=modern">
@@ -169,22 +135,42 @@ describe('DeckDetailPage', () => {
         expect.objectContaining({ formatId: undefined }),
         { signal: expect.any(AbortSignal) },
       );
-      expect(getAllDecks).toHaveBeenCalledWith(
-        expect.objectContaining({ formatId: 'legacy' }),
-        { signal: expect.any(AbortSignal) },
-      );
     });
 
     expect(await screen.findByText('20.0%')).toBeInTheDocument();
-    expect(screen.getAllByText('Хороший матчап')).toHaveLength(3);
+    expect(screen.getAllByText('Хороший матчап')).toHaveLength(2);
     expect(screen.getAllByText('Плохой матчап')).toHaveLength(2);
     expect(screen.getByRole('heading', { name: 'Матчапы колоды' }))
       .toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Динамика колоды' }))
+    expect(screen.getByRole('heading', { name: 'Активность по месяцам' }))
       .toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Главное об игроках' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('Чаще всего играл')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Изменить фильтры' })).toBeInTheDocument();
     expect(screen.queryByText('Лучшее место')).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Очки' }))
       .not.toBeInTheDocument();
     expect(screen.queryByLabelText('Формат')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Доля матчей' }))
+      .not.toBeInTheDocument();
+    expect(screen.getByText('60.0%')).toBeInTheDocument();
+  });
+
+  it('uses event-specific labels for daily results', async () => {
+    vi.mocked(getDeckDetails).mockResolvedValue(detail);
+
+    render(
+      <TestProviders initialEntry="/decks/5?tournamentType=daily">
+        <Routes>
+          <Route element={<DeckDetailPage />} path="/decks/:id" />
+        </Routes>
+      </TestProviders>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'UB tempo' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('Участий в дейликах')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
   });
 });

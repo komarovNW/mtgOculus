@@ -4,13 +4,11 @@ import type {
   PlayerMatchItem,
 } from '@/shared/api/types';
 import {
-  countCompletedWinOnlyTournaments,
   getPlayerDeckMatchups,
   getPlayerDetailInsights,
   getPlayerMonthlyActivity,
   groupPlayerMatchesByTournament,
   isEstablishedPlayerDeck,
-  isWinOnlyTournamentRecord,
 } from '@/shared/lib/playerDetailInsights';
 
 function createMatch(
@@ -143,20 +141,8 @@ const detail: PlayerDetailsResponse = {
 };
 
 describe('player detail insights', () => {
-  it.each([
-    ['4-0', true],
-    ['4-0-0', true],
-    ['2-0', true],
-    ['4-1', false],
-    ['3-0-1', false],
-    ['0-0', false],
-    ['invalid', false],
-  ])('recognizes a win-only tournament record %s', (record, expected) => {
-    expect(isWinOnlyTournamentRecord(record)).toBe(expected);
-  });
-
   it('uses the backend summary while reporting incomplete match details separately', () => {
-    const insights = getPlayerDetailInsights(detail, detail);
+    const insights = getPlayerDetailInsights(detail);
 
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.realMatchRecord).toEqual({
@@ -172,25 +158,11 @@ describe('player detail insights', () => {
     expect(insights.excludedMatchesCount).toBe(1);
   });
 
-  it('counts only win-only records that cover every tournament round, regardless of rank', () => {
-    const candidates = detail.tournaments.filter((item) => isWinOnlyTournamentRecord(item.record));
-    const roundsByTournamentId = new Map(
-      candidates.map((item, index) => [item.tournament.id, index === 1 ? 1 : 4]),
-    );
-
-    expect(detail.tournaments[1].rank).toBe(2);
-    expect(countCompletedWinOnlyTournaments(detail, roundsByTournamentId)).toBe(1);
-  });
-
-  it('builds factual profile metrics from complete real matches', () => {
-    const insights = getPlayerDetailInsights(detail, detail);
+  it('selects the favorite and best established decks from backend rows', () => {
+    const insights = getPlayerDetailInsights(detail);
 
     expect(insights.favoriteDeck?.deck.name).toBe('Tempo');
-    expect(insights.favoriteDeck?.matchesCount).toBe(9);
-    expect(insights.mostFrequentOpponent?.opponent.name).toBe(
-      'Частый оппонент',
-    );
-    expect(insights.mostFrequentOpponent?.matchesCount).toBe(6);
+    expect(insights.bestEstablishedDeck?.deck.name).toBe('Tempo');
   });
 
   it('groups a player deck by known opposing decks from the player perspective', () => {
@@ -245,17 +217,13 @@ describe('player detail insights', () => {
   });
 
   it('keeps backend totals while deriving unavailable breakdowns from known history', () => {
-    const insights = getPlayerDetailInsights(
-      { ...detail, recentMatches: matches.slice(0, 5) },
-      detail,
-    );
+    const insights = getPlayerDetailInsights({
+      ...detail,
+      recentMatches: matches.slice(0, 5),
+    });
 
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.realMatchRecord?.matchesCount).toBe(12);
-    expect(insights.favoriteDeck?.deck.name).toBe('Tempo');
-    expect(insights.mostFrequentOpponent?.opponent.name).toBe(
-      'Частый оппонент',
-    );
     expect(insights.monthlyActivity).not.toEqual([]);
   });
 
@@ -317,9 +285,6 @@ describe('player detail insights', () => {
       winRate: 62.5,
     });
     expect(insights.excludedMatchesCount).toBe(5);
-    expect(insights.mostFrequentOpponent?.opponent.name).toBe(
-      'Частый оппонент',
-    );
   });
 
   it('does not turn a missing round into a BYE victory', () => {
@@ -348,16 +313,6 @@ describe('player detail insights', () => {
     expect(insights.isMatchHistoryComplete).toBe(false);
     expect(insights.excludedMatchesCount).toBe(1);
     expect(insights.monthlyActivity[0]).toMatchObject({ matchesCount: 2, byesCount: 0 });
-  });
-
-  it('does not count win-only tournaments from an incomplete tournament list', () => {
-    const incompleteDetail = {
-      ...detail,
-      tournaments: detail.tournaments.slice(0, 5),
-    };
-
-    expect(getPlayerDetailInsights(incompleteDetail).isTournamentHistoryComplete).toBe(false);
-    expect(countCompletedWinOnlyTournaments(incompleteDetail, new Map())).toBeNull();
   });
 
   it('uses the backend sample flag for each player deck', () => {

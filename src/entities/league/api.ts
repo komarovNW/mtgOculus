@@ -5,6 +5,7 @@ import type {
   LeagueDetails,
   LeagueListItem,
   LeagueListResponse,
+  LeagueOption,
   LeagueSortField,
 } from '@/shared/api/types';
 
@@ -36,6 +37,17 @@ export type LeagueListParams = {
   pageSize?: number;
 };
 
+export type LeagueOptionsParams = {
+  cityId?: string;
+  clubId?: string;
+  formatId?: string;
+  date?: string;
+};
+
+type BackendLeagueOption = Omit<LeagueOption, 'id'> & {
+  id: string | number;
+};
+
 function normalizeLeague(item: BackendLeagueListResponse['results'][number]): LeagueListItem {
   return {
     ...item,
@@ -64,6 +76,19 @@ export function getLeagues(params: LeagueListParams, options?: RequestOptions) {
     },
     appliedFilters: response.appliedFilters ?? {},
   }));
+}
+
+export function getLeagueOptions(params: LeagueOptionsParams, options?: RequestOptions) {
+  return apiGet<BackendLeagueOption[]>(endpoints.leagueOptions, {
+    cityId: params.cityId,
+    clubId: params.clubId,
+    formatId: params.formatId,
+    date: params.date,
+  }, options).then<LeagueOption[]>((items) => items.map((item) => ({
+    ...item,
+    id: String(item.id),
+    club: { ...item.club, cityId: item.club.cityId ?? params.cityId ?? '' },
+  })));
 }
 
 export function getLeagueDetails(id: string, sort: LeagueSortField[], options?: RequestOptions) {

@@ -3,9 +3,8 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getDecks } from '@/entities/deck/api';
 import { allDecksQueryOptions } from '@/entities/deck/queries';
 import { useAppliedFilters } from '@/entities/dictionaries/useAppliedFilters';
-import type { DeckListItem } from '@/shared/api/types';
+import type { DashboardFilters, DeckListItem } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
-import { getDeckListInsights } from '@/shared/lib/deckListInsights';
 import {
   ESTABLISHED_DECK_SAMPLE_HINT,
   isEstablishedDeck,
@@ -14,8 +13,6 @@ import { formatPercent } from '@/shared/lib/formatPercent';
 import {
   MATCH_RECORD_HINT,
   MATCH_RECORD_LABEL,
-  TOURNAMENT_PARTICIPATIONS_HINT,
-  TOURNAMENT_PARTICIPATIONS_LABEL,
   WIN_RATE_HINT,
   WIN_RATE_LABEL,
   formatRecord,
@@ -36,69 +33,87 @@ import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
-const columns: TableColumn<DeckListItem>[] = [
-  {
-    id: 'deck',
-    header: 'Колода',
-    render: (row) => (
-      <div className="entity-cell">
-        <EntityLink
-          colors={row.deck.colors}
-          id={row.deck.id}
-          name={row.deck.name}
-          type="deck"
-        />
-        {!isEstablishedDeck(row) ? (
-          <Badge
-            title={ESTABLISHED_DECK_SAMPLE_HINT}
-            variant="warning"
-          >
-            Мало данных
-          </Badge>
-        ) : null}
-      </div>
-    ),
-  },
-  { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge> },
-  {
-    id: 'tournaments',
-    header: 'Турниров',
-    align: 'right',
-    render: (row) => row.tournamentsCount,
-  },
-  {
-    id: 'players',
-    header: TOURNAMENT_PARTICIPATIONS_LABEL,
-    align: 'right',
-    headerTitle: TOURNAMENT_PARTICIPATIONS_HINT,
-    render: (row) => row.playersCount,
-  },
-  {
-    id: 'matches',
-    header: 'Матчей против соперника',
-    align: 'right',
-    render: (row) => row.playedMatchesCount,
-  },
-  {
-    id: 'record',
-    header: MATCH_RECORD_LABEL,
-    align: 'right',
-    headerTitle: MATCH_RECORD_HINT,
-    render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
-  },
-  {
-    id: 'winrate',
-    header: WIN_RATE_LABEL,
-    align: 'right',
-    headerTitle: WIN_RATE_HINT,
-    render: (row) => formatPercent(row.matchWinRate),
-  },
-];
+function getColumns(tournamentType: DashboardFilters['tournamentType']): TableColumn<DeckListItem>[] {
+  const eventsLabel = tournamentType === 'daily'
+    ? 'Дейликов'
+    : tournamentType === 'tournament'
+      ? 'Турниров'
+      : 'Дейлики / турниры';
+  const participationsLabel = tournamentType === 'daily'
+    ? 'Участий в дейликах'
+    : tournamentType === 'tournament'
+      ? 'Участий в турнирах'
+      : 'Участий';
+  const participationsHint = tournamentType === 'daily'
+    ? 'Сколько раз этой колодой играли на дейликах.'
+    : tournamentType === 'tournament'
+      ? 'Сколько раз этой колодой играли на турнирах.'
+      : 'Сколько раз этой колодой играли на дейликах и турнирах.';
+
+  return [
+    {
+      id: 'deck',
+      header: 'Колода',
+      render: (row) => (
+        <div className="entity-cell">
+          <EntityLink
+            colors={row.deck.colors}
+            id={row.deck.id}
+            name={row.deck.name}
+            type="deck"
+          />
+          {!isEstablishedDeck(row) ? (
+            <Badge
+              title={ESTABLISHED_DECK_SAMPLE_HINT}
+              variant="warning"
+            >
+              Мало данных
+            </Badge>
+          ) : null}
+        </div>
+      ),
+    },
+    { id: 'format', header: 'Формат', render: (row) => <Badge>{row.format.name}</Badge> },
+    {
+      id: 'tournaments',
+      header: eventsLabel,
+      align: 'center',
+      render: (row) => row.tournamentsCount,
+    },
+    {
+      id: 'players',
+      header: participationsLabel,
+      align: 'center',
+      headerTitle: participationsHint,
+      render: (row) => row.playersCount,
+    },
+    {
+      id: 'matches',
+      header: 'Сыграно матчей',
+      align: 'center',
+      render: (row) => row.playedMatchesCount,
+    },
+    {
+      id: 'record',
+      header: MATCH_RECORD_LABEL,
+      align: 'center',
+      headerTitle: MATCH_RECORD_HINT,
+      render: (row) => formatRecord(row.matchWins, row.matchLosses, row.matchDraws),
+    },
+    {
+      id: 'winrate',
+      header: WIN_RATE_LABEL,
+      align: 'center',
+      headerTitle: WIN_RATE_HINT,
+      render: (row) => formatPercent(row.matchWinRate),
+    },
+  ];
+}
 
 const sortOptions = [
-  { value: 'playersCount_desc', label: 'По популярности' },
+  { value: 'playersCount_desc', label: 'По числу участий' },
   { value: 'matchesCount_desc', label: 'По числу матчей' },
-  { value: 'winRate_desc', label: 'По винрейту' },
+  { value: 'winRate_desc', label: 'По проценту побед' },
   { value: 'name_asc', label: 'По названию' },
 ];
 
@@ -192,10 +207,10 @@ export function DecksPage() {
   }, [filtersKey, normalizedSearch, sort]);
 
   const sortLabelMap = {
-    playersCount_desc: 'по популярности',
-    matchesCount_desc: 'по количеству матчей',
-    winRate_desc: 'по винрейту среди колод с достаточной выборкой',
-    name_asc: 'по названию',
+    playersCount_desc: 'числу участий',
+    matchesCount_desc: 'числу матчей',
+    winRate_desc: 'проценту побед среди колод с достаточным числом матчей',
+    name_asc: 'названию',
   } as const;
   const decksQuery = useInfiniteQuery({
     enabled: !useClientList,
@@ -210,7 +225,10 @@ export function DecksPage() {
     initialPageParam: 1,
     getNextPageParam,
   });
-  const deckInsightsQuery = useQuery(allDecksQueryOptions(apiFilters));
+  const deckInsightsQuery = useQuery({
+    ...allDecksQueryOptions(apiFilters),
+    enabled: useClientList,
+  });
   const firstPage = decksQuery.data?.pages[0];
   const appliedFilters = useAppliedFilters(apiFilters, firstPage?.appliedFilters);
   const loadedDecks = decksQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -239,7 +257,16 @@ export function DecksPage() {
   const isInitialError = useClientList
     ? deckInsightsQuery.isError
     : decksQuery.isError;
-  const deckInsights = useMemo(() => getDeckListInsights(filteredDecks), [filteredDecks]);
+  const columns = getColumns(filters.tournamentType);
+  const visibleColumns = filters.formatId
+    ? columns.filter((column) => column.id !== 'format')
+    : columns;
+  const eventScope = filters.tournamentType === 'daily'
+    ? 'на дейликах'
+    : filters.tournamentType === 'tournament'
+      ? 'на турнирах'
+      : 'на дейликах и турнирах';
+  const deckCountText = getDeckSearchResultText(totalCount);
 
   return (
     <div className="page-stack">
@@ -247,12 +274,13 @@ export function DecksPage() {
         badges={getAppliedFilterLabels(appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Популярность, результаты и матчапы колод."
-        eyebrow="Колоды"
+        description={`Сравните популярность и результаты колод ${eventScope}.`}
+        eyebrow="Статистика колод"
         title="Колоды"
       />
 
       <FiltersPanel
+        collapsible
         filters={filters}
         onChange={setFilters}
         onReset={resetFilters}
@@ -302,115 +330,25 @@ export function DecksPage() {
           title={search ? 'Колоды по этому запросу не найдены' : 'По этим фильтрам нет колод'}
         />
       ) : (
-        <>
-          <Card
-            className="insights-card"
-            tone="muted"
-          >
-            <div className="section-header">
-              <div>
-                <h2 className="section-header__title">Сводка</h2>
-                <p className="section-header__description">
-                  {isSearchMode
-                    ? `Сводка построена только по колодам, найденным по запросу «${search.trim()}».`
-                    : 'Все колоды по текущим фильтрам.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="insights-grid">
-              <div className="insights-summary">
-                <div className="insights-summary__value">{totalCount}</div>
-                <div className="insights-summary__title">колод найдено</div>
-                <p className="insights-summary__description">
-                  Таблица отсортирована {sortLabelMap[sort]}. Для сравнения результатов
-                  нужно минимум 30 матчей в 10 турнирах.
-                </p>
-              </div>
-
-              <div className="insights-list">
-                {!isSearchMode && deckInsightsQuery.isLoading ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Загружаем сводку</div>
-                    <div className="insight-item__body">
-                      Это займёт немного времени.
-                    </div>
-                  </article>
-                ) : null}
-                {!isSearchMode && deckInsightsQuery.isError ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Не удалось загрузить сводку</div>
-                    <div className="insight-item__body">
-                      Таблица колод ниже остаётся доступной.
-                    </div>
-                  </article>
-                ) : null}
-
-                {deckInsights.mostPopularDeck ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">Самая популярная колода</div>
-                    <div className="insight-item__body">
-                      <EntityLink
-                        colors={deckInsights.mostPopularDeck.deck.colors}
-                        id={deckInsights.mostPopularDeck.deck.id}
-                        name={deckInsights.mostPopularDeck.deck.name}
-                        type="deck"
-                      />{' '}
-                      встретилась {deckInsights.mostPopularDeck.playersCount} раз в{' '}
-                      {deckInsights.mostPopularDeck.tournamentsCount} турнирах.
-                    </div>
-                  </article>
-                ) : null}
-
-                {deckInsights.bestEstablishedDeck ? (
-                  <article className="insight-item">
-                    <div className="insight-item__title">
-                      Лучший процент побед
-                    </div>
-                    <div className="insight-item__body">
-                      <EntityLink
-                        colors={deckInsights.bestEstablishedDeck.deck.colors}
-                        id={deckInsights.bestEstablishedDeck.deck.id}
-                        name={deckInsights.bestEstablishedDeck.deck.name}
-                        type="deck"
-                      />{' '}
-                      — {formatPercent(deckInsights.bestEstablishedDeck.matchWinRate)} побед,
-                      результат{' '}
-                      {formatRecord(
-                        deckInsights.bestEstablishedDeck.matchWins,
-                        deckInsights.bestEstablishedDeck.matchLosses,
-                        deckInsights.bestEstablishedDeck.matchDraws,
-                      )}{' '}
-                      за {deckInsights.bestEstablishedDeck.matchesCount} матчей в{' '}
-                      {deckInsights.bestEstablishedDeck.tournamentsCount} турнирах.
-                    </div>
-                  </article>
-                ) : null}
-
-              </div>
-            </div>
-          </Card>
-
-          <Card>
+        <Card>
             <div className="section-header">
               <div>
                 <h2 className="section-header__title">
-                  {isSearchMode ? 'Результаты поиска' : 'Все колоды'}
+                  {isSearchMode ? 'Результаты поиска' : 'Список колод'}
                 </h2>
                 <p className="section-header__description">
                   {isSearchMode
                     ? `По запросу «${search.trim()}» ${getDeckSearchResultText(totalCount)}.`
-                    : `Найдено ${totalCount} колод.`}{' '}
-                  Откройте колоду, чтобы посмотреть её турниры, игроков и матчапы.
+                    : `${deckCountText.charAt(0).toUpperCase()}${deckCountText.slice(1)}, сортировка по ${sortLabelMap[sort]}.`}
                 </p>
               </div>
             </div>
             <Table
-              columns={columns}
+              columns={visibleColumns}
               data={decks}
               emptyMessage={search ? 'По этому запросу колоды не найдены.' : 'По этим фильтрам пока нет колод.'}
               getRowKey={(row) => row.deck.id}
-              minWidth={980}
+              minWidth={filters.formatId ? 860 : 980}
             />
             <LoadMorePagination
               hasMore={
@@ -431,7 +369,6 @@ export function DecksPage() {
               totalCount={totalCount}
             />
           </Card>
-        </>
       ) : null}
     </div>
   );

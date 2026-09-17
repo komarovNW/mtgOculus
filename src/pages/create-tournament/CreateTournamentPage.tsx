@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createTournament } from '@/entities/admin-tournament/api';
 import { dictionaryQueries } from '@/entities/dictionaries/queries';
+import { leagueQueries } from '@/entities/league/queries';
 import { AppError } from '@/shared/api/client';
 import type {
   CreateTournamentPayload,
@@ -25,15 +26,25 @@ import { Textarea } from '@/shared/ui/Textarea';
 
 type FormState = CreateTournamentPayload;
 
-const initialState: FormState = {
-  date: '',
-  cityId: 'moscow',
-  clubId: 'goldfish_msk',
-  tournamentType: 'daily',
-  formatId: 'pauper',
-  aetherhubUrl: '',
-  playerDecksText: '',
-};
+function getCalendarDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function createInitialState(): FormState {
+  return {
+    date: getCalendarDate(new Date()),
+    cityId: 'moscow',
+    clubId: '',
+    tournamentType: 'daily',
+    formatId: '',
+    leagueId: '',
+    aetherhubUrl: '',
+    playerDecksText: '',
+  };
+}
 
 const aetherhubClubLinks = [
   {
@@ -115,13 +126,24 @@ function isAetherhubTournamentUrl(value: string) {
 
 export function CreateTournamentPage() {
   const queryClient = useQueryClient();
-  const [formState, setFormState] = useState<FormState>(initialState);
+  const [formState, setFormState] = useState<FormState>(createInitialState);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
   const citiesQuery = useQuery(dictionaryQueries.cities());
   const formatsQuery = useQuery(dictionaryQueries.formats());
   const clubsQuery = useQuery(dictionaryQueries.clubs(formState.cityId));
+  const leagueOptionsQuery = useQuery({
+    ...leagueQueries.options({
+      cityId: formState.cityId || undefined,
+      clubId: formState.clubId || undefined,
+      formatId: formState.formatId || undefined,
+      date: formState.date || undefined,
+    }),
+    enabled:
+      formState.tournamentType === 'daily' &&
+      Boolean(formState.cityId && formState.clubId && formState.formatId && formState.date),
+  });
   const importMutation = useMutation({
     mutationFn: createTournament,
     onSuccess: () => {
@@ -146,6 +168,9 @@ export function CreateTournamentPage() {
   const selectedFormat = formatsQuery.data?.items.find(
     (item) => item.id === formState.formatId,
   );
+  const selectedLeague = leagueOptionsQuery.data?.find(
+    (item) => item.id === formState.leagueId,
+  );
   const eventFilterSearch = buildDashboardFilterSearch({
     cityId: formState.cityId,
     clubId: formState.clubId,
@@ -161,6 +186,28 @@ export function CreateTournamentPage() {
       importMutation.reset();
     }
   }
+
+  useEffect(() => {
+    const clubs = clubsQuery.data?.items ?? [];
+
+    if (!formState.cityId || clubs.length !== 1 || formState.clubId === clubs[0].id) {
+      return;
+    }
+
+    setFormState((current) => ({ ...current, clubId: clubs[0].id }));
+  }, [clubsQuery.data?.items, formState.cityId, formState.clubId]);
+
+  useEffect(() => {
+    setFormState((current) => current.leagueId
+      ? { ...current, leagueId: '' }
+      : current);
+  }, [
+    formState.cityId,
+    formState.clubId,
+    formState.date,
+    formState.formatId,
+    formState.tournamentType,
+  ]);
 
   function validate() {
     const errors: string[] = [];
@@ -247,7 +294,7 @@ export function CreateTournamentPage() {
           </Badge>,
           <Badge key="method">Импорт из Aetherhub</Badge>,
         ]}
-        description="Событие загружается по ссылке на Aetherhub и списку игроков и колод. Все обязательные поля отмечены в инструкции ниже."
+        description="Добавьте событие с Aetherhub и укажите колоды участников."
         eyebrow="Импорт события"
         title="Добавить"
       />
@@ -260,32 +307,22 @@ export function CreateTournamentPage() {
           <div>
             <h2 className="section-header__title">Как добавить событие</h2>
             <p className="section-header__description">
-              Заполните форму по шагам. После успешной загрузки появится ссылка на
-              страницу созданного события.
+              Нужны данные события, ссылка на Aetherhub и список колод.
             </p>
           </div>
         </div>
         <ol className="flat-list">
           <li>
-            <strong>Укажите данные события.</strong> Выберите дату, город, клуб, тип и
-            формат. Все эти поля обязательны.
+            <strong>Заполните данные события.</strong> Укажите дату, площадку, тип,
+            формат и ссылку на Aetherhub.
           </li>
           <li>
-            <strong>Добавьте ссылку на Aetherhub.</strong> Без ссылки событие нельзя
-            сохранить.
+            <strong>Добавьте колоды.</strong> Вставьте список с именами игроков или
+            перечислите колоды по порядку итоговых мест.
           </li>
           <li>
-            <strong>Вставьте список колод.</strong> Используйте один из двух форматов
-            ниже: с именами игроков или только названия колод по порядку мест.
-          </li>
-          <li>
-            <strong>Нажмите «Добавить».</strong> Если в данных есть ошибка, форма
-            покажет, что именно нужно исправить. Не закрывайте страницу до завершения
-            загрузки.
-          </li>
-          <li>
-            <strong>Проверьте результат.</strong> После сохранения откройте событие по
-            появившейся ссылке и проверьте участников и названия колод.
+            <strong>Добавьте и проверьте.</strong> После сохранения откройте событие
+            и проверьте участников и колоды.
           </li>
         </ol>
       </Card>
@@ -299,8 +336,7 @@ export function CreateTournamentPage() {
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">1. О событии</h2>
             <p className="form-section__description">
-              Заполните дату, площадку, тип, формат и ссылку на событие. Все поля со
-              звёздочкой обязательны.
+              Укажите основные данные и ссылку на страницу события.
             </p>
           </div>
           <Input
@@ -382,17 +418,67 @@ export function CreateTournamentPage() {
           <Select
             label="Формат"
             onChange={(event) => setField('formatId', event.target.value)}
-            options={(formatsQuery.data?.items ?? []).map((format) => ({
-              value: format.id,
-              label: format.name,
-            }))}
+            options={[
+              { value: '', label: 'Выберите формат' },
+              ...(formatsQuery.data?.items ?? []).map((format) => ({
+                value: format.id,
+                label: format.name,
+              })),
+            ]}
             required
             value={formState.formatId}
           />
-          <div
-            aria-hidden="true"
-            className="form-grid__spacer"
-          />
+          {formState.tournamentType === 'daily' ? (
+            <div className="field-stack">
+              <Select
+                disabled={
+                  !formState.date ||
+                  !formState.cityId ||
+                  !formState.clubId ||
+                  !formState.formatId ||
+                  leagueOptionsQuery.isLoading ||
+                  leagueOptionsQuery.isError
+                }
+                label="Лига"
+                onChange={(event) => setField('leagueId', event.target.value)}
+                options={[
+                  {
+                    value: '',
+                    label: !formState.date
+                      ? 'Сначала выберите дату'
+                      : leagueOptionsQuery.isLoading
+                        ? 'Загружаем лиги…'
+                        : leagueOptionsQuery.isError
+                          ? 'Не удалось загрузить лиги'
+                          : leagueOptionsQuery.data?.length
+                            ? 'Без лиги'
+                            : 'Нет подходящих лиг',
+                  },
+                  ...(leagueOptionsQuery.data ?? []).map((league) => ({
+                    value: league.id,
+                    label: `${league.name} · ${formatDate(league.dateStart)}–${formatDate(league.dateEnd)}`,
+                  })),
+                ]}
+                value={formState.leagueId ?? ''}
+              />
+              {leagueOptionsQuery.isError ? (
+                <div className="field-message field-message--error" role="alert">
+                  <span>Не получилось загрузить подходящие лиги.</span>
+                  <Button
+                    onClick={() => {
+                      void leagueOptionsQuery.refetch();
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    Повторить
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div aria-hidden="true" className="form-grid__spacer" />
+          )}
           <div className="form-grid__full directory-help">
             Не нашли нужный город, клуб или формат?{' '}
             <a
@@ -444,15 +530,15 @@ export function CreateTournamentPage() {
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">2. Игроки и колоды</h2>
             <p className="form-section__description">
-              Список обязателен. Одна непустая строка соответствует одной колоде;
-              режим привязки определяется автоматически по содержимому.
+              Одна строка соответствует одной колоде. Способ привязки определится
+              автоматически.
             </p>
           </div>
           <details className="form-grid__full input-format-guide">
             <summary>
               <span>
                 <strong>Как подготовить список игроков и колод</strong>
-                <small>Нажмите, чтобы раскрыть полное описание и примеры</small>
+                <small>Два способа ввода и примеры</small>
               </span>
               <span
                 aria-hidden="true"
@@ -465,8 +551,7 @@ export function CreateTournamentPage() {
                   Поддерживаемые форматы ввода
                 </h3>
                 <p className="input-format-guide__description">
-                  Ничего переключать не нужно: формат определяется автоматически. Не
-                  смешивайте два формата в одном списке.
+                  Выберите один способ и используйте его для всего списка.
                 </p>
               </div>
 
@@ -477,17 +562,14 @@ export function CreateTournamentPage() {
                     Имя игрока - Название колоды
                   </code>
                   <p>
-                    Используйте дефис, длинное тире или среднее тире с пробелами с
-                    обеих сторон. Этот режим включается, если разделитель есть минимум
-                    у половины строк. Порядок строк не важен: колода привязывается по
-                    имени игрока.
+                    Отделяйте имя от колоды дефисом с пробелами. Порядок строк не
+                    важен: колода будет привязана по имени игрока.
                   </p>
                   <strong>Корректный пример</strong>
                   <pre>{'Игрок 1 - Lands\nИгрок 2 - UW Phelia\nИгрок 3 - Grixis Reanimator'}</pre>
                   <p>
-                    Если имя отличается незначительно, импорт попробует найти близкое
-                    совпадение и покажет предупреждение. Лишний игрок, повтор игрока
-                    или отсутствие колоды у участника заблокируют импорт.
+                    Небольшое отличие в имени будет отмечено для проверки. Повторы и
+                    пустые названия нужно исправить до добавления.
                   </p>
                 </section>
 
@@ -495,16 +577,14 @@ export function CreateTournamentPage() {
                   <h4>2. Только колоды — по порядку мест</h4>
                   <code className="input-mode-format">Название колоды</code>
                   <p>
-                    Если разделитель встречается менее чем у половины строк, имена не
-                    используются. Первая колода назначается игроку на первом месте в
-                    Aetherhub, вторая — игроку на втором месте и так далее.
+                    Первая строка относится к игроку на первом месте, вторая — ко
+                    второму и так далее.
                   </p>
                   <strong>Корректный пример</strong>
                   <pre>{'Lands\nUW Phelia\nGrixis Reanimator'}</pre>
                   <p>
-                    Количество строк должно точно совпадать с количеством игроков.
-                    После импорта обязательно сверьте привязку вручную: сервер всегда
-                    выдаёт предупреждение для этого режима.
+                    Число строк должно совпадать с числом игроков. После добавления
+                    обязательно проверьте привязку колод.
                   </p>
                 </section>
               </div>
@@ -520,7 +600,7 @@ export function CreateTournamentPage() {
                   Если в строке указано имя, между именем игрока и колодой обязательно
                   должен стоять дефис.
                 </strong>
-                <p>Без дефиса парсер посчитает всю строку названием колоды.</p>
+                <p>Без дефиса вся строка будет воспринята как название колоды.</p>
                 <p>
                   <strong>Нельзя:</strong>{' '}
                   <code>Игрок 1 White Weenie</code>
@@ -571,7 +651,7 @@ export function CreateTournamentPage() {
           </details>
           <div className="form-grid__full">
             <Textarea
-              helperText="Одна строка соответствует одной колоде. Перед отправкой проверьте определённый режим ниже."
+              helperText="Одна строка соответствует одной колоде. Ниже появится выбранный способ привязки."
               label="Список игроков и колод"
               onChange={(event) => setField('playerDecksText', event.target.value)}
               placeholder={'Игрок 1 - Lands\nИгрок 2 - UW Phelia\nИгрок 3 - Grixis Reanimator'}
@@ -622,8 +702,8 @@ export function CreateTournamentPage() {
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">3. Проверка и отправка</h2>
             <p className="form-section__description">
-              Сверьте основные данные и количество строк. После добавления обязательно
-              откройте событие и проверьте привязку колод.
+              Проверьте данные и число строк. После добавления откройте событие и
+              сверьте колоды участников.
             </p>
           </div>
 
@@ -655,6 +735,9 @@ export function CreateTournamentPage() {
               {selectedCity?.name ?? 'город не выбран'} ·{' '}
               {selectedClub?.name ?? 'клуб не выбран'} ·{' '}
               {selectedFormat?.name ?? 'формат не выбран'} ·{' '}
+              {formState.tournamentType === 'daily'
+                ? `${selectedLeague?.name ?? 'без лиги'} · `
+                : ''}
               {playerDeckLinesCount}{' '}
               {playerDeckLinesCount === 1 ? 'строка' : 'строк'}
             </span>

@@ -54,8 +54,14 @@ describe('LeaguesPage', () => {
     const user = userEvent.setup();
     setup();
     expect(await screen.findByRole('heading', { name: 'Осенняя лига 2026' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Лига' })).toHaveValue('1');
+    expect(screen.queryByRole('combobox', { name: 'Город' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Клуб' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Формат' })).not.toBeInTheDocument();
     expect(screen.getByText('Не менее 9 очков без поражений')).toBeInTheDocument();
     const table = screen.getByRole('table');
+    expect(within(table).getByRole('columnheader', { name: 'Место' })).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: 'Место в лиге' })).not.toBeInTheDocument();
     expect(within(table).getByRole('link', { name: 'Федулов Ринат' })).toHaveAttribute('href', '/players/25');
     expect(within(table).getByText('1 / 1')).toBeInTheDocument();
     await user.click(within(table).getByRole('button', { name: 'Подробнее' }));
@@ -74,16 +80,16 @@ describe('LeaguesPage', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Главный показатель' }), 'bonusPoints');
     await waitFor(() => expect(getLeagueDetails).toHaveBeenLastCalledWith('1', ['bonusPoints', 'tournamentsPlayed'],
       { signal: expect.any(AbortSignal) }));
+    expect(await screen.findByRole('columnheader', { name: 'По выбранному порядку' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Место в лиге' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Вернуть официальный порядок' }));
+    await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Место' })).toBeInTheDocument());
   });
 
-  it('passes league filters and clears a stale league selection', async () => {
-    const user = userEvent.setup();
+  it('loads all leagues without applying stale dashboard filters', async () => {
     setup('/leagues?cityId=moscow&clubId=portal&formatId=standard&leagueId=1');
     await screen.findByRole('table');
-    expect(getLeagues).toHaveBeenCalledWith({ cityId: 'moscow', clubId: 'portal', formatId: 'standard' },
-      { signal: expect.any(AbortSignal) });
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Формат' }), '');
-    await waitFor(() => expect(getLeagues).toHaveBeenLastCalledWith({ cityId: 'moscow', clubId: 'portal', formatId: undefined },
-      { signal: expect.any(AbortSignal) }));
+    expect(getLeagues).toHaveBeenCalledWith({}, { signal: expect.any(AbortSignal) });
+    expect(screen.getByRole('combobox', { name: 'Лига' })).toHaveValue('1');
   });
 });

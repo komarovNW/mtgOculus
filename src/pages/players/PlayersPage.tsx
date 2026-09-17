@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPlayers } from '@/entities/player/api';
-import type { PlayerListItem, PlayersListQuery } from '@/shared/api/types';
+import type { DashboardFilters, PlayerListItem, PlayersListQuery } from '@/shared/api/types';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import {
   ESTABLISHED_PLAYER_SAMPLE_HINT,
@@ -33,96 +33,109 @@ import { Select } from '@/shared/ui/Select';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { FiltersPanel } from '@/widgets/filters-panel/FiltersPanel';
 
-const columns: TableColumn<PlayerListItem>[] = [
-  {
-    id: 'player',
-    header: 'Игрок',
-    sortValue: (row) => row.player.name,
-    render: (row) => (
-      <div className="entity-cell">
-        <div className="stacked-cell">
-          <EntityLink
-            id={row.player.id}
-            name={row.player.name}
-            type="player"
-          />
-          {row.lastTournamentDate ? (
-            <span className="entity-cell__meta">
-              Последний турнир · {formatDate(row.lastTournamentDate)}
-            </span>
+function getColumns(tournamentType: DashboardFilters['tournamentType']): TableColumn<PlayerListItem>[] {
+  const eventsLabel = tournamentType === 'daily'
+    ? 'Дейликов'
+    : tournamentType === 'tournament'
+      ? 'Турниров'
+      : 'Дейлики / турниры';
+  const lastEventLabel = tournamentType === 'daily'
+    ? 'Последний дейлик'
+    : tournamentType === 'tournament'
+      ? 'Последний турнир'
+      : 'Последнее участие';
+
+  return [
+    {
+      id: 'player',
+      header: 'Игрок',
+      sortValue: (row) => row.player.name,
+      render: (row) => (
+        <div className="entity-cell">
+          <div className="stacked-cell">
+            <EntityLink
+              id={row.player.id}
+              name={row.player.name}
+              type="player"
+            />
+            {row.lastTournamentDate ? (
+              <span className="entity-cell__meta">
+                {lastEventLabel} · {formatDate(row.lastTournamentDate)}
+              </span>
+            ) : null}
+          </div>
+          {!isEstablishedPlayer(row) ? (
+            <Badge
+              title={ESTABLISHED_PLAYER_SAMPLE_HINT}
+              variant="warning"
+            >
+              Мало данных
+            </Badge>
           ) : null}
         </div>
-        {!isEstablishedPlayer(row) ? (
-          <Badge
-            title={ESTABLISHED_PLAYER_SAMPLE_HINT}
-            variant="warning"
-          >
-            Мало данных
-          </Badge>
-        ) : null}
-      </div>
-    ),
-  },
-  {
-    id: 'tournaments',
-    header: 'Турниров',
-    align: 'right',
-    defaultSortDirection: 'desc',
-    render: (row) => row.tournamentsCount,
-    sortValue: (row) => row.tournamentsCount,
-  },
-  {
-    id: 'undefeatedTops',
-    header: 'Без поражений',
-    align: 'right',
-    headerTitle: 'Турниры, в которых игрок прошёл все раунды без поражений и ничьих.',
-    defaultSortDirection: 'desc',
-    render: (row) => row.undefeatedTopsCount ?? '—',
-    sortValue: (row) => row.undefeatedTopsCount,
-  },
-  {
-    id: 'matches',
-    header: 'Сыграно матчей',
-    align: 'right',
-    defaultSortDirection: 'desc',
-    render: (row) => row.playedMatchesCount,
-    sortValue: (row) => row.playedMatchesCount,
-  },
-  {
-    id: 'record',
-    header: MATCH_RECORD_LABEL,
-    align: 'right',
-    defaultSortDirection: 'desc',
-    headerTitle: MATCH_RECORD_HINT,
-    render: (row) => formatRecord(row.playedWins, row.matchLosses, row.matchDraws),
-    sortValue: (row) => getRecordSortValue(row.playedWins, row.matchLosses, row.matchDraws),
-  },
-  {
-    id: 'winrate',
-    header: WIN_RATE_LABEL,
-    align: 'right',
-    defaultSortDirection: 'desc',
-    headerTitle: WIN_RATE_HINT,
-    render: (row) => formatPercent(row.matchWinRate),
-    sortValue: (row) => row.matchWinRate,
-  },
-  {
-    id: 'deck',
-    header: 'Любимая колода',
-    sortValue: (row) => row.mostPlayedDeck?.name,
-    render: (row) =>
-      row.mostPlayedDeck ? (
-        <EntityLink
-          colors={row.mostPlayedDeck.colors}
-          id={row.mostPlayedDeck.id}
-          name={row.mostPlayedDeck.name}
-          type="deck"
-        />
-      ) : (
-        '—'
       ),
-  },
-];
+    },
+    {
+      id: 'tournaments',
+      header: eventsLabel,
+      align: 'center',
+      defaultSortDirection: 'desc',
+      render: (row) => row.tournamentsCount,
+      sortValue: (row) => row.tournamentsCount,
+    },
+    {
+      id: 'undefeatedTops',
+      header: 'Без поражений',
+      align: 'center',
+      headerTitle: 'Турниры, в которых игрок прошёл все раунды без поражений и ничьих.',
+      defaultSortDirection: 'desc',
+      render: (row) => row.undefeatedTopsCount ?? '—',
+      sortValue: (row) => row.undefeatedTopsCount,
+    },
+    {
+      id: 'matches',
+      header: 'Сыграно матчей',
+      align: 'center',
+      defaultSortDirection: 'desc',
+      render: (row) => row.playedMatchesCount,
+      sortValue: (row) => row.playedMatchesCount,
+    },
+    {
+      id: 'record',
+      header: MATCH_RECORD_LABEL,
+      align: 'center',
+      defaultSortDirection: 'desc',
+      headerTitle: MATCH_RECORD_HINT,
+      render: (row) => formatRecord(row.playedWins, row.matchLosses, row.matchDraws),
+      sortValue: (row) => getRecordSortValue(row.playedWins, row.matchLosses, row.matchDraws),
+    },
+    {
+      id: 'winrate',
+      header: WIN_RATE_LABEL,
+      align: 'center',
+      defaultSortDirection: 'desc',
+      headerTitle: WIN_RATE_HINT,
+      render: (row) => formatPercent(row.matchWinRate),
+      sortValue: (row) => row.matchWinRate,
+    },
+    {
+      id: 'deck',
+      header: 'Любимая колода',
+      sortValue: (row) => row.mostPlayedDeck?.name,
+      render: (row) =>
+        row.mostPlayedDeck ? (
+          <EntityLink
+            colors={row.mostPlayedDeck.colors}
+            id={row.mostPlayedDeck.id}
+            name={row.mostPlayedDeck.name}
+            type="deck"
+          />
+        ) : (
+          '—'
+        ),
+    },
+  ];
+}
 
 const sortOptions = [
   { value: 'matchesCount', label: 'По числу матчей' },
@@ -163,7 +176,7 @@ export function PlayersPage() {
   const hasUndefeatedTops = players.some(
     (player) => player.undefeatedTopsCount !== null && player.undefeatedTopsCount !== undefined,
   );
-  const tableColumns = columns.filter((column) => {
+  const tableColumns = getColumns(filters.tournamentType).filter((column) => {
     if (column.id === 'deck' && !filters.formatId) {
       return false;
     }
@@ -174,15 +187,14 @@ export function PlayersPage() {
 
     return true;
   });
-
   return (
     <div className="page-stack">
       <PageHeader
         badges={getAppliedFilterLabels(firstPage?.appliedFilters).map((label) => (
           <Badge key={label}>{label}</Badge>
         ))}
-        description="Найдите игрока и откройте его турниры, колоды и матчи."
-        eyebrow="Игроки"
+        description="Найдите игрока и посмотрите его результаты, колоды и матчи."
+        eyebrow="Статистика игроков"
         title="Игроки"
       />
 
@@ -232,10 +244,9 @@ export function PlayersPage() {
         <Card>
           <div className="section-header">
             <div>
-              <h2 className="section-header__title">Все игроки</h2>
+              <h2 className="section-header__title">Список игроков</h2>
               <p className="section-header__description">
-                Найдено {totalCount} игроков. Откройте игрока, чтобы посмотреть его
-                турниры, колоды и матчи.
+                {`Найдено ${totalCount} игроков.`}
               </p>
             </div>
           </div>
