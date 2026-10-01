@@ -24,9 +24,24 @@ function getStandingMetric(standing: LeagueStanding, column: LeagueColumn) {
 }
 
 function getZoneLabel(zone: LeagueStanding['zone']) {
-  if (zone === 'qualify') return 'Проходит';
-  if (zone === 'reserve') return 'Резерв';
+  if (zone === 'prequalified') return 'Прошёл';
+  if (zone === 'qualify') return 'В проходной зоне';
+  if (zone === 'reserve') return 'В резервной зоне';
   return null;
+}
+
+function formatPlacesCount(count: number) {
+  const modulo100 = count % 100;
+  const modulo10 = count % 10;
+  const unit = modulo100 >= 11 && modulo100 <= 14
+    ? 'мест'
+    : modulo10 === 1
+      ? 'место'
+      : modulo10 >= 2 && modulo10 <= 4
+        ? 'места'
+        : 'мест';
+
+  return `${count} ${unit}`;
 }
 
 function LeagueOverview({ league }: { league: LeagueDetails }) {
@@ -124,7 +139,8 @@ function LeagueStandings({
   league: LeagueDetails;
 }) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const hasZones = Object.keys(league.cutoffs).length > 0;
+  const hasPrequalified = league.standings.some((standing) => standing.zone === 'prequalified');
+  const hasZones = hasPrequalified || Object.keys(league.cutoffs).length > 0;
   const tableColumnCount = league.columns.length + 3;
 
   return (
@@ -140,16 +156,19 @@ function LeagueStandings({
       </div>
       {hasZones ? (
         <div className="league-zone-legend" aria-label="Зоны таблицы">
+          {hasPrequalified ? (
+            <span className="league-zone-legend__item league-zone-legend__item--prequalified">
+              Уже прошли
+            </span>
+          ) : null}
           {league.cutoffs.qualify ? (
             <span className="league-zone-legend__item league-zone-legend__item--qualify">
-              Проходят: места 1–{league.cutoffs.qualify}
+              Проходная зона: {formatPlacesCount(league.cutoffs.qualify)} по итогам лиги
             </span>
           ) : null}
           {league.cutoffs.reserve ? (
             <span className="league-zone-legend__item league-zone-legend__item--reserve">
-              Резерв: {league.cutoffs.qualify
-                ? `места ${league.cutoffs.qualify + 1}–${league.cutoffs.reserve}`
-                : `до ${league.cutoffs.reserve}-го места`}
+              Резервная зона: до {league.cutoffs.reserve} мест по таблице
             </span>
           ) : null}
         </div>
@@ -194,6 +213,9 @@ function LeagueStandings({
                       <EntityLink type="player" id={standing.player.id} name={standing.player.name} />
                       {zoneLabel ? (
                         <span className={cn('league-zone-label', `league-zone-label--${standing.zone}`)}>{zoneLabel}</span>
+                      ) : null}
+                      {standing.prequalifiedComment ? (
+                        <span className="league-zone-reason">{standing.prequalifiedComment}</span>
                       ) : null}
                     </td>
                     {league.columns.map((column, index) => (

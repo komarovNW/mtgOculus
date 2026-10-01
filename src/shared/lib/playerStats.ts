@@ -132,7 +132,12 @@ export function getPlayerFavoriteFormat(matches: PlayerMatchItem[]): PlayerFavor
   >();
 
   matches.forEach((match) => {
-    if (match.kind === 'unknown' || (!match.kind && !match.opponent && !match.isBye)) {
+    if (
+      match.kind === 'unknown' ||
+      match.kind === 'bye' ||
+      match.isBye === true ||
+      (!match.kind && !match.opponent)
+    ) {
       return;
     }
 

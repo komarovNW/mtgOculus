@@ -92,10 +92,10 @@ describe('established player results', () => {
 
   it('does not show best place in the player spotlight or table', () => {
     const rating = getPlayerRating([
-      player('Player 1', 15, 55, 74.55),
-      player('Player 2', 30, 120, 65),
-      player('Player 3', 20, 80, 60),
-      player('Player 4', 10, 40, 55),
+      player('Player 1', 15, 100, 74.55),
+      player('Player 2', 30, 100, 65),
+      player('Player 3', 20, 100, 60),
+      player('Player 4', 10, 100, 55),
     ]);
 
     render(
@@ -113,5 +113,7 @@ describe('established player results', () => {
     expect(screen.getByText('Учитываем процент побед и количество матчей', { exact: false }))
       .toBeInTheDocument();
     expect(screen.getByText('Как считается рейтинг')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Рейтинг/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Процент побед/ })).toBeInTheDocument();
   });
 });

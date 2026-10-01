@@ -72,12 +72,17 @@ describe('league API', () => {
         { position: 1, key: 'tournamentPoints', label: 'Турнирные очки' },
       ],
       cutoffs: { qualify: 8, reserve: 10 },
+      prequalified: [{
+        player: { id: 32, name: 'Комаров Никита' },
+        comment: 'топ4 Store Champ 27.09',
+        leagueRank: 8,
+      }],
       tournaments: [{ id: 673, title: 'Daily', date: '2026-09-01', playersCount: 20 }],
       standings: [{
         leagueRank: 1, rank: 1, player: { id: 25, name: 'Игрок' }, tournamentPoints: 9,
         bonusPoints: 3, rulePoints: 3, manualBonusPoints: 0, droppedTournamentPoints: 0,
         tournamentsPlayed: 1, tournamentsCounted: 1, xZeroCount: 1, xOneCount: 0,
-        zone: 'qualify', breakdown: [],
+        zone: 'qualify', prequalifiedComment: null, breakdown: [],
         participations: [{ tournamentId: 673, tournamentTitle: 'Daily', date: '2026-09-01',
           tournamentPoints: 9, rulePoints: 3, manualBonusPoints: 0, bonusReason: '', counted: true }],
       }],
@@ -90,6 +95,7 @@ describe('league API', () => {
     expect(result.columns.map((column) => column.key)).toEqual(['tournamentPoints', 'xZeroCount']);
     expect(result.cutoffs).toEqual({ qualify: 8, reserve: 10 });
     expect(result.standings[0].zone).toBe('qualify');
+    expect(result.prequalified[0].player.id).toBe('32');
     expect(result.standings[0].player.id).toBe('25');
     expect(result.standings[0].participations[0].tournamentId).toBe('673');
   });

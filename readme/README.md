@@ -8,6 +8,9 @@
 
 ## Для всех участников
 
+- [MOBILE_OCULUS_HANDOFF.md](MOBILE_OCULUS_HANDOFF.md) — автономное описание
+  read-only раздела Magic Oculus для интеграции в мобильное приложение
+  MagicHelper; без матрицы матчапов, добавления событий и истории релизов.
 - [PROJECT_AUDIT.md](PROJECT_AUDIT.md) — аудит от 2026-09-05: ценность продукта,
   данные на экранах и реальные ограничения API; контекст для backend-задач.
 - [PRODUCT_ANALYTICS_GAP_AUDIT.md](PRODUCT_ANALYTICS_GAP_AUDIT.md) — актуальный

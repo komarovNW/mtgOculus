@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { getPlayerDetails } from '@/entities/player/api';
+import { getTournamentDetails } from '@/entities/tournament/api';
 import type {
   DashboardFilters,
   PlayerDeckItem,
+  PlayerDetailsResponse,
   PlayerMatchItem,
   PlayerTournamentItem,
 } from '@/shared/api/types';
@@ -250,6 +252,18 @@ const deckMatchupColumns: TableColumn<PlayerDeckMatchup>[] = [
 
 const PLAYER_MATCH_GROUP_PAGE_SIZE = 10;
 
+function getUndefeatedRecordRounds(record: string) {
+  const match = record.trim().match(/^(\d+)-(\d+)(?:-(\d+))?$/);
+
+  if (!match) return null;
+
+  const wins = Number(match[1]);
+  const losses = Number(match[2]);
+  const draws = Number(match[3] ?? 0);
+
+  return wins > 0 && losses === 0 && draws === 0 ? wins : null;
+}
+
 type PlayerDeckSort = 'matches' | 'winrate';
 
 const playerDeckSortOptions = [
@@ -421,6 +435,183 @@ function getMatchGroupPlayerDeck(matches: PlayerMatchItem[]) {
   return matches.find((match) => match.playerDeck)?.playerDeck;
 }
 
+const TOURNAMENT_PREVIEW_LIMIT = 5;
+
+function getTournamentDisplayTitle(item: PlayerTournamentItem) {
+  const formattedDate = formatDate(item.tournament.date);
+
+  return item.tournament.title.endsWith(` ${formattedDate}`)
+    ? item.tournament.title.slice(0, -formattedDate.length).trim()
+    : item.tournament.title;
+}
+
+function isUpperQuarterFinish(item: PlayerTournamentItem) {
+  return item.rank > 0 &&
+    item.rank <= Math.ceil(item.tournament.playersCount / 4);
+}
+
+type TournamentPerformanceProps = {
+  items: PlayerTournamentItem[];
+  isLoading?: boolean;
+};
+
+function TournamentPerformance({ items, isLoading = false }: TournamentPerformanceProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const sortedItems = [...items].sort(
+    (left, right) =>
+      right.tournament.date.localeCompare(left.tournament.date) ||
+      right.tournament.id.localeCompare(left.tournament.id),
+  );
+  const bestTournament = [...items].sort(
+    (left, right) =>
+      left.rank - right.rank ||
+      right.tournament.playersCount - left.tournament.playersCount ||
+      right.tournament.date.localeCompare(left.tournament.date),
+  )[0];
+  const strongFinishesCount = items.filter(isUpperQuarterFinish).length;
+  const winsCount = items.filter((item) => item.rank === 1).length;
+  const hasLongHistory = sortedItems.length >= 10;
+  const visibleItems = hasLongHistory && !isExpanded
+    ? sortedItems.slice(0, TOURNAMENT_PREVIEW_LIMIT)
+    : sortedItems;
+
+  return (
+    <section className="page-stack tournament-performance" aria-labelledby="tournament-performance-title">
+      <div className="section-header">
+        <div>
+          <h2 className="section-header__title" id="tournament-performance-title">
+            Выступления на турнирах
+          </h2>
+          <p className="section-header__description">
+            Итог каждого участия вместе с размером поля, колодой и результатом матчей.
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <Card className="tournament-performance__state" tone="muted">
+          Собираем историю турниров…
+        </Card>
+      ) : !bestTournament ? (
+        <Card className="tournament-performance__state" tone="muted">
+          С выбранными фильтрами у игрока пока нет турниров.
+        </Card>
+      ) : (
+        <>
+          <div className="tournament-performance__summary">
+            <Card className="tournament-performance__best" tone="accent">
+              <div className="tournament-performance__label">Лучшее выступление</div>
+              <div className="tournament-performance__place">
+                <strong>{bestTournament.rank} место</strong>
+                <span>из {bestTournament.tournament.playersCount}</span>
+              </div>
+              <div className="tournament-performance__event">
+                <EntityLink
+                  id={bestTournament.tournament.id}
+                  name={getTournamentDisplayTitle(bestTournament)}
+                  type="tournament"
+                />
+              </div>
+              <div className="tournament-performance__meta">
+                {formatDate(bestTournament.tournament.date)}
+                {bestTournament.deck ? (
+                  <>
+                    {' · '}
+                    <EntityLink
+                      colors={bestTournament.deck.colors}
+                      id={bestTournament.deck.id}
+                      name={bestTournament.deck.name}
+                      type="deck"
+                    />
+                  </>
+                ) : null}
+                {' · '}{bestTournament.record}
+              </div>
+            </Card>
+
+            <Card className="tournament-performance__metric">
+              <div className="tournament-performance__label">Участий</div>
+              <strong>{items.length}</strong>
+              <span>
+                {items.length < 10
+                  ? 'Вся история видна ниже'
+                  : `Последние ${TOURNAMENT_PREVIEW_LIMIT} — ниже`}
+              </span>
+            </Card>
+
+            <Card className="tournament-performance__metric">
+              <div className="tournament-performance__label">В верхней четверти</div>
+              <strong>{strongFinishesCount} из {items.length}</strong>
+              <span>
+                {winsCount > 0
+                  ? `Побед в турнирах: ${winsCount}`
+                  : 'Место сопоставлено с размером поля'}
+              </span>
+            </Card>
+          </div>
+
+          <Card className="tournament-performance__history">
+            <div className="tournament-performance__rows" role="list">
+              {visibleItems.map((item) => (
+                <article
+                  className={item.tournament.id === bestTournament.tournament.id
+                    ? 'tournament-performance__row tournament-performance__row--best'
+                    : 'tournament-performance__row'}
+                  key={item.tournament.id}
+                  role="listitem"
+                >
+                  <time dateTime={item.tournament.date}>
+                    {formatDate(item.tournament.date)}
+                  </time>
+                  <div className="tournament-performance__row-event">
+                    <EntityLink
+                      id={item.tournament.id}
+                      name={getTournamentDisplayTitle(item)}
+                      type="tournament"
+                    />
+                    <span>{item.tournament.playersCount} участников</span>
+                  </div>
+                  <div className="tournament-performance__row-deck">
+                    {item.deck ? (
+                      <EntityLink
+                        colors={item.deck.colors}
+                        id={item.deck.id}
+                        name={item.deck.name}
+                        type="deck"
+                      />
+                    ) : 'Колода не указана'}
+                  </div>
+                  <div className="tournament-performance__record" aria-label={`Результат матчей: ${item.record}`}>
+                    {item.record}
+                  </div>
+                  <div className="tournament-performance__rank">
+                    <strong>{item.rank} место</strong>
+                    <span>из {item.tournament.playersCount}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {hasLongHistory ? (
+              <div className="tournament-performance__actions">
+                <Button
+                  aria-expanded={isExpanded}
+                  onClick={() => setIsExpanded((value) => !value)}
+                  type="button"
+                  variant="ghost"
+                >
+                  {isExpanded
+                    ? 'Показать только последние'
+                    : `Показать все турниры (${items.length})`}
+                </Button>
+              </div>
+            ) : null}
+          </Card>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function PlayerDetailPage() {
   const { id = '' } = useParams();
   const [activeTab, setActiveTab] = useState('tournaments');
@@ -440,6 +631,39 @@ export function PlayerDetailPage() {
     enabled: Boolean(id),
     queryKey: ['player-detail', id, apiFilters],
     queryFn: ({ signal }) => getPlayerDetails(id, apiFilters, { signal }),
+  });
+  const splitStatsQueries = useQueries({
+    queries: filters.tournamentType === ''
+      ? (['daily', 'tournament'] as const).map((tournamentType) => ({
+          queryKey: ['player-detail', id, apiFilters, 'split-stats', tournamentType],
+          queryFn: ({ signal }: { signal: AbortSignal }) =>
+            getPlayerDetails(id, { ...apiFilters, tournamentType }, { signal }),
+          enabled: Boolean(id),
+        }))
+      : [],
+  });
+  const dailyStatsData = filters.tournamentType === 'daily'
+    ? playerQuery.data
+    : filters.tournamentType === ''
+      ? splitStatsQueries[0]?.data
+      : undefined;
+  const tournamentStatsData = filters.tournamentType === 'tournament'
+    ? playerQuery.data
+    : filters.tournamentType === ''
+      ? splitStatsQueries[1]?.data
+      : undefined;
+  const undefeatedDailyCandidates = dailyStatsData?.summary.undefeatedTopsCount == null
+    ? (dailyStatsData?.tournaments ?? []).filter((item) =>
+        item.tournament.type === 'daily' &&
+        getUndefeatedRecordRounds(item.record) !== null,
+      )
+    : [];
+  const undefeatedDailyQueries = useQueries({
+    queries: undefeatedDailyCandidates.map((item) => ({
+      queryKey: ['tournament-detail', item.tournament.id],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        getTournamentDetails(item.tournament.id, { signal }),
+    })),
   });
   const filterKey = JSON.stringify(apiFilters);
 
@@ -472,6 +696,20 @@ export function PlayerDetailPage() {
 
   const { player, summary } = playerQuery.data;
   const insights = getPlayerDetailInsights(playerQuery.data);
+  const undefeatedDailiesCount = dailyStatsData?.summary.undefeatedTopsCount ?? (
+    undefeatedDailyQueries.length > 0 &&
+    undefeatedDailyQueries.every((query) => query.isSuccess)
+      ? undefeatedDailyQueries.reduce((count, query, index) => {
+        const recordRounds = getUndefeatedRecordRounds(
+          undefeatedDailyCandidates[index].record,
+        );
+
+        return count + (
+          recordRounds === query.data?.tournament.roundsCount ? 1 : 0
+        );
+      }, 0)
+      : null
+  );
   const record = insights.realMatchRecord;
   const sortedTournaments = [...playerQuery.data.tournaments].sort(
     (left, right) =>
@@ -503,6 +741,63 @@ export function PlayerDetailPage() {
     0,
     visibleMatchGroupsCount,
   );
+  const isDailyView = filters.tournamentType === 'daily';
+  const isTournamentView = filters.tournamentType === 'tournament';
+  const tournamentParticipations = (tournamentStatsData?.tournaments ?? []).filter(
+    (item) => item.tournament.type === 'tournament',
+  );
+  function getMatchSummaryItems(data?: PlayerDetailsResponse) {
+    const scopedInsights = data ? getPlayerDetailInsights(data) : null;
+    const scopedRecord = scopedInsights?.realMatchRecord;
+
+    return [
+      {
+        title: 'Сыграно матчей',
+        value: scopedRecord?.matchesCount ?? '—',
+        subtitle: scopedRecord && scopedInsights
+          ? [
+              scopedRecord.byesCount > 0
+                ? `Ещё ${scopedRecord.byesCount} BYE показано отдельно`
+                : '',
+              scopedInsights.excludedMatchesCount > 0
+                ? `${scopedInsights.excludedMatchesCount} без результата`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' · ') || undefined
+          : undefined,
+      },
+      {
+        title: MATCH_RECORD_LABEL,
+        titleHint: MATCH_RECORD_HINT,
+        value: scopedRecord
+          ? formatRecord(scopedRecord.wins, scopedRecord.losses, scopedRecord.draws)
+          : '—',
+      },
+      {
+        title: WIN_RATE_LABEL,
+        titleHint: WIN_RATE_HINT,
+        value: scopedRecord ? formatPercent(scopedRecord.winRate) : '—',
+        subtitle: scopedInsights && !scopedInsights.isEstablished
+          ? 'Матчей пока мало'
+          : undefined,
+      },
+    ];
+  }
+  const dailySummaryItems = [
+    {
+      title: 'Дейликов',
+      value: dailyStatsData?.summary.tournamentsCount ?? '—',
+    },
+    {
+      title: 'Дейликов без поражений',
+      value: undefeatedDailiesCount ?? '—',
+      subtitle: undefeatedDailiesCount !== null
+        ? 'С выбранными фильтрами · сыграны все раунды без поражений и ничьих'
+        : 'Пока не удалось рассчитать',
+    },
+    ...getMatchSummaryItems(dailyStatsData),
+  ];
   const tournamentColumns = getTournamentColumns(filters.tournamentType);
   const deckColumns = getDeckColumns(filters.tournamentType);
   const eventLabels = filters.tournamentType === 'daily'
@@ -577,58 +872,31 @@ export function PlayerDetailPage() {
         onReset={resetFilters}
       />
 
-      {id === '64' ? (
-        <div className="recent-tournaments__empty-callout">
-          ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.
+      {filters.tournamentType === '' ? (
+        <div className="page-stack">
+          <SummaryCards
+            className="player-summary"
+            description="Регулярные события: активность, стабильность и результаты матчей."
+            title="Статистика на дейликах"
+            items={dailySummaryItems}
+          />
+          <TournamentPerformance
+            isLoading={!tournamentStatsData}
+            items={tournamentParticipations}
+          />
         </div>
-      ) : null}
-
-      <SummaryCards
-        className="player-summary"
-        description="В результат входят только сыгранные матчи. BYE и записи без результата показаны отдельно."
-        title="Общая статистика"
-        items={[
-          {
-            title: eventLabels.genitive[0].toUpperCase() + eventLabels.genitive.slice(1),
-            value: summary.tournamentsCount,
-          },
-          ...(summary.undefeatedTopsCount !== null && summary.undefeatedTopsCount !== undefined
-            ? [{
-                title: 'Топов без поражений',
-                value: summary.undefeatedTopsCount,
-                subtitle: 'Все раунды сыграны и выиграны',
-              }]
-            : []),
-          {
-            title: 'Сыграно матчей',
-            value: record?.matchesCount ?? '—',
-            subtitle:
-              [
-                record.byesCount > 0
-                  ? `Ещё ${record.byesCount} BYE показано отдельно`
-                  : '',
-                insights.excludedMatchesCount > 0
-                  ? `${insights.excludedMatchesCount} без результата`
-                  : '',
-              ]
-                .filter(Boolean)
-                .join(' · ') || undefined,
-          },
-          {
-            title: MATCH_RECORD_LABEL,
-            titleHint: MATCH_RECORD_HINT,
-            value: record
-              ? formatRecord(record.wins, record.losses, record.draws)
-              : '—',
-          },
-          {
-            title: WIN_RATE_LABEL,
-            titleHint: WIN_RATE_HINT,
-            value: record ? formatPercent(record.winRate) : '—',
-            subtitle: insights.isEstablished ? undefined : 'Матчей пока мало',
-          },
-        ]}
-      />
+      ) : isDailyView ? (
+        <SummaryCards
+          className="player-summary"
+          description="В результат входят только сыгранные матчи. BYE и записи без результата показаны отдельно."
+          title="Статистика на дейликах"
+          items={dailySummaryItems}
+        />
+      ) : (
+        <TournamentPerformance
+          items={tournamentParticipations}
+        />
+      )}
 
       <RelationshipHighlights
         title="Главное о колодах"
@@ -648,11 +916,13 @@ export function PlayerDetailPage() {
         ]}
       />
 
-      <PlayerHistoryChart
-        eventsLabel={eventLabels.genitive}
-        isComplete={insights.isMatchHistoryComplete}
-        items={insights.monthlyActivity}
-      />
+      {!isTournamentView ? (
+        <PlayerHistoryChart
+          eventsLabel={eventLabels.genitive}
+          isComplete={insights.isMatchHistoryComplete}
+          items={insights.monthlyActivity}
+        />
+      ) : null}
 
       <Tabs
         activeId={activeTab}
@@ -683,32 +953,36 @@ export function PlayerDetailPage() {
             <div>
               <h2 className="section-header__title">{eventLabels.plural} игрока</h2>
               <p className="section-header__description">
-                Место показано вместе с числом участников {eventLabels.singularGenitive}.
+                {isTournamentView
+                  ? 'Полная история турниров: место, размер поля, колода и результат каждого участия.'
+                  : `Место показано вместе с числом участников ${eventLabels.singularGenitive}.`}
               </p>
             </div>
           </div>
           <Table
             columns={tournamentColumns}
-            data={visibleTournaments}
-            isPartial={visibleTournaments.length < sortedTournaments.length}
+            data={isTournamentView ? sortedTournaments : visibleTournaments}
+            isPartial={!isTournamentView && visibleTournaments.length < sortedTournaments.length}
             defaultSort={{ columnId: 'date', direction: 'desc' }}
             emptyMessage={`С этими фильтрами пока нет ${eventLabels.genitive} этого игрока.`}
             getRowKey={(row) => row.tournament.id}
             layout="fixed"
             minWidth={760}
           />
-          <LoadMorePagination
-            hasMore={
-              visibleTournaments.length <
-              playerQuery.data.tournaments.length
-            }
-            isLoading={false}
-            loadedCount={visibleTournaments.length}
-            onLoadMore={() =>
-              setVisibleTournamentsCount((count) => count + LIST_PAGE_SIZE)
-            }
-            totalCount={playerQuery.data.tournaments.length}
-          />
+          {!isTournamentView ? (
+            <LoadMorePagination
+              hasMore={
+                visibleTournaments.length <
+                playerQuery.data.tournaments.length
+              }
+              isLoading={false}
+              loadedCount={visibleTournaments.length}
+              onLoadMore={() =>
+                setVisibleTournamentsCount((count) => count + LIST_PAGE_SIZE)
+              }
+              totalCount={playerQuery.data.tournaments.length}
+            />
+          ) : null}
         </Card>
       ) : null}
 

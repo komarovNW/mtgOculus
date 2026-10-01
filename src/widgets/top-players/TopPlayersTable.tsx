@@ -76,18 +76,21 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
     sortValue: (row) => getRecordSortValue(row.playedWins, row.matchLosses, row.matchDraws),
   },
   {
-    id: 'winrate',
+    id: 'rating',
     header: 'Рейтинг',
     align: 'center',
     headerTitle: 'Скорректированный процент побед: учитывает результат игрока и количество сыгранных матчей.',
     defaultSortDirection: 'desc',
-    render: (row) => (
-      <div className="stacked-cell stacked-cell--compact stacked-cell--end">
-        <strong>{formatPercent(row.adjustedWinRate)}</strong>
-        <span className="muted-text">Побед: {formatPercent(row.rawWinRate)}</span>
-      </div>
-    ),
+    render: (row) => <strong>{formatPercent(row.adjustedWinRate)}</strong>,
     sortValue: (row) => row.adjustedWinRate,
+  },
+  {
+    id: 'winrate',
+    header: 'Процент побед',
+    align: 'center',
+    defaultSortDirection: 'desc',
+    render: (row) => <strong>{formatPercent(row.rawWinRate)}</strong>,
+    sortValue: (row) => row.rawWinRate,
   },
   {
     id: 'deck',
@@ -148,18 +151,21 @@ const compactColumns: TableColumn<RankedTopPlayerItem>[] = [
     sortValue: (row) => row.playedMatchesCount,
   },
   {
-    id: 'winrate',
+    id: 'rating',
     header: 'Рейтинг',
     align: 'center',
     headerTitle: 'Скорректированный процент побед: учитывает результат игрока и количество сыгранных матчей.',
     defaultSortDirection: 'desc',
-    render: (row) => (
-      <div className="stacked-cell stacked-cell--compact stacked-cell--end">
-        <strong>{formatPercent(row.adjustedWinRate)}</strong>
-        <span className="muted-text">Побед: {formatPercent(row.rawWinRate)}</span>
-      </div>
-    ),
+    render: (row) => <strong>{formatPercent(row.adjustedWinRate)}</strong>,
     sortValue: (row) => row.adjustedWinRate,
+  },
+  {
+    id: 'winrate',
+    header: 'Процент побед',
+    align: 'center',
+    defaultSortDirection: 'desc',
+    render: (row) => <strong>{formatPercent(row.rawWinRate)}</strong>,
+    sortValue: (row) => row.rawWinRate,
   },
   {
     id: 'deck',

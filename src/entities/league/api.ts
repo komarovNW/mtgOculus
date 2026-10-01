@@ -17,9 +17,12 @@ type BackendLeagueListResponse = {
   appliedFilters?: AppliedFilters;
 };
 
-type BackendLeagueDetails = Omit<LeagueDetails, 'id' | 'club' | 'tournaments' | 'standings'> & {
+type BackendLeagueDetails = Omit<LeagueDetails, 'id' | 'club' | 'prequalified' | 'tournaments' | 'standings'> & {
   id: string | number;
   club: { id: string; name: string; cityId?: string };
+  prequalified: Array<Omit<LeagueDetails['prequalified'][number], 'player'> & {
+    player: { id: string | number; name: string };
+  }>;
   tournaments: Array<Omit<LeagueDetails['tournaments'][number], 'id'> & { id: string | number }>;
   standings: Array<Omit<LeagueDetails['standings'][number], 'player' | 'participations'> & {
     player: { id: string | number; name: string };
@@ -101,6 +104,10 @@ export function getLeagueDetails(id: string, sort: LeagueSortField[] = [], optio
     bestTournamentsCount: response.bestTournamentsCount ?? null,
     columns: [...response.columns].sort((left, right) => left.position - right.position),
     cutoffs: response.cutoffs ?? {},
+    prequalified: (response.prequalified ?? []).map((entry) => ({
+      ...entry,
+      player: { ...entry.player, id: String(entry.player.id) },
+    })),
     tournaments: response.tournaments.map((tournament) => ({
       ...tournament,
       id: String(tournament.id),

@@ -3,12 +3,17 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPlayerDetails } from '@/entities/player/api';
+import { getTournamentDetails } from '@/entities/tournament/api';
 import { PlayerDetailPage } from '@/pages/player-detail/PlayerDetailPage';
 import type { PlayerDetailsResponse } from '@/shared/api/types';
 import { TestProviders } from '@/test/test-utils';
 
 vi.mock('@/entities/player/api', () => ({
   getPlayerDetails: vi.fn(),
+}));
+
+vi.mock('@/entities/tournament/api', () => ({
+  getTournamentDetails: vi.fn(),
 }));
 
 vi.mock('@/entities/dictionaries/api', () => ({
@@ -149,6 +154,9 @@ const details: PlayerDetailsResponse = {
 describe('PlayerDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getTournamentDetails).mockResolvedValue({
+      tournament: { roundsCount: 2 },
+    } as never);
   });
 
   it('shows honest real-match statistics and simplified tables', async () => {
@@ -184,8 +192,9 @@ describe('PlayerDetailPage', () => {
     expect(screen.getByText('Дейликов')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Дейлик' })).toBeInTheDocument();
-    expect(screen.getByText('Топов без поражений')).toBeInTheDocument();
-    expect(screen.getByText('Все раунды сыграны и выиграны')).toBeInTheDocument();
+    expect(screen.getByText('Дейликов без поражений')).toBeInTheDocument();
+    expect(screen.getByText('С выбранными фильтрами · сыграны все раунды без поражений и ничьих')).toBeInTheDocument();
+    expect(getTournamentDetails).not.toHaveBeenCalled();
     expect(screen.getByText('Ещё 1 BYE показано отдельно')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Изменить фильтры' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Активность по месяцам' }))
@@ -239,14 +248,25 @@ describe('PlayerDetailPage', () => {
     expect(screen.getAllByText('BYE').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows the tournament reminder only on Vitaly Krutov player page', async () => {
+  it('shows tournament-focused results and hides the activity chart', async () => {
     vi.mocked(getPlayerDetails).mockResolvedValue({
       ...details,
-      player: { id: '64', name: 'Крутов Виталий' },
+      appliedFilters: {
+        ...details.appliedFilters,
+        tournamentType: 'tournament',
+      },
+      tournaments: details.tournaments.map((item) => ({
+        ...item,
+        tournament: { ...item.tournament, type: 'tournament' as const },
+      })),
+      recentMatches: details.recentMatches?.map((item) => ({
+        ...item,
+        tournament: { ...item.tournament, type: 'tournament' as const },
+      })),
     });
 
     render(
-      <TestProviders initialEntry="/players/64">
+      <TestProviders initialEntry="/players/3?tournamentType=tournament">
         <Routes>
           <Route element={<PlayerDetailPage />} path="/players/:id" />
         </Routes>
@@ -254,14 +274,67 @@ describe('PlayerDetailPage', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { name: 'Крутов Виталий' }),
+      await screen.findByRole('heading', { name: 'Тестовый игрок' }),
     ).toBeInTheDocument();
-    const reminder = screen.getByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.');
-    const summary = screen.getByRole('heading', { name: 'Общая статистика' });
+    expect(screen.getByRole('heading', { name: 'Выступления на турнирах' })).toBeInTheDocument();
+    expect(screen.getByText('Лучшее выступление')).toBeInTheDocument();
+    expect(screen.getByText('Участий')).toBeInTheDocument();
+    expect(screen.getByText('В верхней четверти')).toBeInTheDocument();
+    expect(screen.getByText('2 из 2')).toBeInTheDocument();
+    expect(screen.getByText('Побед в турнирах: 1')).toBeInTheDocument();
+    expect(screen.getAllByText('1 место')).toHaveLength(2);
+    expect(screen.getAllByText('из 30')).toHaveLength(2);
+    expect(screen.getByText('Полная история турниров: место, размер поля, колода и результат каждого участия.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Активность по месяцам' })).not.toBeInTheDocument();
+    expect(screen.queryByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.')).not.toBeInTheDocument();
+    expect(getTournamentDetails).not.toHaveBeenCalled();
+  });
 
-    expect(reminder).toBeInTheDocument();
+  it('shows separate daily and tournament statistics when all event types are selected', async () => {
+    const tournamentDetails: PlayerDetailsResponse = {
+      ...details,
+      summary: { ...details.summary, tournamentsCount: 1 },
+      tournaments: [{
+        ...details.tournaments[1],
+        tournament: {
+          ...details.tournaments[1].tournament,
+          type: 'tournament',
+        },
+      }],
+    };
+
+    vi.mocked(getPlayerDetails).mockImplementation(async (_id, filters) => {
+      if (filters.tournamentType === 'tournament') return tournamentDetails;
+      return details;
+    });
+
+    render(
+      <TestProviders initialEntry="/players/3?cityId=&formatId=">
+        <Routes>
+          <Route element={<PlayerDetailPage />} path="/players/:id" />
+        </Routes>
+      </TestProviders>,
+    );
+
     expect(
-      reminder.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      await screen.findByRole('heading', { name: 'Статистика на дейликах' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Выступления на турнирах' })).toBeInTheDocument();
+    expect(screen.getAllByText('Сыграно матчей')).toHaveLength(1);
+    expect(screen.getByText('Участий')).toBeInTheDocument();
+    expect(screen.getByText('Дейликов')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getPlayerDetails).toHaveBeenCalledWith(
+        '3',
+        expect.objectContaining({ tournamentType: 'daily' }),
+        { signal: expect.any(AbortSignal) },
+      );
+      expect(getPlayerDetails).toHaveBeenCalledWith(
+        '3',
+        expect.objectContaining({ tournamentType: 'tournament' }),
+        { signal: expect.any(AbortSignal) },
+      );
+    });
   });
 });
