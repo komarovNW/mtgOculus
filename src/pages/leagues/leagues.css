@@ -157,8 +157,12 @@
   background: var(--accent-soft);
 }
 
-.league-table__row--qualify:not(.league-table__row--expanded) {
+.league-table__row--prequalified:not(.league-table__row--expanded) {
   background: color-mix(in srgb, var(--card-success) 72%, transparent);
+}
+
+.league-table__row--qualify:not(.league-table__row--expanded) {
+  background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
 }
 
 .league-table__row--reserve:not(.league-table__row--expanded) {
@@ -184,10 +188,16 @@
   padding: 4px 8px;
 }
 
-.league-zone-label--qualify,
-.league-zone-legend__item--qualify {
+.league-zone-label--prequalified,
+.league-zone-legend__item--prequalified {
   background: var(--card-success);
   color: var(--text);
+}
+
+.league-zone-label--qualify,
+.league-zone-legend__item--qualify {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .league-zone-label--reserve,
@@ -205,6 +215,12 @@
 
 .league-zone-legend__item {
   padding: 7px 10px;
+}
+
+.league-zone-reason {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 
 .league-table__details-row > td {

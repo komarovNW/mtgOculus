@@ -92,7 +92,7 @@ export type LeagueCutoffs = {
   reserve?: number;
 };
 
-export type LeagueStandingZone = 'qualify' | 'reserve' | null;
+export type LeagueStandingZone = 'prequalified' | 'qualify' | 'reserve' | null;
 
 export type LeagueListItem = {
   id: string;
@@ -167,8 +167,15 @@ export type LeagueStanding = {
   xZeroCount: number;
   xOneCount: number;
   zone: LeagueStandingZone;
+  prequalifiedComment: string | null;
   breakdown: LeagueRuleBreakdown[];
   participations: LeagueParticipation[];
+};
+
+export type LeaguePrequalifiedPlayer = {
+  player: PlayerShort;
+  comment: string;
+  leagueRank: number | null;
 };
 
 export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCount'> & {
@@ -176,6 +183,7 @@ export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCo
   cutoffs: LeagueCutoffs;
   rules: LeagueRule[];
   tournaments: LeagueTournament[];
+  prequalified: LeaguePrequalifiedPlayer[];
   standings: LeagueStanding[];
 };
 

@@ -112,4 +112,20 @@ describe('player stats calculated from matches', () => {
       tournamentsCount: 2,
     });
   });
+
+  it('does not count BYE as a match when choosing a favorite format', () => {
+    const bye = createMatch({ opponentId: 'bye', result: 'win', tournamentId: 'legacy-1' });
+    bye.opponent = undefined;
+    bye.isBye = true;
+    bye.kind = 'bye';
+
+    expect(getPlayerFavoriteFormat([
+      bye,
+      createMatch({ opponentId: 'a', result: 'win', tournamentId: 'legacy-1' }),
+    ])).toEqual({
+      format: { id: 'legacy', name: 'Legacy' },
+      matchesCount: 1,
+      tournamentsCount: 1,
+    });
+  });
 });
