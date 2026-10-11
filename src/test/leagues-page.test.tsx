@@ -27,6 +27,7 @@ const listResponse: LeagueListResponse = {
 
 const details: LeagueDetails = {
   ...listResponse.items[0],
+  club: { id: 'test-club', name: 'Тестовый клуб', cityId: 'moscow' },
   columns: [
     { position: 1, key: 'tournamentPoints', label: 'Турнирные очки' },
     { position: 2, key: 'xZeroCount', label: 'Все матчи выиграны' },
@@ -78,9 +79,12 @@ describe('LeaguesPage', () => {
     const table = screen.getByRole('table');
     expect(within(table).getByRole('columnheader', { name: 'Место' })).toBeInTheDocument();
     expect(within(table).getByRole('columnheader', { name: 'Турнирные очки' })).toBeInTheDocument();
-    expect(within(table).getByRole('columnheader', { name: 'Все матчи выиграны' })).toBeInTheDocument();
-    expect(within(table).queryByRole('columnheader', { name: 'Бонусные очки' })).not.toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: 'Все матчи выиграны' })).not.toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: 'Бонусные очки' })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: 'Посещения' })).toBeInTheDocument();
     expect(within(table).getByRole('link', { name: 'Федулов Ринат' })).toHaveAttribute('href', '/players/25');
+    expect(within(table).queryByText('В проходной зоне')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Отбор в финал' }));
     expect(within(table).getByText('В проходной зоне')).toBeInTheDocument();
     expect(screen.getByText('Проходная зона: 1 место по итогам лиги')).toBeInTheDocument();
     expect(screen.getByText('Резервная зона: до 2 мест по таблице')).toBeInTheDocument();
@@ -109,9 +113,91 @@ describe('LeaguesPage', () => {
     setup('/leagues/1');
 
     const table = await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Отбор в финал' }));
     expect(within(table).getByText('Прошёл')).toBeInTheDocument();
     expect(within(table).getByText('топ4 Store Champ 27.09')).toBeInTheDocument();
     expect(screen.getByText('Уже прошли')).toBeInTheDocument();
+  });
+
+  it('searches statistics without changing official places and keeps zero totals visible', async () => {
+    vi.mocked(getLeagueDetails).mockResolvedValue({
+      ...details,
+      bonusPointsLabel: 'Podval Points',
+      standings: [...details.standings, {
+        ...details.standings[0], player: { id: '99', name: 'Тестовый участник' },
+        leagueRank: 17, bonusPoints: 0, zone: null,
+      }],
+    });
+    setup();
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox', { name: 'Найти игрока' }), 'ТЕСТОВЫЙ');
+    expect(within(table).queryByRole('link', { name: 'Федулов Ринат' })).not.toBeInTheDocument();
+    expect(within(table).getByText('17')).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: 'Podval Points' })).toBeInTheDocument();
+    const row = within(table).getAllByRole('row')[1];
+    expect(within(row).getAllByRole('cell')[3]).toHaveTextContent('0');
+    await user.click(within(row).getByRole('button', { name: 'Подробнее' }));
+    expect(within(table).queryByText('Турниров в зачёте')).not.toBeInTheDocument();
+    expect(within(table).getByText('Турниров X−1 / X−0−1')).toBeInTheDocument();
+    await user.type(screen.getByRole('searchbox'), ' нет совпадений');
+    expect(within(table).getByText('Игроки не найдены.')).toBeInTheDocument();
+    await user.clear(screen.getByRole('searchbox'));
+    expect(within(table).getByRole('link', { name: 'Федулов Ринат' })).toBeInTheDocument();
+  });
+
+  it('does not infer exclusion from an empty zone and shows qualifiers without daily results', async () => {
+    vi.mocked(getLeagueDetails).mockResolvedValue({
+      ...details,
+      standings: [{ ...details.standings[0], zone: null }],
+      prequalified: [{ player: { id: '99', name: 'Тестовый финалист' }, comment: 'Топ-4 Store Championship', leagueRank: null }],
+    });
+    setup();
+    await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Отбор в финал' }));
+    expect(screen.getByText('Статус отбора не опубликован')).toBeInTheDocument();
+    expect(screen.queryByText('Пока не проходит')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Тестовый финалист' })).toBeInTheDocument();
+  });
+
+  it('uses the server qualification assessment independently of the overall rank and zone', async () => {
+    vi.mocked(getLeagueDetails).mockResolvedValue({
+      ...details,
+      qualification: {
+        totalSlots: 16,
+        groups: [{ key: 'bonus', label: 'Podval Points', slots: 3, description: 'После отбора по очкам лиги', entries: [{ player: details.standings[0].player, status: 'provisional', reason: '2-е из 3 мест' }] }],
+      },
+      standings: [{
+        ...details.standings[0], leagueRank: 17, zone: null,
+        qualification: { status: 'provisional', reason: 'По Podval Points', paths: [{ label: 'Podval Points', description: '2-е из 3 мест' }] },
+      }],
+    });
+    setup();
+    const table = await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Отбор в финал' }));
+    expect(screen.getByRole('heading', { name: 'Отбор в финал · 16 мест' })).toBeInTheDocument();
+    expect(within(table).getByText('Проходит сейчас')).toBeInTheDocument();
+    expect(within(table).getByText('По Podval Points')).toBeInTheDocument();
+    expect(within(table).queryByText('Положение в отборе')).not.toBeInTheDocument();
+    await userEvent.click(within(table).getByRole('button', { name: 'Подробнее' }));
+    expect(within(table).getByText('Положение в отборе')).toBeInTheDocument();
+    expect(within(table).getByText('17')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Очки и статистика' }));
+    expect(screen.queryByText('Проходит сейчас')).not.toBeInTheDocument();
+  });
+
+  it('calculates Portal autumn places from existing statistics without new backend fields', async () => {
+    vi.mocked(getLeagueDetails).mockResolvedValue({
+      ...details, club: listResponse.items[0].club,
+      prequalified: [{ player: { id: '99', name: 'Тестовый финалист' }, comment: 'Топ-4 сентябрьского Store Championship', leagueRank: null }],
+    });
+    setup();
+    const table = await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Отбор в финал' }));
+    expect(screen.getByRole('heading', { name: 'Отбор в финал · 16 мест' })).toBeInTheDocument();
+    expect(within(table).getByText('Проходит сейчас')).toBeInTheDocument();
+    expect(within(table).getByText('Проходит по категории «Очки лиги».')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Тестовый финалист' })).toBeInTheDocument();
   });
 
   it('uses the official league order without client-side sorting controls', async () => {

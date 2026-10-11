@@ -9,11 +9,12 @@ describe('ChangelogPage', () => {
     render(<ChangelogPage />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Что нового' })).toBeInTheDocument();
+    expect(screen.getByText('v0.3.2')).toBeInTheDocument();
     expect(screen.getByText('v0.3.1')).toBeInTheDocument();
     expect(screen.getByText('v0.3.0')).toBeInTheDocument();
     expect(screen.getByText('v0.2.1')).toBeInTheDocument();
     expect(screen.getByText('v0.2.0')).toBeInTheDocument();
-    expect(screen.getAllByText('Выпущено')).toHaveLength(5);
+    expect(screen.getAllByText('Выпущено')).toHaveLength(6);
     expect(screen.getByText('v0.1.0')).toBeInTheDocument();
     expect(screen.getByText('Первый публичный релиз')).toBeInTheDocument();
   });
