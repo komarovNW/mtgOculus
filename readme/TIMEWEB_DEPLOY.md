@@ -90,8 +90,12 @@ git@github.com:komarovNW/mtgOculus.git
 ### Текущий рабочий вариант
 
 ```env
-VITE_API_BASE_URL=https://your-api-domain/api/v1
+VITE_API_BASE_URL=https://oculus.51-250-45-242.sslip.io/api/v1
 ```
+
+После смены backend обновите эту переменную в настройках приложения Timeweb
+и запустите новую сборку/deploy: Vite встраивает адрес API в JavaScript при сборке.
+Изменение `.env.local` влияет только на локальные сборки.
 
 ## Что проверить после деплоя
 

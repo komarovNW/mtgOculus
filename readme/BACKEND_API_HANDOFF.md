@@ -18,7 +18,7 @@ src/shared/api/backend-mappers.ts
 Frontend берёт API prefix из:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_API_BASE_URL=https://oculus.51-250-45-242.sslip.io/api/v1
 ```
 
 Все paths ниже указаны относительно этого prefix.
