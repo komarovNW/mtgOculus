@@ -90,19 +90,6 @@
   font-size: 1rem;
 }
 
-.league-overview__rules summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.league-overview__rules[open] summary {
-  margin-bottom: 12px;
-}
-
-.league-player-paths {
-  margin: 20px 0;
-}
-
 .league-overview__rules ul,
 .league-breakdown,
 .league-participations {
@@ -139,70 +126,6 @@
 
 .league-table {
   min-width: 840px;
-}
-
-.league-table-controls {
-  display: grid;
-  grid-template-columns: 1fr minmax(200px, 320px);
-  align-items: end;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.league-view-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.league-qualification-groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  gap: 20px;
-}
-
-.league-qualification-groups h3 {
-  margin: 0;
-}
-
-.league-finalists {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.league-finalists li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.league-finalists li > span:not(.badge):last-child {
-  flex-basis: 100%;
-  color: var(--muted);
-}
-
-.league-player-totals {
-  margin: 0 0 20px;
-}
-
-.league-player-totals > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 6px 0;
-}
-
-.league-player-totals dd {
-  margin: 0;
-  font-weight: 700;
-}
-
-.league-table__qualification-column {
-  width: 260px;
 }
 
 .league-standings-card {
@@ -381,10 +304,6 @@
 }
 
 @media (max-width: 820px) {
-  .league-table-controls {
-    grid-template-columns: 1fr;
-  }
-
   .league-overview__stats,
   .league-overview__rules ul,
   .league-standing-details {

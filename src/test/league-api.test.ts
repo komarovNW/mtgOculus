@@ -72,11 +72,6 @@ describe('league API', () => {
         { position: 1, key: 'tournamentPoints', label: 'Турнирные очки' },
       ],
       cutoffs: { qualify: 8, reserve: 10 },
-      bonusPointsLabel: 'Podval Points',
-      qualification: {
-        totalSlots: 16,
-        groups: [{ key: 'store', label: 'Store Championship', slots: 4, description: 'Места обеспечены', entries: [{ player: { id: 999, name: 'Тестовый игрок' }, status: 'confirmed', reason: 'Топ-4' }] }],
-      },
       prequalified: [{
         player: { id: 32, name: 'Комаров Никита' },
         comment: 'топ4 Store Champ 27.09',
@@ -99,8 +94,6 @@ describe('league API', () => {
     expect(url.searchParams.get('sort')).toBe('bonusPoints,tournamentPoints');
     expect(result.columns.map((column) => column.key)).toEqual(['tournamentPoints', 'xZeroCount']);
     expect(result.cutoffs).toEqual({ qualify: 8, reserve: 10 });
-    expect(result.bonusPointsLabel).toBe('Podval Points');
-    expect(result.qualification?.groups[0].entries[0].player.id).toBe('999');
     expect(result.standings[0].zone).toBe('qualify');
     expect(result.prequalified[0].player.id).toBe('32');
     expect(result.standings[0].player.id).toBe('25');

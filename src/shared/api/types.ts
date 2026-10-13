@@ -170,14 +170,6 @@ export type LeagueStanding = {
   prequalifiedComment: string | null;
   breakdown: LeagueRuleBreakdown[];
   participations: LeagueParticipation[];
-  qualification?: {
-    status: 'confirmed' | 'provisional' | 'outside' | 'unresolved';
-    reason: string;
-    paths: Array<{
-      label: string;
-      description: string;
-    }>;
-  };
 };
 
 export type LeaguePrequalifiedPlayer = {
@@ -187,21 +179,6 @@ export type LeaguePrequalifiedPlayer = {
 };
 
 export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCount'> & {
-  bonusPointsLabel?: string;
-  qualification?: {
-    totalSlots: number;
-    groups: Array<{
-      key: string;
-      label: string;
-      slots: number;
-      description: string;
-      entries: Array<{
-        player: PlayerShort;
-        status: 'confirmed' | 'provisional';
-        reason: string;
-      }>;
-    }>;
-  };
   columns: LeagueColumn[];
   cutoffs: LeagueCutoffs;
   rules: LeagueRule[];

@@ -104,16 +104,6 @@ export function getLeagueDetails(id: string, sort: LeagueSortField[] = [], optio
     bestTournamentsCount: response.bestTournamentsCount ?? null,
     columns: [...response.columns].sort((left, right) => left.position - right.position),
     cutoffs: response.cutoffs ?? {},
-    qualification: response.qualification ? {
-      ...response.qualification,
-      groups: response.qualification.groups.map((group) => ({
-        ...group,
-        entries: group.entries.map((entry) => ({
-          ...entry,
-          player: { ...entry.player, id: String(entry.player.id) },
-        })),
-      })),
-    } : undefined,
     prequalified: (response.prequalified ?? []).map((entry) => ({
       ...entry,
       player: { ...entry.player, id: String(entry.player.id) },

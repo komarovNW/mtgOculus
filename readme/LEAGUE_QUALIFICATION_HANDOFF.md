@@ -1,5 +1,41 @@
 # Статистика и отбор в финал лиги
 
+## Отложено до разработки backend
+
+13.10.2026: экран лиги возвращён к версии до обновления `525609c`.
+Описанная ниже реализация сохранена в локальной ветке
+`archive/league-statistics-for-backend` (коммит `525609c20a49c661925592aadcdbf693303aece4`).
+В текущем приложении нет новых режимов статистики, расчёта отбора и демо-маршрута.
+Ниже сохранены требования, решения по регламенту и предлагаемый контракт API
+для будущей совместной работы над frontend и backend.
+
+Для восстановления только реализации и её тестов (без отката адреса API,
+версии приложения и других изменений) из корня репозитория:
+
+```bash
+git restore --source=archive/league-statistics-for-backend --worktree -- \
+  src/app/router/router.tsx \
+  src/entities/league/api.ts \
+  src/entities/league/lib/qualification.ts \
+  src/pages/leagues/LeaguesPage.tsx \
+  src/pages/leagues/demo \
+  src/pages/leagues/leagues.css \
+  src/shared/api/types.ts \
+  src/test/league-api.test.ts \
+  src/test/league-demo.test.tsx \
+  src/test/league-qualification.test.ts \
+  src/test/leagues-page.test.tsx
+npm test
+npm run build
+```
+
+Команда восстанавливает файлы целиком: перед применением нужно сохранить
+текущую работу и сравнить последующие изменения общих файлов (router, API types).
+После восстановления согласовать контракт с backend и актуализировать документацию.
+Демо снова будет доступно в режиме разработки по `/leagues/demo`.
+
+## Сохранённое описание реализации
+
 Статус: для осенней лиги Портала распределение финальных мест рассчитывается
 на frontend из существующих `standings` и `prequalified`. Новые поля backend
 не обязательны. Чистая функция: `src/entities/league/lib/qualification.ts`.
