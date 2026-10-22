@@ -118,7 +118,7 @@ function getTournamentColumns(
     header: 'Итог',
     align: 'center',
     defaultSortDirection: 'asc',
-    render: (row) => <div className="stacked-cell"><span>{row.rank > 0 ? `${row.rank} из ${row.tournament.playersCount}` : '—'}</span>{row.swissRank != null ? <small className="muted-text">Швейцарка: {row.swissRank}</small> : null}</div>,
+    render: (row) => <div className="stacked-cell stacked-cell--center"><span>{row.rank > 0 ? `${row.rank} из ${row.tournament.playersCount}` : '—'}</span>{row.swissRank != null ? <small className="muted-text">Швейцарка: {row.swissRank}</small> : null}</div>,
     sortValue: (row) => row.rank / Math.max(1, row.tournament.playersCount),
   },
   ];
@@ -614,9 +614,7 @@ export function PlayerDetailPage() {
     {
       title: 'Дейликов без поражений',
       value: undefeatedDailiesCount ?? '—',
-      subtitle: undefeatedDailiesCount !== null
-        ? 'С выбранными фильтрами · сыграны все раунды без поражений и ничьих'
-        : 'Пока не удалось рассчитать',
+      subtitle: undefeatedDailiesCount === null ? 'Пока не удалось рассчитать' : undefined,
     },
     ...getMatchSummaryItems(dailyStatsData),
   ];

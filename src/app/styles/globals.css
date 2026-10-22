@@ -1920,7 +1920,8 @@ textarea {
 .tournament-performance__metric {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12px;
 }
 
 .tournament-performance__metric > strong {
@@ -2216,6 +2217,11 @@ textarea {
 .stacked-cell--end {
   align-items: flex-end;
   text-align: right;
+}
+
+.stacked-cell--center {
+  align-items: center;
+  text-align: center;
 }
 
 .stacked-cell--compact {

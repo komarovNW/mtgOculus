@@ -193,7 +193,7 @@ describe('PlayerDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Дейлик' })).toBeInTheDocument();
     expect(screen.getByText('Дейликов без поражений')).toBeInTheDocument();
-    expect(screen.getByText('С выбранными фильтрами · сыграны все раунды без поражений и ничьих')).toBeInTheDocument();
+    expect(screen.queryByText('С выбранными фильтрами · сыграны все раунды без поражений и ничьих')).not.toBeInTheDocument();
     expect(getTournamentDetails).not.toHaveBeenCalled();
     expect(screen.getByText('Ещё 1 BYE показано отдельно')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Изменить фильтры' })).toBeInTheDocument();

@@ -91,11 +91,6 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
             <Card className="tournament-performance__metric">
               <div className="tournament-performance__label">Участий</div>
               <strong>{achievements.count}</strong>
-              <span>
-                {items.length < 10
-                  ? 'Вся история видна ниже'
-                  : `Последние ${TOURNAMENT_PREVIEW_LIMIT} — ниже`}
-              </span>
             </Card>
 
             {[
@@ -105,7 +100,6 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
             ].map((metric) => <Card className="tournament-performance__metric" key={metric.label}>
               <div className="tournament-performance__label">{metric.label}</div>
               <strong>{metric.value}</strong>
-              <span>{metric.label === 'Победы' ? 'Первые места' : 'По итоговому месту, включая победы'}</span>
             </Card>)}
           </div>
 

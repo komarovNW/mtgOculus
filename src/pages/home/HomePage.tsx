@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDecks } from '@/entities/deck/api';
 import { getAllPlayers } from '@/entities/player/api';
-import { getHomeData } from '@/entities/tournament/api';
+import { getHomeData, getTournaments } from '@/entities/tournament/api';
 import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { getPlayerRating } from '@/shared/lib/establishedPlayers';
 import { useDashboardFilters } from '@/shared/lib/filters';
@@ -26,6 +26,16 @@ export function HomePage() {
   const homeQuery = useQuery({
     queryKey: ['home', apiFilters],
     queryFn: ({ signal }) => getHomeData(apiFilters, { signal }),
+  });
+  const recentTournamentsQuery = useQuery({
+    enabled: filters.tournamentType !== 'daily',
+    queryKey: ['home', 'recent-tournaments', apiFilters],
+    queryFn: ({ signal }) => getTournaments({
+      ...apiFilters,
+      tournamentType: 'tournament',
+      page: 1,
+      limit: 5,
+    }, { signal }),
   });
   const establishedPlayersQuery = useQuery({
     enabled: hasActiveFilters,
@@ -79,7 +89,9 @@ export function HomePage() {
       ? 'Когда появятся загруженные турниры, здесь покажем колоды, игроков и матчапы.'
       : 'Когда появятся загруженные дейлики или турниры, здесь покажем колоды, игроков и матчапы.';
   const recentDailies = homeQuery.data?.recentTournaments.filter((item) => item.type === 'daily') ?? [];
-  const recentTournaments = homeQuery.data?.recentTournaments.filter((item) => item.type === 'tournament') ?? [];
+  const recentTournaments = recentTournamentsQuery.data?.items
+    ?? homeQuery.data?.recentTournaments.filter((item) => item.type === 'tournament')
+    ?? [];
   const deckFormatById = new Map(
     (deckFormatsQuery.data?.items ?? []).map((item) => [item.deck.id, item.format]),
   );

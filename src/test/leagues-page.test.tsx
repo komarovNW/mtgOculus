@@ -45,7 +45,7 @@ const details: LeagueDetails = {
       slots: 2,
       seats: [
         { player: { id: '5', name: 'Эрлангер Александр' }, comment: null },
-        { player: null, comment: null },
+        { player: { id: '25', name: 'Федулов Ринат' }, comment: 'Топ-2 Store Championship' },
       ],
     },
   ],
@@ -95,7 +95,12 @@ describe('LeaguesPage', () => {
     expect(within(table).getByRole('columnheader', { name: 'Все матчи выиграны' })).toBeInTheDocument();
     expect(within(table).queryByRole('columnheader', { name: 'Бонусные очки' })).not.toBeInTheDocument();
     expect(within(table).getByRole('link', { name: 'Федулов Ринат' })).toHaveAttribute('href', '/players/25');
-    expect(screen.getByRole('heading', { name: 'Отбор в финал · 4 места' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Отбор в финал/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Прошли')).toBeInTheDocument();
+    expect(within(table).getByText('Прошёл')).toBeInTheDocument();
+    expect(within(table).getByText('Топ-2 Store Championship')).toBeInTheDocument();
+    expect(within(table).getByRole('link', { name: 'Федулов Ринат' }).closest('tr'))
+      .toHaveClass('league-table__row--qualified');
     expect(screen.queryByText(/Проходная зона/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Резервная зона/)).not.toBeInTheDocument();
     await user.click(within(table).getByRole('button', { name: 'Подробнее' }));
@@ -104,21 +109,40 @@ describe('LeaguesPage', () => {
     expect(within(table).getByText('В зачёте')).toBeInTheDocument();
   });
 
-  it('shows qualification blocks in backend order with occupied and TBA seats', async () => {
+  it('keeps qualification details out of a separate block', async () => {
     setup('/leagues/1');
 
-    expect(await screen.findByRole('heading', { name: 'Ручной отбор' })).toBeInTheDocument();
-    const blockHeadings = screen.getAllByRole('heading', { level: 3 });
-    expect(blockHeadings.map((heading) => heading.textContent)).toEqual(expect.arrayContaining([
-      'Бонусные очки',
-      'Ручной отбор',
-      'Сентябрьский Store Championship',
-    ]));
-    expect(screen.getByRole('link', { name: 'Иванов Иван' })).toHaveAttribute('href', '/players/7');
-    expect(screen.getByText(/Победитель весенней лиги/)).toBeInTheDocument();
-    expect(screen.getByText(/Лучший игрок котиками/)).toBeInTheDocument();
-    expect(screen.getAllByText('TBA')).toHaveLength(2);
-    expect(screen.queryByText('Уже прошли')).not.toBeInTheDocument();
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Ручной отбор' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Победитель весенней лиги/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Лучший игрок котиками/)).not.toBeInTheDocument();
+    expect(screen.queryByText('TBA')).not.toBeInTheDocument();
+  });
+
+  it('highlights the next four players and four reserves after qualified players', async () => {
+    const baseStanding = details.standings[0];
+    vi.mocked(getLeagueDetails).mockResolvedValue({
+      ...details,
+      standings: [
+        baseStanding,
+        ...Array.from({ length: 8 }, (_, index) => ({
+          ...baseStanding,
+          leagueRank: index + 2,
+          rank: index + 2,
+          player: { id: `candidate-${index + 1}`, name: `Кандидат ${index + 1}` },
+        })),
+      ],
+    });
+
+    setup('/leagues/1');
+
+    const table = await screen.findByRole('table');
+    expect(screen.getByText('Проходная зона')).toBeInTheDocument();
+    expect(screen.getByText('Резервная зона')).toBeInTheDocument();
+    expect(within(table).getByRole('link', { name: 'Кандидат 1' }).closest('tr'))
+      .toHaveClass('league-table__row--qualify');
+    expect(within(table).getByRole('link', { name: 'Кандидат 5' }).closest('tr'))
+      .toHaveClass('league-table__row--reserve');
   });
 
   it('uses the official league order without client-side sorting controls', async () => {

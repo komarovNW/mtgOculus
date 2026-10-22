@@ -23,75 +23,11 @@ function getStandingMetric(standing: LeagueStanding, column: LeagueColumn) {
   return typeof value === 'number' || typeof value === 'string' ? value : '—';
 }
 
-function formatPlacesCount(count: number) {
-  const modulo100 = count % 100;
-  const modulo10 = count % 10;
-  const unit = modulo100 >= 11 && modulo100 <= 14
-    ? 'мест'
-    : modulo10 === 1
-      ? 'место'
-      : modulo10 >= 2 && modulo10 <= 4
-        ? 'места'
-        : 'мест';
-
-  return `${count} ${unit}`;
-}
-
-function LeagueQualification({ league }: { league: LeagueDetails }) {
-  const slotsCount = league.qualification.reduce((sum, block) => sum + block.slots, 0);
-
-  return (
-    <Card className="league-qualification-card">
-      <div className="section-header">
-        <div>
-          <h2 className="section-header__title">
-            Отбор в финал · {formatPlacesCount(slotsCount)}
-          </h2>
-          <p className="section-header__description">
-            Места распределяются по правилам в порядке, заданном организатором.
-          </p>
-        </div>
-      </div>
-      {league.qualification.length ? (
-        <div className="league-qualification">
-          {league.qualification.map((block, blockIndex) => (
-            <section
-              className="league-qualification__block"
-              key={`${block.title ?? 'tba'}-${blockIndex}`}
-            >
-              <div className="league-qualification__heading">
-                <h3>{block.title ?? 'TBA'}</h3>
-                <Badge>{formatPlacesCount(block.slots)}</Badge>
-              </div>
-              <ol className="league-qualification__seats">
-                {block.seats.map((seat, seatIndex) => (
-                  <li key={`${seat.player?.id ?? 'tba'}-${seatIndex}`}>
-                    <span className="league-qualification__place">{seatIndex + 1}</span>
-                    <div>
-                      {seat.player ? (
-                        <EntityLink
-                          id={seat.player.id}
-                          name={seat.player.name}
-                          type="player"
-                        />
-                      ) : (
-                        <strong className="league-qualification__tba">TBA</strong>
-                      )}
-                      {seat.comment ? (
-                        <span className="league-qualification__comment"> — {seat.comment}</span>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <p className="muted-text">Правила отбора в финал пока не заданы.</p>
-      )}
-    </Card>
-  );
+function hasPortalAutumnZones(league: LeagueDetails) {
+  return /портал|portal/iu.test(league.club.name)
+    && /осенн/iu.test(league.name)
+    && league.dateStart.slice(5, 10) === '09-01'
+    && league.dateEnd.slice(5, 7) === '11';
 }
 
 function LeagueOverview({ league }: { league: LeagueDetails }) {
@@ -190,6 +126,17 @@ function LeagueStandings({
 }) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const tableColumnCount = league.columns.length + 3;
+  const qualifiedPlayers = new Map(
+    league.qualification.flatMap((block) => block.seats.flatMap((seat) => (
+      seat.player ? [[seat.player.id, seat.comment ?? block.title] as const] : []
+    ))),
+  );
+  const zoneCandidates = hasPortalAutumnZones(league)
+    ? league.standings.filter((standing) => !qualifiedPlayers.has(standing.player.id))
+    : [];
+  const qualifyingPlayerIds = new Set(zoneCandidates.slice(0, 4).map((standing) => standing.player.id));
+  const reservePlayerIds = new Set(zoneCandidates.slice(4, 8).map((standing) => standing.player.id));
+  const hasZones = qualifiedPlayers.size > 0 || qualifyingPlayerIds.size > 0 || reservePlayerIds.size > 0;
 
   return (
     <Card className="league-standings-card">
@@ -200,8 +147,17 @@ function LeagueStandings({
             Игроки расположены в официальном порядке лиги.
           </p>
         </div>
-        <Badge>{league.standings.length} игроков</Badge>
+        <div className="league-standings__meta">
+          <Badge>{league.standings.length} игроков</Badge>
+        </div>
       </div>
+      {hasZones ? (
+        <div aria-label="Зоны таблицы" className="league-zone-legend">
+          {qualifiedPlayers.size ? <span className="league-zone-legend__item league-zone-legend__item--qualified">Прошли</span> : null}
+          {qualifyingPlayerIds.size ? <span className="league-zone-legend__item league-zone-legend__item--qualify">Проходная зона</span> : null}
+          {reservePlayerIds.size ? <span className="league-zone-legend__item league-zone-legend__item--reserve">Резервная зона</span> : null}
+        </div>
+      ) : null}
       <p className="table-region__mobile-hint">Таблицу можно прокручивать в сторону.</p>
       <div className="table-shell" tabIndex={0}>
         <table className="table table--fixed league-table">
@@ -228,16 +184,27 @@ function LeagueStandings({
               const expanded = expandedPlayerId === standing.player.id;
               const detailsId = `league-player-${standing.player.id}`;
               const displayedRank = standing.leagueRank;
+              const qualifiedComment = qualifiedPlayers.get(standing.player.id);
+              const isQualified = qualifiedPlayers.has(standing.player.id);
+              const isQualifying = qualifyingPlayerIds.has(standing.player.id);
+              const isReserve = reservePlayerIds.has(standing.player.id);
               return (
                 <Fragment key={standing.player.id}>
                   <tr className={cn(
                     'table__row',
                     displayedRank <= 3 && 'table__row--top',
+                    isQualified && 'league-table__row--qualified',
+                    isQualifying && 'league-table__row--qualify',
+                    isReserve && 'league-table__row--reserve',
                     expanded && 'league-table__row--expanded',
                   )}>
                     <td className="table__cell table__cell--center"><span className={cn('table__rank', displayedRank <= 3 && 'table__rank--top')}>{displayedRank}</span></td>
                     <td className="table__cell league-table__player-cell">
                       <EntityLink type="player" id={standing.player.id} name={standing.player.name} />
+                      {isQualified ? <span className="league-zone-label league-zone-label--qualified">Прошёл</span> : null}
+                      {isQualifying ? <span className="league-zone-label league-zone-label--qualify">В проходной зоне</span> : null}
+                      {isReserve ? <span className="league-zone-label league-zone-label--reserve">В резервной зоне</span> : null}
+                      {isQualified && qualifiedComment ? <span className="league-zone-reason">{qualifiedComment}</span> : null}
                     </td>
                     {league.columns.map((column, index) => (
                       <td className="table__cell table__cell--center" key={column.key}>
@@ -354,7 +321,6 @@ export function LeaguesPage() {
       {detailsQuery.data ? (
         <>
           <LeagueOverview league={detailsQuery.data} />
-          <LeagueQualification league={detailsQuery.data} />
           <LeagueStandings
             key={detailsQuery.data.id}
             league={detailsQuery.data}
