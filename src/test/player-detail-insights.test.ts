@@ -5,6 +5,8 @@ import type {
 } from '@/shared/api/types';
 import {
   getPlayerDeckMatchups,
+  getPlayerMatchRoundOrder,
+  sortPlayerMatches,
   getPlayerDetailInsights,
   getPlayerMonthlyActivity,
   groupPlayerMatchesByTournament,
@@ -327,4 +329,19 @@ describe('player detail insights', () => {
     expect(isEstablishedPlayerDeck(detail.decks[0])).toBe(true);
     expect(isEstablishedPlayerDeck(detail.decks[1])).toBe(false);
   });
+});
+
+
+it('orders playoff stages after Swiss rounds even when round numbers overlap', () => {
+  const base = createMatch(1, 'win');
+  const matches = [
+    { ...base, roundNumber: 1, playoffTopN: 2 },
+    { ...base, roundNumber: 7, playoffTopN: null },
+    { ...base, roundNumber: 1, playoffTopN: 8 },
+    { ...base, roundNumber: 2, playoffTopN: 4 },
+  ];
+  expect(sortPlayerMatches(matches).map((match) => match.playoffTopN)).toEqual([2, 4, 8, null]);
+  expect([...matches].sort((a, b) => getPlayerMatchRoundOrder(a) - getPlayerMatchRoundOrder(b)).map((match) => match.playoffTopN)).toEqual([null, 8, 4, 2]);
+  expect(groupPlayerMatchesByTournament(matches)[0].record.wins).toBe(4);
+  expect(getPlayerDeckMatchups(matches, 'tempo')[0].matchesCount).toBe(4);
 });

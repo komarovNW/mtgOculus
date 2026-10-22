@@ -32,7 +32,7 @@ describe('AppLayout navigation', () => {
       'href',
       '/admin/tournaments/create',
     );
-    expect(screen.getByRole('link', { name: 'v0.3.2 · Что нового' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'v1.0.0 · Что нового' })).toHaveAttribute(
       'href',
       '/changelog',
     );

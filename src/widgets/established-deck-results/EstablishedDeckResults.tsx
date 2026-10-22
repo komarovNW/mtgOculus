@@ -29,7 +29,7 @@ const columns: TableColumn<DeckListItem>[] = [
   },
   {
     id: 'tournaments',
-    header: 'Турниров',
+    header: 'Участий',
     align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,

@@ -279,9 +279,9 @@ describe('PlayerDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Выступления на турнирах' })).toBeInTheDocument();
     expect(screen.getByText('Лучшее выступление')).toBeInTheDocument();
     expect(screen.getByText('Участий')).toBeInTheDocument();
-    expect(screen.getByText('В верхней четверти')).toBeInTheDocument();
-    expect(screen.getByText('2 из 2')).toBeInTheDocument();
-    expect(screen.getByText('Побед в турнирах: 1')).toBeInTheDocument();
+    expect(screen.getByText('Победы')).toBeInTheDocument();
+    expect(screen.getByText('Топ-4')).toBeInTheDocument();
+    expect(screen.getByText('Топ-8')).toBeInTheDocument();
     expect(screen.getAllByText('1 место')).toHaveLength(2);
     expect(screen.getAllByText('из 30')).toHaveLength(2);
     expect(screen.getByText('Полная история турниров: место, размер поля, колода и результат каждого участия.')).toBeInTheDocument();

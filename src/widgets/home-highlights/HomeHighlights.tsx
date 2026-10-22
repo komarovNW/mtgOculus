@@ -94,7 +94,7 @@ export function HomeHighlights({
                 />{' '}
                 с {formatPercent(bestEstablishedDeck.matchWinRate)} побед за{' '}
                 {bestEstablishedDeck.matchesCount} матчей в{' '}
-                {bestEstablishedDeckMetagame.tournamentsCount} турнирах.
+                {bestEstablishedDeckMetagame.tournamentsCount} событиях.
               </div>
             </article>
           ) : null}

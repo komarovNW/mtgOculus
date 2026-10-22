@@ -205,7 +205,6 @@ export function HomePage() {
               <RecentTournamentsTable
                 actionHref="/tournaments"
                 compact
-                emptyCallout="ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ."
                 emptyMessage="Турниры пока не загружены."
                 items={recentTournaments}
                 limit={5}

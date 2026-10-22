@@ -1,5 +1,6 @@
+import { getEventStructure } from '@/shared/lib/tournamentResults';
 import { Link, useLocation } from 'react-router-dom';
-import { getDashboardFilterSearch } from '@/shared/lib/filters';
+import { getEventListSearch } from '@/shared/lib/filters';
 import type { RecentTournamentItem } from '@/shared/api/types';
 import { formatDate } from '@/shared/lib/formatDate';
 import { Badge } from '@/shared/ui/Badge';
@@ -46,7 +47,7 @@ const columns: TableColumn<RecentTournamentItem>[] = [
   },
   {
     id: 'rounds',
-    header: 'Раундов',
+    header: 'Швейцарка',
     align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.roundsCount,
@@ -109,7 +110,7 @@ function getCompactColumns(itemLabel: string, showFormat: boolean): TableColumn<
             type="tournament"
           />
           <span className="muted-text">
-            {[row.club.name, showFormat ? row.format.name : null].filter(Boolean).join(' · ')}
+            {[row.city.name, row.club.name, showFormat ? row.format.name : null, row.type === 'tournament' ? getEventStructure(row) : null].filter(Boolean).join(' · ')}
           </span>
         </div>
       ),
@@ -184,8 +185,8 @@ export function RecentTournamentsTable({
   title = 'Последние турниры',
 }: RecentTournamentsTableProps) {
   const location = useLocation();
-  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
-  const visibleItems = limit ? items.slice(0, limit) : items;
+  const sortedItems = [...items].sort((a, b) => b.date.localeCompare(a.date));
+  const visibleItems = limit ? sortedItems.slice(0, limit) : sortedItems;
 
   return (
     <Card>
@@ -198,7 +199,7 @@ export function RecentTournamentsTable({
             className="button button--ghost section-link"
             to={{
               pathname: actionHref,
-              search: dashboardFilterSearch,
+              search: getEventListSearch(location.search, actionHref),
             }}
           >
             {actionLabel}

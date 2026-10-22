@@ -50,7 +50,14 @@ describe('backend source of truth', () => {
       recentMatches: [],
     };
 
+    raw.recentMatches = [null, 8, 4, 2].map((playoffTopN) => ({
+      tournament: { id: 1, title: 'Cup', date: '2026-10-21', type: 'tournament' },
+      playoffTopN, roundNumber: 1, tableNumber: 1, playerScore: 2, opponentScore: 1,
+      scoreText: '2-1-1', result: 'win', opponent: { id: 2, name: 'Opponent' },
+    }));
     const result = mapPlayerDetailsResponse(raw, {});
+    expect(result.recentMatches?.map((match) => match.playoffTopN)).toEqual([null, 8, 4, 2]);
+    expect(result.recentMatches?.[3].scoreText).toBe('2-1-1');
 
     expect(result.summary).toMatchObject({
       matchesCount: 106,

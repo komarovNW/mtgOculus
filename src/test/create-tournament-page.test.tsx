@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTournament } from '@/entities/admin-tournament/api';
-import { getLeagueOptions } from '@/entities/league/api';
+import { getLeagueOptions, getLeagueQualifierOptions } from '@/entities/league/api';
 import { CreateTournamentPage } from '@/pages/create-tournament/CreateTournamentPage';
 import { AppError } from '@/shared/api/client';
 import { TestProviders } from '@/test/test-utils';
@@ -19,6 +19,13 @@ vi.mock('@/entities/league/api', () => ({
     format: { id: 'pauper', name: 'Pauper' },
     dateStart: '2026-09-01',
     dateEnd: '2026-11-30',
+  }]),
+  getLeagueQualifierOptions: vi.fn().mockResolvedValue([{
+    id: '12',
+    title: 'Store Championship',
+    date: '2026-09-27',
+    slots: 2,
+    league: { id: '7', name: 'Осенняя лига' },
   }]),
 }));
 
@@ -44,6 +51,7 @@ describe('CreateTournamentPage', () => {
   beforeEach(() => {
     vi.mocked(createTournament).mockReset();
     vi.mocked(getLeagueOptions).mockClear();
+    vi.mocked(getLeagueQualifierOptions).mockClear();
   });
 
   it('keeps the Aetherhub directory and the complete input guide available', async () => {
@@ -105,6 +113,96 @@ describe('CreateTournamentPage', () => {
     expect(screen.getByLabelText(/Лига/)).toBeDisabled();
   });
 
+  it('requires a playoff and deck order before importing a tournament', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createTournament).mockResolvedValue({ success: true, tournamentId: '1', message: 'Готово' });
+    render(<TestProviders><CreateTournamentPage /></TestProviders>);
+    await user.selectOptions(await screen.findByLabelText(/Клуб/), 'goldfish_msk');
+    await user.selectOptions(screen.getByLabelText(/Формат/), 'pauper');
+    await user.selectOptions(screen.getByLabelText(/Тип события/), 'tournament');
+    await user.type(screen.getByLabelText(/Ссылка на Aetherhub/), 'https://aetherhub.com/Tourney/1');
+    await user.type(screen.getByLabelText(/Список игроков и колод/), 'Lands');
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+    expect(createTournament).not.toHaveBeenCalled();
+    expect(screen.getByText('Выберите порядок колод.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Финал · 0\/1/ }));
+    await user.type(screen.getByLabelText(/Игрок A · Финал 1/), 'Александр');
+    await user.type(screen.getByLabelText(/Игрок B · Финал 1/), 'Никита');
+    await user.selectOptions(screen.getByLabelText(/Порядок колод/), 'swiss');
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+    expect(createTournament).toHaveBeenCalledWith(expect.objectContaining({
+      tournamentType: 'tournament', decksOrder: 'swiss',
+      playoffMatches: [{ topN: 2, playerA: 'Александр', playerB: 'Никита', playerAWins: 2, playerBWins: 0 }],
+    }), expect.anything());
+  });
+
+  it('imports a tournament from Melee.gg without manual result fields', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createTournament).mockResolvedValue({
+      success: true,
+      tournamentId: '2',
+      message: 'Турнир добавлен.',
+    });
+    render(<TestProviders><CreateTournamentPage /></TestProviders>);
+
+    await user.selectOptions(await screen.findByLabelText(/Клуб/), 'goldfish_msk');
+    await user.selectOptions(screen.getByLabelText(/Формат/), 'pauper');
+    await user.selectOptions(screen.getByLabelText(/Тип события/), 'tournament');
+    await user.selectOptions(screen.getByLabelText(/Источник результатов/), 'melee');
+
+    expect(screen.queryByLabelText(/Ссылка на Aetherhub/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Файл итоговых стендингов/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Плей-офф')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Учитывать в матрице матчапов/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Турнир должен быть завершён на Melee.gg/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/Ссылка или номер турнира Melee.gg/), '12345');
+    await user.type(screen.getByLabelText(/Список игроков и колод/), 'Lands\nDoomsday');
+    expect(screen.getByText(/Итоговые места учитывают плей-офф/)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(/Порядок колод/), 'swiss');
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    expect(createTournament).toHaveBeenCalledWith(expect.objectContaining({
+      tournamentType: 'tournament',
+      tournamentImportSource: 'melee',
+      meleeUrl: '12345',
+      playerDecksText: 'Lands\nDoomsday',
+      decksOrder: 'swiss',
+    }), expect.anything());
+  });
+
+  it('offers the regular import when Melee.gg does not support the tournament', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createTournament).mockRejectedValue(new AppError({
+      status: 422,
+      code: 'MELEE_UNSUPPORTED_TOURNAMENT',
+      message: 'Такой турнир не поддерживается.',
+      details: [{
+        code: 'MELEE_UNSUPPORTED_TOURNAMENT',
+        message: 'Такой турнир не поддерживается.',
+        source: 'meleeUrl',
+      }],
+    }));
+    render(<TestProviders><CreateTournamentPage /></TestProviders>);
+
+    await user.selectOptions(await screen.findByLabelText(/Клуб/), 'goldfish_msk');
+    await user.selectOptions(screen.getByLabelText(/Формат/), 'pauper');
+    await user.selectOptions(screen.getByLabelText(/Тип события/), 'tournament');
+    await user.selectOptions(screen.getByLabelText(/Источник результатов/), 'melee');
+    await user.type(screen.getByLabelText(/Ссылка или номер турнира Melee.gg/), '12345');
+    await user.type(
+      screen.getByLabelText(/Список игроков и колод/),
+      'Игрок - Lands',
+    );
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    expect(await screen.findByText(/нельзя загрузить автоматически с Melee.gg/))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Перейти к обычному импорту' }));
+    expect(screen.getByLabelText(/Источник результатов/)).toHaveValue('standard');
+    expect(screen.getByLabelText(/Ссылка на Aetherhub/)).toBeInTheDocument();
+  });
+
   it('loads matching leagues for a daily and sends the selected league', async () => {
     const user = userEvent.setup();
     vi.mocked(createTournament).mockResolvedValue({
@@ -145,6 +243,38 @@ describe('CreateTournamentPage', () => {
     expect(vi.mocked(createTournament).mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({ leagueId: '7' }),
     );
+  });
+
+  it('links a tournament import to an available league qualifier', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createTournament).mockResolvedValue({
+      success: true,
+      tournamentId: '146',
+      message: 'Турнир добавлен.',
+    });
+
+    render(<TestProviders><CreateTournamentPage /></TestProviders>);
+    await user.selectOptions(await screen.findByLabelText(/Клуб/), 'goldfish_msk');
+    await user.selectOptions(screen.getByLabelText(/Формат/), 'pauper');
+    await user.selectOptions(screen.getByLabelText(/Тип события/), 'tournament');
+    await user.selectOptions(await screen.findByLabelText(/Лига отбора/), '7');
+
+    expect(getLeagueQualifierOptions).toHaveBeenCalledWith(
+      '7',
+      { signal: expect.any(AbortSignal) },
+    );
+
+    await user.selectOptions(await screen.findByLabelText(/Отборочный турнир/), '12');
+    await user.selectOptions(screen.getByLabelText(/Источник результатов/), 'melee');
+    await user.type(screen.getByLabelText(/Ссылка или номер турнира Melee.gg/), '12345');
+    await user.type(screen.getByLabelText(/Список игроков и колод/), 'Игрок - Lands');
+    await user.click(screen.getByRole('button', { name: 'Добавить' }));
+
+    expect(createTournament).toHaveBeenCalledWith(expect.objectContaining({
+      tournamentType: 'tournament',
+      leagueId: '7',
+      leagueQualifierId: '12',
+    }), expect.anything());
   });
 
   it('clears only the Aetherhub URL and decks when adding another event', async () => {

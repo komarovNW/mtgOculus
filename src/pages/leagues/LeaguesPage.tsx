@@ -23,13 +23,6 @@ function getStandingMetric(standing: LeagueStanding, column: LeagueColumn) {
   return typeof value === 'number' || typeof value === 'string' ? value : '—';
 }
 
-function getZoneLabel(zone: LeagueStanding['zone']) {
-  if (zone === 'prequalified') return 'Прошёл';
-  if (zone === 'qualify') return 'В проходной зоне';
-  if (zone === 'reserve') return 'В резервной зоне';
-  return null;
-}
-
 function formatPlacesCount(count: number) {
   const modulo100 = count % 100;
   const modulo10 = count % 10;
@@ -42,6 +35,63 @@ function formatPlacesCount(count: number) {
         : 'мест';
 
   return `${count} ${unit}`;
+}
+
+function LeagueQualification({ league }: { league: LeagueDetails }) {
+  const slotsCount = league.qualification.reduce((sum, block) => sum + block.slots, 0);
+
+  return (
+    <Card className="league-qualification-card">
+      <div className="section-header">
+        <div>
+          <h2 className="section-header__title">
+            Отбор в финал · {formatPlacesCount(slotsCount)}
+          </h2>
+          <p className="section-header__description">
+            Места распределяются по правилам в порядке, заданном организатором.
+          </p>
+        </div>
+      </div>
+      {league.qualification.length ? (
+        <div className="league-qualification">
+          {league.qualification.map((block, blockIndex) => (
+            <section
+              className="league-qualification__block"
+              key={`${block.title ?? 'tba'}-${blockIndex}`}
+            >
+              <div className="league-qualification__heading">
+                <h3>{block.title ?? 'TBA'}</h3>
+                <Badge>{formatPlacesCount(block.slots)}</Badge>
+              </div>
+              <ol className="league-qualification__seats">
+                {block.seats.map((seat, seatIndex) => (
+                  <li key={`${seat.player?.id ?? 'tba'}-${seatIndex}`}>
+                    <span className="league-qualification__place">{seatIndex + 1}</span>
+                    <div>
+                      {seat.player ? (
+                        <EntityLink
+                          id={seat.player.id}
+                          name={seat.player.name}
+                          type="player"
+                        />
+                      ) : (
+                        <strong className="league-qualification__tba">TBA</strong>
+                      )}
+                      {seat.comment ? (
+                        <span className="league-qualification__comment"> — {seat.comment}</span>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p className="muted-text">Правила отбора в финал пока не заданы.</p>
+      )}
+    </Card>
+  );
 }
 
 function LeagueOverview({ league }: { league: LeagueDetails }) {
@@ -59,7 +109,7 @@ function LeagueOverview({ league }: { league: LeagueDetails }) {
       </div>
       <div className="league-overview__stats">
         <div><strong>{league.standings.length}</strong><span>игроков</span></div>
-        <div><strong>{league.tournaments.length}</strong><span>турниров</span></div>
+        <div><strong>{league.tournaments.length}</strong><span>событий</span></div>
         <div><strong>{formatDate(league.dateStart)} — {formatDate(league.dateEnd)}</strong><span>период лиги</span></div>
       </div>
       <div className="league-overview__rules">
@@ -76,8 +126,8 @@ function LeagueOverview({ league }: { league: LeagueDetails }) {
         ) : <p className="muted-text">Дополнительные бонусные правила не заданы.</p>}
         <p className="league-overview__counting">
           {league.bestTournamentsCount
-            ? `В итог идут ${league.bestTournamentsCount} лучших турниров игрока.`
-            : 'В итог идут все сыгранные турниры.'}
+            ? `В итог идут ${league.bestTournamentsCount} лучших событий игрока.`
+            : 'В итог идут все сыгранные события.'}
         </p>
       </div>
     </Card>
@@ -139,8 +189,6 @@ function LeagueStandings({
   league: LeagueDetails;
 }) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const hasPrequalified = league.standings.some((standing) => standing.zone === 'prequalified');
-  const hasZones = hasPrequalified || Object.keys(league.cutoffs).length > 0;
   const tableColumnCount = league.columns.length + 3;
 
   return (
@@ -154,25 +202,6 @@ function LeagueStandings({
         </div>
         <Badge>{league.standings.length} игроков</Badge>
       </div>
-      {hasZones ? (
-        <div className="league-zone-legend" aria-label="Зоны таблицы">
-          {hasPrequalified ? (
-            <span className="league-zone-legend__item league-zone-legend__item--prequalified">
-              Уже прошли
-            </span>
-          ) : null}
-          {league.cutoffs.qualify ? (
-            <span className="league-zone-legend__item league-zone-legend__item--qualify">
-              Проходная зона: {formatPlacesCount(league.cutoffs.qualify)} по итогам лиги
-            </span>
-          ) : null}
-          {league.cutoffs.reserve ? (
-            <span className="league-zone-legend__item league-zone-legend__item--reserve">
-              Резервная зона: до {league.cutoffs.reserve} мест по таблице
-            </span>
-          ) : null}
-        </div>
-      ) : null}
       <p className="table-region__mobile-hint">Таблицу можно прокручивать в сторону.</p>
       <div className="table-shell" tabIndex={0}>
         <table className="table table--fixed league-table">
@@ -199,24 +228,16 @@ function LeagueStandings({
               const expanded = expandedPlayerId === standing.player.id;
               const detailsId = `league-player-${standing.player.id}`;
               const displayedRank = standing.leagueRank;
-              const zoneLabel = getZoneLabel(standing.zone);
               return (
                 <Fragment key={standing.player.id}>
                   <tr className={cn(
                     'table__row',
                     displayedRank <= 3 && 'table__row--top',
-                    standing.zone && `league-table__row--${standing.zone}`,
                     expanded && 'league-table__row--expanded',
                   )}>
                     <td className="table__cell table__cell--center"><span className={cn('table__rank', displayedRank <= 3 && 'table__rank--top')}>{displayedRank}</span></td>
                     <td className="table__cell league-table__player-cell">
                       <EntityLink type="player" id={standing.player.id} name={standing.player.name} />
-                      {zoneLabel ? (
-                        <span className={cn('league-zone-label', `league-zone-label--${standing.zone}`)}>{zoneLabel}</span>
-                      ) : null}
-                      {standing.prequalifiedComment ? (
-                        <span className="league-zone-reason">{standing.prequalifiedComment}</span>
-                      ) : null}
                     </td>
                     {league.columns.map((column, index) => (
                       <td className="table__cell table__cell--center" key={column.key}>
@@ -297,7 +318,7 @@ export function LeaguesPage() {
       <PageHeader
         eyebrow="Сезонный рейтинг"
         title="Лиги"
-        description="Выберите лигу, чтобы посмотреть таблицу игроков, правила начисления бонусов и зачтённые турниры."
+        description="Выберите лигу, чтобы посмотреть таблицу игроков, правила начисления бонусов и зачтённые события."
       />
 
       {listQuery.isLoading ? <LoadingState title="Загружаем лиги…" description="Получаем список доступных сезонов." /> : null}
@@ -325,7 +346,7 @@ export function LeaguesPage() {
         </Card>
       ) : null}
 
-      {selectedLeague && detailsQuery.isLoading ? <LoadingState title="Собираем таблицу лиги…" description="Получаем правила, турниры и рейтинг игроков." /> : null}
+      {selectedLeague && detailsQuery.isLoading ? <LoadingState title="Собираем таблицу лиги…" description="Получаем правила, события и рейтинг игроков." /> : null}
       {selectedLeague && detailsQuery.isError ? (
         <ErrorState description={getErrorMessage(detailsQuery.error, 'Не удалось загрузить таблицу лиги.')} onRetry={() => void detailsQuery.refetch()} />
       ) : null}
@@ -333,6 +354,7 @@ export function LeaguesPage() {
       {detailsQuery.data ? (
         <>
           <LeagueOverview league={detailsQuery.data} />
+          <LeagueQualification league={detailsQuery.data} />
           <LeagueStandings
             key={detailsQuery.data.id}
             league={detailsQuery.data}

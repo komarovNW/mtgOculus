@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   mapTournamentDetailsResponse,
+  mapTournamentListResponse,
   type BackendTournamentDetailsResponse,
 } from '@/shared/api/backend-mappers';
 
@@ -67,7 +68,26 @@ describe('mapTournamentDetailsResponse', () => {
       }],
     };
 
+    const daily = mapTournamentDetailsResponse(response);
+    expect(daily.tournament.playoffSize).toBeUndefined();
+    expect(daily.playoff).toEqual([]);
+    expect(daily.standings[0].swissRank).toBeUndefined();
+    response.tournament.type = 'tournament';
+    response.tournament.playoffSize = 2;
+    response.standings[0].swissRank = 2;
+    response.playoff = [{ topN: 2, matches: response.rounds[0].matches }];
     const result = mapTournamentDetailsResponse(response);
+    expect(result.tournament.playoffSize).toBe(2);
+    expect(result.standings[0]).toMatchObject({ rank: 1, swissRank: 2 });
+    expect(result.playoff?.[0].topN).toBe(2);
+    expect(result.playoff?.[0].matches).toEqual(result.rounds[0].matches);
+    const list = mapTournamentListResponse({ count: 1, next: null, previous: null, results: [response.tournament] }, {}, 1, 50);
+    expect(list.items[0].playoffSize).toBe(2);
+    expect(list.items[0].winner).toEqual(result.tournament.winner);
+    const noPlayoff = mapTournamentDetailsResponse({ ...response, tournament: { ...response.tournament, playoffSize: null, winner: null }, playoff: [] });
+    expect(noPlayoff.tournament.playoffSize).toBeNull();
+    expect(noPlayoff.tournament.winner).toBeUndefined();
+    expect(noPlayoff.playoff).toEqual([]);
     const match = result.rounds[0].matches[0];
 
     expect(match.isBye).toBe(false);

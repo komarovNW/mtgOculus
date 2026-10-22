@@ -491,7 +491,11 @@ type MatrixResponse = {
 
 ## Добавление события
 
-### `POST /admin/tournaments/import`
+### `POST /admin/imports/daily` и `POST /admin/imports/tournament`
+
+Обновлено по контракту backend от 21 октября 2026 года. Старая ручка
+`/admin/tournaments/import` больше не используется фронтендом.
+Тип события выбирает endpoint; поле `tournamentType` не передаётся.
 
 Endpoint публичный и не требует входа.
 
@@ -502,10 +506,40 @@ Endpoint публичный и не требует входа.
 | `date` | да | дата события |
 | `cityId` | да | город |
 | `clubId` | да | клуб |
-| `tournamentType` | да | `daily` или `tournament` |
 | `formatId` | да | формат |
-| `aetherhubUrl` | да | ссылка на событие |
+| `aetherhubUrl` | если нет пары файлов | ссылка на событие |
 | `playerDecksText` | да | список игроков и колод |
+
+Дополнительные multipart-поля:
+
+- `finalStandingsFile` + `allRoundsFile` — файлы швейцарки вместо ссылки или вместе с ней;
+- `includeInMatchupMatrix` — boolean;
+- `leagueId` — только для daily;
+- `leagueQualifierId` — только для tournament, необязательная связь со строкой
+  плана отборочных турниров лиги;
+- `playoffMatches` — только для tournament, JSON-массив `{topN, playerA, playerB, playerAWins, playerBWins, draws?}`. Стадии: 8, 4, 2; порядок матчей внутри стадии задаёт сетку; имена как в швейцарке;
+- `noPlayoff=true` — турнир без топа; иначе топ обязателен;
+- `decksOrder=final|swiss` — только для турнира с топом и списка колод без имён.
+
+Ответы: 200 / 400 / 422. Новые ошибки 422: `PLAYOFF_REQUIRED`,
+`PLAYOFF_CONFLICTS_WITH_NO_PLAYOFF`, `PLAYOFF_PLAYER_NOT_FOUND_IN_STANDINGS`,
+`INVALID_PLAYOFF_BRACKET`, `PLAYOFF_MATCH_WITHOUT_WINNER`, `DECKS_ORDER_REQUIRED`.
+Предупреждение `PLAYOFF_PLAYER_OUTSIDE_SWISS_TOP` не блокирует импорт.
+
+### `POST /admin/imports/tournament/melee`
+
+Импорт завершённого турнира по ссылке Melee.gg. Тело — `multipart/form-data`
+и содержит `meleeUrl`, `playerDecksText`, `date`, `cityId`, `clubId`,
+`formatId`, необязательный `leagueQualifierId` и, когда список колод задан без
+имён, `decksOrder=final|swiss`.
+`meleeUrl` принимает полную ссылку `https://melee.gg/Tournament/View/<id>`
+или номер турнира. Швейцарку, раунды и плей-офф backend загружает сам.
+
+Ответ использует тот же конверт 200 / 400 / 422. Ошибки с
+`source: "meleeUrl"`: `MELEE_FETCH_ERROR`, `MELEE_PARSE_ERROR`,
+`MELEE_TOURNAMENT_INCOMPLETE`, `MELEE_UNSUPPORTED_TOURNAMENT`. Frontend
+показывает присланный русский текст. Запрос может выполняться около 40 секунд,
+поэтому frontend использует таймаут 120 секунд.
 
 Успешный ответ содержит созданное событие и необязательные предупреждения:
 

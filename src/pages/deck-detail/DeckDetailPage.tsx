@@ -1,3 +1,4 @@
+import { EventSummary } from '@/shared/ui/EventSummary';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -33,7 +34,6 @@ import { EntityLink } from '@/shared/ui/EntityLink';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { LoadMorePagination } from '@/shared/ui/LoadMorePagination';
 import { LoadingState } from '@/shared/ui/LoadingState';
-import { ManaPips } from '@/shared/ui/ManaPips';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { Tabs } from '@/shared/ui/Tabs';
@@ -63,13 +63,7 @@ function getTournamentColumns(
     id: 'tournament',
     header: eventLabel,
     sortValue: (row) => row.tournament.title,
-    render: (row) => (
-      <EntityLink
-        id={row.tournament.id}
-        name={row.tournament.title}
-        type="tournament"
-      />
-    ),
+    render: (row) => <EventSummary event={row.tournament} />,
   },
   {
     id: 'player',
@@ -97,7 +91,7 @@ function getTournamentColumns(
     header: 'Итог',
     align: 'center',
     defaultSortDirection: 'asc',
-    render: (row) => `${row.rank} из ${row.tournament.playersCount}`,
+    render: (row) => <div className="stacked-cell"><span>{row.rank > 0 ? `${row.rank} из ${row.tournament.playersCount}` : '—'}</span>{row.swissRank != null ? <small className="muted-text">Швейцарка: {row.swissRank}</small> : null}</div>,
     sortValue: (row) => row.rank / Math.max(1, row.tournament.playersCount),
   },
   ];
@@ -337,7 +331,6 @@ export function DeckDetailPage() {
         badges={[
           <Badge key="format">{deck.format.name}</Badge>,
           ...(deck.archetype ? [<Badge key="archetype">{deck.archetype}</Badge>] : []),
-          ...(deck.colors?.length ? [<ManaPips key="colors" colors={deck.colors} />] : []),
           ...(!insights.isEstablished
             ? [
                 <Badge

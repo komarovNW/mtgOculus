@@ -31,16 +31,30 @@ const details: LeagueDetails = {
     { position: 1, key: 'tournamentPoints', label: 'Турнирные очки' },
     { position: 2, key: 'xZeroCount', label: 'Все матчи выиграны' },
   ],
-  cutoffs: { qualify: 1, reserve: 2 },
-  prequalified: [],
+  qualification: [
+    {
+      title: 'Ручной отбор',
+      slots: 2,
+      seats: [
+        { player: null, comment: 'Лучший игрок котиками' },
+        { player: { id: '7', name: 'Иванов Иван' }, comment: 'Победитель весенней лиги' },
+      ],
+    },
+    {
+      title: 'Сентябрьский Store Championship',
+      slots: 2,
+      seats: [
+        { player: { id: '5', name: 'Эрлангер Александр' }, comment: null },
+        { player: null, comment: null },
+      ],
+    },
+  ],
   rules: [{ kind: 'min', label: 'Не менее 9 очков без поражений', threshold: 9, requireUndefeated: true, points: 3 }],
   tournaments: [{ id: '673', title: 'Standard Daily', date: '2026-09-01', playersCount: 20 }],
   standings: [{
     leagueRank: 1, rank: 1, player: { id: '25', name: 'Федулов Ринат' }, tournamentPoints: 9,
     bonusPoints: 3, rulePoints: 3, manualBonusPoints: 0, droppedTournamentPoints: 0,
     tournamentsPlayed: 1, tournamentsCounted: 1, xZeroCount: 1, xOneCount: 0,
-    zone: 'qualify',
-    prequalifiedComment: null,
     breakdown: [{ kind: 'min', label: 'Не менее 9 очков без поражений', threshold: 9,
       requireUndefeated: true, timesApplied: 1, pointsPerTime: 3, points: 3 }],
     participations: [{ tournamentId: '673', tournamentTitle: 'Standard Daily', date: '2026-09-01',
@@ -81,37 +95,30 @@ describe('LeaguesPage', () => {
     expect(within(table).getByRole('columnheader', { name: 'Все матчи выиграны' })).toBeInTheDocument();
     expect(within(table).queryByRole('columnheader', { name: 'Бонусные очки' })).not.toBeInTheDocument();
     expect(within(table).getByRole('link', { name: 'Федулов Ринат' })).toHaveAttribute('href', '/players/25');
-    expect(within(table).getByText('В проходной зоне')).toBeInTheDocument();
-    expect(screen.getByText('Проходная зона: 1 место по итогам лиги')).toBeInTheDocument();
-    expect(screen.getByText('Резервная зона: до 2 мест по таблице')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Отбор в финал · 4 места' })).toBeInTheDocument();
+    expect(screen.queryByText(/Проходная зона/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Резервная зона/)).not.toBeInTheDocument();
     await user.click(within(table).getByRole('button', { name: 'Подробнее' }));
     expect(within(table).getByText('1 × 3 = 3')).toBeInTheDocument();
     expect(within(table).getByRole('link', { name: 'Standard Daily' })).toHaveAttribute('href', '/tournaments/673');
     expect(within(table).getByText('В зачёте')).toBeInTheDocument();
   });
 
-  it('distinguishes players who already qualified from the current qualification zone', async () => {
-    vi.mocked(getLeagueDetails).mockResolvedValue({
-      ...details,
-      standings: [
-        ...details.standings,
-        {
-          ...details.standings[0],
-          leagueRank: 8,
-          rank: 8,
-          player: { id: '32', name: 'Комаров Никита' },
-          zone: 'prequalified',
-          prequalifiedComment: 'топ4 Store Champ 27.09',
-        },
-      ],
-    });
-
+  it('shows qualification blocks in backend order with occupied and TBA seats', async () => {
     setup('/leagues/1');
 
-    const table = await screen.findByRole('table');
-    expect(within(table).getByText('Прошёл')).toBeInTheDocument();
-    expect(within(table).getByText('топ4 Store Champ 27.09')).toBeInTheDocument();
-    expect(screen.getByText('Уже прошли')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Ручной отбор' })).toBeInTheDocument();
+    const blockHeadings = screen.getAllByRole('heading', { level: 3 });
+    expect(blockHeadings.map((heading) => heading.textContent)).toEqual(expect.arrayContaining([
+      'Бонусные очки',
+      'Ручной отбор',
+      'Сентябрьский Store Championship',
+    ]));
+    expect(screen.getByRole('link', { name: 'Иванов Иван' })).toHaveAttribute('href', '/players/7');
+    expect(screen.getByText(/Победитель весенней лиги/)).toBeInTheDocument();
+    expect(screen.getByText(/Лучший игрок котиками/)).toBeInTheDocument();
+    expect(screen.getAllByText('TBA')).toHaveLength(2);
+    expect(screen.queryByText('Уже прошли')).not.toBeInTheDocument();
   });
 
   it('uses the official league order without client-side sorting controls', async () => {

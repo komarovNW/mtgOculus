@@ -1,7 +1,8 @@
+import { useContext } from 'react';
+import { EventLinkScope } from '@/shared/lib/eventLinkScope';
 import { Link, useLocation } from 'react-router-dom';
 import { buildEntityPath, type EntityType } from '@/shared/lib/entityPaths';
 import { getDashboardFilterSearch } from '@/shared/lib/filters';
-import { ManaPips } from '@/shared/ui/ManaPips';
 
 type EntityLinkProps = {
   type: EntityType;
@@ -10,9 +11,12 @@ type EntityLinkProps = {
   colors?: string[] | null;
 };
 
-export function EntityLink({ type, id, name, colors }: EntityLinkProps) {
+export function EntityLink({ type, id, name }: EntityLinkProps) {
   const location = useLocation();
-  const dashboardFilterSearch = getDashboardFilterSearch(location.search);
+  const scope = useContext(EventLinkScope);
+  const params = new URLSearchParams(getDashboardFilterSearch(location.search));
+  if (scope) Object.entries(scope).forEach(([key, value]) => params.set(key, value ?? ''));
+  const dashboardFilterSearch = params.toString();
 
   const content =
     !id || id === 'player_bye' || id === 'player_unknown' ? (
@@ -29,14 +33,5 @@ export function EntityLink({ type, id, name, colors }: EntityLinkProps) {
       </Link>
     );
 
-  if (type !== 'deck' || !colors?.length) {
-    return content;
-  }
-
-  return (
-    <span className="deck-link">
-      {content}
-      <ManaPips colors={colors} />
-    </span>
-  );
+  return content;
 }

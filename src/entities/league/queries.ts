@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
   getLeagueDetails,
+  getLeagueQualifierOptions,
   getLeagueOptions,
   getLeagues,
   type LeagueListParams,
@@ -16,6 +17,12 @@ export const leagueQueries = {
   options: (params: LeagueOptionsParams) => queryOptions({
     queryKey: ['leagues', 'options', params],
     queryFn: ({ signal }) => getLeagueOptions(params, { signal }),
+    staleTime: 30_000,
+  }),
+  qualifierOptions: (leagueId: string) => queryOptions({
+    queryKey: ['leagues', 'qualifiers', 'options', leagueId],
+    queryFn: ({ signal }) => getLeagueQualifierOptions(leagueId, { signal }),
+    enabled: Boolean(leagueId),
     staleTime: 30_000,
   }),
   details: (id: string) => queryOptions({

@@ -52,7 +52,7 @@ const columns: TableColumn<RankedTopPlayerItem>[] = [
   },
   {
     id: 'tournaments',
-    header: 'Турниров',
+    header: 'Участий',
     align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,
@@ -288,7 +288,7 @@ export function TopPlayersTable({
               </div>
 
               <div className="spotlight-card__subtitle">
-                {item.tournamentsCount} турниров · {item.playedMatchesCount} матчей
+                {item.tournamentsCount} участий · {item.playedMatchesCount} матчей
               </div>
 
               <div className="spotlight-card__stats">

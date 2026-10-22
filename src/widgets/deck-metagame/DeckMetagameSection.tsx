@@ -43,7 +43,7 @@ const columns: TableColumn<DeckMetagameRow>[] = [
   },
   {
     id: 'tournaments',
-    header: 'Турниров',
+    header: 'Участий',
     align: 'center',
     defaultSortDirection: 'desc',
     render: (row) => row.tournamentsCount,

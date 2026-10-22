@@ -1,0 +1,3063 @@
+openapi: 3.0.3
+info:
+  title: magicOculus API
+  version: 1.0.0
+  description: 'API статистики турниров Magic: The Gathering (Россия): справочники,
+    турниры, игроки, колоды, витрины и импорт результатов.'
+paths:
+  /api/v1/admin/imports/daily:
+    post:
+      operationId: imports_daily_create
+      tags:
+      - imports
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DailyImportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DailyImportRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSuccess'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailure'
+          description: ''
+  /api/v1/admin/imports/tournament:
+    post:
+      operationId: imports_tournament_create
+      tags:
+      - imports
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TournamentImportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TournamentImportRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSuccess'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailure'
+          description: ''
+  /api/v1/admin/imports/tournament/melee:
+    post:
+      operationId: imports_tournament_melee_create
+      tags:
+      - imports
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MeleeTournamentImportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MeleeTournamentImportRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSuccess'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailure'
+          description: ''
+  /api/v1/admin/tournaments/import:
+    post:
+      operationId: admin_tournaments_import_create
+      tags:
+      - imports
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImportRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSuccess'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailure'
+          description: ''
+  /api/v1/cities:
+    get:
+      operationId: cities_list
+      tags:
+      - cities
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+          description: ''
+  /api/v1/cities/{city_code}/clubs:
+    get:
+      operationId: cities_clubs_list
+      parameters:
+      - in: path
+        name: city_code
+        schema:
+          type: string
+        required: true
+      tags:
+      - cities
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Club'
+          description: ''
+  /api/v1/decks:
+    get:
+      operationId: decks_list
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - bestRank_asc
+          - matchWinRate_desc
+          - matchesCount_desc
+          - name_asc
+          - playersCount_desc
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - decks
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDeckListItemList'
+          description: ''
+  /api/v1/decks/{id}:
+    get:
+      operationId: decks_retrieve
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - decks
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeckDetail'
+          description: ''
+  /api/v1/formats:
+    get:
+      operationId: formats_list
+      tags:
+      - formats
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Format'
+          description: ''
+  /api/v1/home:
+    get:
+      operationId: home_retrieve
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - home
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+          description: ''
+  /api/v1/leagues:
+    get:
+      operationId: leagues_list
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - leagues
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeagueSummaryList'
+          description: ''
+  /api/v1/leagues/{id}:
+    get:
+      operationId: leagues_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: sort
+        schema:
+          type: string
+        description: 'показатели через запятую, порядок убывания: tournamentPoints,
+          bonusPoints, tournamentsPlayed, xZeroCount, xOneCount'
+      tags:
+      - leagues
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeagueDetail'
+          description: ''
+  /api/v1/leagues/options:
+    get:
+      operationId: leagues_options_list
+      description: 'Лиги для выбора при заведении турнира: без счётчиков и пагинации.'
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: 'YYYY-MM-DD, дата турнира: лиги, в период которых она попадает'
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      tags:
+      - leagues
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeagueOption'
+          description: ''
+  /api/v1/leagues/qualifiers/options:
+    get:
+      operationId: leagues_qualifiers_options_list
+      description: Не привязанные отборочные для выбора при заливке турнира.
+      parameters:
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: 'id лиги: только её отборочные'
+      tags:
+      - leagues
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeagueQualifierOption'
+          description: ''
+  /api/v1/matchups:
+    get:
+      operationId: matchups_retrieve
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+        required: true
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - in: query
+        name: top
+        schema:
+          type: integer
+        description: число колод в матрице, 2–40 (дефолт 15)
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - matchups
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchupMatrix'
+          description: ''
+  /api/v1/ping:
+    get:
+      operationId: ping_retrieve
+      description: Проверка, что API живо (health/smoke).
+      tags:
+      - system
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ping'
+          description: ''
+  /api/v1/players:
+    get:
+      operationId: players_list
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - in: query
+        name: order
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: поиск по имени
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - bestRank
+          - matchWinRate
+          - matchesCount
+          - name
+          - tournamentsCount
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - players
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlayerListItemList'
+          description: ''
+  /api/v1/players/{id}:
+    get:
+      operationId: players_retrieve
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - players
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerDetail'
+          description: ''
+  /api/v1/tournaments:
+    get:
+      operationId: tournaments_list
+      parameters:
+      - in: query
+        name: cityId
+        schema:
+          type: string
+        description: code города
+      - in: query
+        name: clubId
+        schema:
+          type: string
+        description: code клуба
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: formatId
+        schema:
+          type: string
+        description: code формата
+      - in: query
+        name: leagueId
+        schema:
+          type: integer
+        description: id лиги
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: tournamentType
+        schema:
+          type: string
+          enum:
+          - daily
+          - tournament
+      tags:
+      - tournaments
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTournamentSummaryList'
+          description: ''
+  /api/v1/tournaments/{id}:
+    get:
+      operationId: tournaments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tournaments
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentDetail'
+          description: ''
+components:
+  schemas:
+    AppliedFilters:
+      type: object
+      description: |-
+        Нормализованный набор применённых фильтров (`resolve_filters().applied`).
+
+        Все поля опциональны — в ответе присутствуют только заданные фильтры.
+        Используется только для схемы: рантайм отдаёт сырой `ctx.applied`.
+      properties:
+        city:
+          $ref: '#/components/schemas/Ref'
+        club:
+          $ref: '#/components/schemas/_AppliedClub'
+        format:
+          $ref: '#/components/schemas/Ref'
+        tournamentType:
+          type: string
+        dateFrom:
+          type: string
+        dateTo:
+          type: string
+        league:
+          $ref: '#/components/schemas/_AppliedLeague'
+    City:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Отображаемое название
+          maxLength: 100
+        country:
+          type: string
+          description: Страна
+          maxLength: 100
+      required:
+      - id
+      - name
+    Club:
+      type: object
+      properties:
+        id:
+          type: string
+        cityId:
+          type: string
+        name:
+          type: string
+          description: Название клуба
+          maxLength: 120
+      required:
+      - cityId
+      - id
+      - name
+    CodeEnum:
+      enum:
+      - INVALID_DATE
+      - INVALID_CITY
+      - INVALID_CLUB
+      - CLUB_DOES_NOT_BELONG_TO_CITY
+      - INVALID_TOURNAMENT_TYPE
+      - INVALID_FORMAT
+      - FINAL_STANDINGS_FILE_REQUIRED
+      - ALL_ROUNDS_FILE_REQUIRED
+      - PLAYER_DECKS_TEXT_REQUIRED
+      - FINAL_STANDINGS_PARSE_ERROR
+      - ALL_ROUNDS_PARSE_ERROR
+      - PLAYER_DECKS_PARSE_ERROR
+      - DECK_NUMBERING_MISMATCH
+      - DECK_COUNT_MISMATCH
+      - STANDING_PLAYER_WITHOUT_DECK
+      - DECK_PLAYER_NOT_FOUND_IN_STANDINGS
+      - ROUND_PLAYER_NOT_FOUND_IN_STANDINGS
+      - INVALID_MATCH_SCORE
+      - DUPLICATE_PLAYER_IN_STANDINGS
+      - DUPLICATE_DECK_ENTRY
+      - DUPLICATE_TABLE_IN_ROUND
+      - PLAYER_PLAYS_TWICE_IN_ROUND
+      - DUPLICATE_TOURNAMENT
+      - MISSING_IMPORT_SOURCE
+      - AETHERHUB_FETCH_ERROR
+      - AETHERHUB_PARSE_ERROR
+      - AETHERHUB_TOURNAMENT_INCOMPLETE
+      - LEAGUE_NOT_FOUND
+      - LEAGUE_MISMATCH
+      - PLAYOFF_REQUIRED
+      - PLAYOFF_CONFLICTS_WITH_NO_PLAYOFF
+      - PLAYOFF_PLAYER_NOT_FOUND_IN_STANDINGS
+      - INVALID_PLAYOFF_BRACKET
+      - PLAYOFF_MATCH_WITHOUT_WINNER
+      - DECKS_ORDER_REQUIRED
+      - MELEE_FETCH_ERROR
+      - MELEE_PARSE_ERROR
+      - MELEE_TOURNAMENT_INCOMPLETE
+      - MELEE_UNSUPPORTED_TOURNAMENT
+      - LEAGUE_QUALIFIER_NOT_FOUND
+      - LEAGUE_QUALIFIER_TAKEN
+      - DECKS_LINKED_POSITIONALLY
+      - PLAYER_NAME_NORMALIZED
+      - PLAYER_NAME_SIMILAR_MATCH
+      - DECK_NAME_NORMALIZED
+      - NEW_PLAYERS_CREATED
+      - NEW_DECKS_CREATED
+      - ROUND_NUMBER_INFERRED_FROM_TABLE_RESET
+      - MISSING_TIEBREAKERS
+      - EXTERNAL_PLAYER_ID_IGNORED
+      - ROUNDS_RECORD_MISMATCH
+      - POINTS_RECORD_MISMATCH
+      - AETHERHUB_FALLBACK_TO_CSV
+      - PLAYOFF_PLAYER_OUTSIDE_SWISS_TOP
+      type: string
+      description: |-
+        * `INVALID_DATE` - INVALID_DATE
+        * `INVALID_CITY` - INVALID_CITY
+        * `INVALID_CLUB` - INVALID_CLUB
+        * `CLUB_DOES_NOT_BELONG_TO_CITY` - CLUB_DOES_NOT_BELONG_TO_CITY
+        * `INVALID_TOURNAMENT_TYPE` - INVALID_TOURNAMENT_TYPE
+        * `INVALID_FORMAT` - INVALID_FORMAT
+        * `FINAL_STANDINGS_FILE_REQUIRED` - FINAL_STANDINGS_FILE_REQUIRED
+        * `ALL_ROUNDS_FILE_REQUIRED` - ALL_ROUNDS_FILE_REQUIRED
+        * `PLAYER_DECKS_TEXT_REQUIRED` - PLAYER_DECKS_TEXT_REQUIRED
+        * `FINAL_STANDINGS_PARSE_ERROR` - FINAL_STANDINGS_PARSE_ERROR
+        * `ALL_ROUNDS_PARSE_ERROR` - ALL_ROUNDS_PARSE_ERROR
+        * `PLAYER_DECKS_PARSE_ERROR` - PLAYER_DECKS_PARSE_ERROR
+        * `DECK_NUMBERING_MISMATCH` - DECK_NUMBERING_MISMATCH
+        * `DECK_COUNT_MISMATCH` - DECK_COUNT_MISMATCH
+        * `STANDING_PLAYER_WITHOUT_DECK` - STANDING_PLAYER_WITHOUT_DECK
+        * `DECK_PLAYER_NOT_FOUND_IN_STANDINGS` - DECK_PLAYER_NOT_FOUND_IN_STANDINGS
+        * `ROUND_PLAYER_NOT_FOUND_IN_STANDINGS` - ROUND_PLAYER_NOT_FOUND_IN_STANDINGS
+        * `INVALID_MATCH_SCORE` - INVALID_MATCH_SCORE
+        * `DUPLICATE_PLAYER_IN_STANDINGS` - DUPLICATE_PLAYER_IN_STANDINGS
+        * `DUPLICATE_DECK_ENTRY` - DUPLICATE_DECK_ENTRY
+        * `DUPLICATE_TABLE_IN_ROUND` - DUPLICATE_TABLE_IN_ROUND
+        * `PLAYER_PLAYS_TWICE_IN_ROUND` - PLAYER_PLAYS_TWICE_IN_ROUND
+        * `DUPLICATE_TOURNAMENT` - DUPLICATE_TOURNAMENT
+        * `MISSING_IMPORT_SOURCE` - MISSING_IMPORT_SOURCE
+        * `AETHERHUB_FETCH_ERROR` - AETHERHUB_FETCH_ERROR
+        * `AETHERHUB_PARSE_ERROR` - AETHERHUB_PARSE_ERROR
+        * `AETHERHUB_TOURNAMENT_INCOMPLETE` - AETHERHUB_TOURNAMENT_INCOMPLETE
+        * `LEAGUE_NOT_FOUND` - LEAGUE_NOT_FOUND
+        * `LEAGUE_MISMATCH` - LEAGUE_MISMATCH
+        * `PLAYOFF_REQUIRED` - PLAYOFF_REQUIRED
+        * `PLAYOFF_CONFLICTS_WITH_NO_PLAYOFF` - PLAYOFF_CONFLICTS_WITH_NO_PLAYOFF
+        * `PLAYOFF_PLAYER_NOT_FOUND_IN_STANDINGS` - PLAYOFF_PLAYER_NOT_FOUND_IN_STANDINGS
+        * `INVALID_PLAYOFF_BRACKET` - INVALID_PLAYOFF_BRACKET
+        * `PLAYOFF_MATCH_WITHOUT_WINNER` - PLAYOFF_MATCH_WITHOUT_WINNER
+        * `DECKS_ORDER_REQUIRED` - DECKS_ORDER_REQUIRED
+        * `MELEE_FETCH_ERROR` - MELEE_FETCH_ERROR
+        * `MELEE_PARSE_ERROR` - MELEE_PARSE_ERROR
+        * `MELEE_TOURNAMENT_INCOMPLETE` - MELEE_TOURNAMENT_INCOMPLETE
+        * `MELEE_UNSUPPORTED_TOURNAMENT` - MELEE_UNSUPPORTED_TOURNAMENT
+        * `LEAGUE_QUALIFIER_NOT_FOUND` - LEAGUE_QUALIFIER_NOT_FOUND
+        * `LEAGUE_QUALIFIER_TAKEN` - LEAGUE_QUALIFIER_TAKEN
+        * `DECKS_LINKED_POSITIONALLY` - DECKS_LINKED_POSITIONALLY
+        * `PLAYER_NAME_NORMALIZED` - PLAYER_NAME_NORMALIZED
+        * `PLAYER_NAME_SIMILAR_MATCH` - PLAYER_NAME_SIMILAR_MATCH
+        * `DECK_NAME_NORMALIZED` - DECK_NAME_NORMALIZED
+        * `NEW_PLAYERS_CREATED` - NEW_PLAYERS_CREATED
+        * `NEW_DECKS_CREATED` - NEW_DECKS_CREATED
+        * `ROUND_NUMBER_INFERRED_FROM_TABLE_RESET` - ROUND_NUMBER_INFERRED_FROM_TABLE_RESET
+        * `MISSING_TIEBREAKERS` - MISSING_TIEBREAKERS
+        * `EXTERNAL_PLAYER_ID_IGNORED` - EXTERNAL_PLAYER_ID_IGNORED
+        * `ROUNDS_RECORD_MISMATCH` - ROUNDS_RECORD_MISMATCH
+        * `POINTS_RECORD_MISMATCH` - POINTS_RECORD_MISMATCH
+        * `AETHERHUB_FALLBACK_TO_CSV` - AETHERHUB_FALLBACK_TO_CSV
+        * `PLAYOFF_PLAYER_OUTSIDE_SWISS_TOP` - PLAYOFF_PLAYER_OUTSIDE_SWISS_TOP
+    DailyImportRequest:
+      type: object
+      properties:
+        finalStandingsFile:
+          type: string
+          format: uri
+          nullable: true
+        allRoundsFile:
+          type: string
+          format: uri
+          nullable: true
+        aetherhubUrl:
+          type: string
+          description: Ссылка на турнир Aetherhub — альтернатива двум CSV
+        includeInMatchupMatrix:
+          type: boolean
+          default: true
+          description: Учитывать матчи турнира в матрице матчапов. Снять для реконструированных
+            турниров (синтетические пары раундов).
+        playerDecksText:
+          type: string
+        date:
+          type: string
+        cityId:
+          type: string
+        clubId:
+          type: string
+        formatId:
+          type: string
+        leagueId:
+          type: integer
+          nullable: true
+          description: id лиги, в зачёт которой идёт турнир (необязательно)
+      required:
+      - cityId
+      - clubId
+      - date
+      - formatId
+      - playerDecksText
+    DeckCard:
+      type: object
+      description: 'Колода в dict-выдаче: `{id, name, archetype, colors}`.'
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        archetype:
+          type: string
+          nullable: true
+        colors: {}
+      required:
+      - archetype
+      - colors
+      - id
+      - name
+    DeckDetail:
+      type: object
+      properties:
+        deck:
+          $ref: '#/components/schemas/_DeckHead'
+        summary:
+          $ref: '#/components/schemas/_DeckSummary'
+        tournamentResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/_DeckTournamentResult'
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/_DeckPlayerBreakdown'
+        matchups:
+          type: array
+          items:
+            $ref: '#/components/schemas/_DeckMatchup'
+        appliedFilters:
+          $ref: '#/components/schemas/AppliedFilters'
+      required:
+      - appliedFilters
+      - deck
+      - matchups
+      - players
+      - summary
+      - tournamentResults
+    DeckListItem:
+      type: object
+      properties:
+        deck:
+          $ref: '#/components/schemas/DeckCard'
+        format:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        tournamentsCount:
+          type: integer
+        playersCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - deck
+      - format
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+      - playersCount
+      - tournamentsCount
+    DeckShort:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        archetype:
+          type: string
+          nullable: true
+          readOnly: true
+        colors: {}
+      required:
+      - archetype
+      - colors
+      - id
+      - name
+    DecksOrderEnum:
+      enum:
+      - final
+      - swiss
+      type: string
+      description: |-
+        * `final` - final
+        * `swiss` - swiss
+    Format:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Отображаемое название
+          maxLength: 100
+      required:
+      - id
+      - name
+    Home:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/_HomeSummary'
+        recentTournaments:
+          type: array
+          items:
+            $ref: '#/components/schemas/_RecentTournament'
+        deckMetagame:
+          type: array
+          items:
+            $ref: '#/components/schemas/_DeckMetagame'
+        deckPerformance:
+          type: array
+          items:
+            $ref: '#/components/schemas/_DeckPerformance'
+        topPlayers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerListItem'
+        popularMatchups:
+          type: array
+          items:
+            $ref: '#/components/schemas/_PopularMatchup'
+        appliedFilters:
+          $ref: '#/components/schemas/AppliedFilters'
+      required:
+      - appliedFilters
+      - deckMetagame
+      - deckPerformance
+      - popularMatchups
+      - recentTournaments
+      - summary
+      - topPlayers
+    IdName:
+      type: object
+      description: 'Минимальная ссылка `{id: int, name}` (игрок/колода в dict-выдаче).'
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    ImportFailure:
+      type: object
+      properties:
+        success:
+          type: boolean
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportIssue'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportIssue'
+      required:
+      - errors
+      - success
+      - warnings
+    ImportIssue:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        message:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        rowNumber:
+          type: integer
+        roundNumber:
+          type: integer
+        tableNumber:
+          type: integer
+        playerName:
+          type: string
+        rawValue:
+          type: string
+        matchedValue:
+          type: string
+        tournamentId:
+          type: integer
+      required:
+      - code
+      - message
+    ImportRequest:
+      type: object
+      properties:
+        finalStandingsFile:
+          type: string
+          format: uri
+          nullable: true
+        allRoundsFile:
+          type: string
+          format: uri
+          nullable: true
+        aetherhubUrl:
+          type: string
+          description: Ссылка на турнир Aetherhub — альтернатива двум CSV
+        includeInMatchupMatrix:
+          type: boolean
+          default: true
+          description: Учитывать матчи турнира в матрице матчапов. Снять для реконструированных
+            турниров (синтетические пары раундов).
+        playerDecksText:
+          type: string
+        date:
+          type: string
+        cityId:
+          type: string
+        clubId:
+          type: string
+        formatId:
+          type: string
+        leagueId:
+          type: integer
+          nullable: true
+          description: id лиги, в зачёт которой идёт турнир (необязательно)
+        tournamentType:
+          type: string
+      required:
+      - cityId
+      - clubId
+      - date
+      - formatId
+      - playerDecksText
+      - tournamentType
+    ImportSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tournament:
+          $ref: '#/components/schemas/ImportedTournament'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportIssue'
+      required:
+      - success
+      - tournament
+      - warnings
+    ImportedTournament:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+        type:
+          type: string
+        city:
+          $ref: '#/components/schemas/Ref'
+        club:
+          $ref: '#/components/schemas/Ref'
+        format:
+          $ref: '#/components/schemas/Ref'
+        playersCount:
+          type: integer
+        roundsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+      required:
+      - city
+      - club
+      - date
+      - format
+      - id
+      - matchesCount
+      - playersCount
+      - roundsCount
+      - sourceUrl
+      - title
+      - type
+    LeagueBreakdownItem:
+      type: object
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        threshold:
+          type: integer
+          nullable: true
+        requireUndefeated:
+          type: boolean
+        timesApplied:
+          type: integer
+        pointsPerTime:
+          type: integer
+        points:
+          type: integer
+      required:
+      - kind
+      - label
+      - points
+      - pointsPerTime
+      - requireUndefeated
+      - threshold
+      - timesApplied
+    LeagueColumn:
+      type: object
+      properties:
+        position:
+          type: integer
+        key:
+          type: string
+        label:
+          type: string
+      required:
+      - key
+      - label
+      - position
+    LeagueDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        club:
+          $ref: '#/components/schemas/Ref'
+        format:
+          $ref: '#/components/schemas/Ref'
+        dateStart:
+          type: string
+        dateEnd:
+          type: string
+        bestTournamentsCount:
+          type: integer
+          nullable: true
+        sort:
+          type: array
+          items:
+            type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueColumn'
+        qualification:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueQualificationBlock'
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueRule'
+        tournaments:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueTournament'
+        standings:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueStanding'
+      required:
+      - bestTournamentsCount
+      - club
+      - columns
+      - dateEnd
+      - dateStart
+      - format
+      - id
+      - name
+      - qualification
+      - rules
+      - sort
+      - standings
+      - tournaments
+    LeagueOption:
+      type: object
+      description: 'Лига в выборе при заведении турнира: только поля для селекта.'
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        club:
+          $ref: '#/components/schemas/NestedClub'
+        format:
+          $ref: '#/components/schemas/NestedFormat'
+        dateStart:
+          type: string
+          format: date
+        dateEnd:
+          type: string
+          format: date
+      required:
+      - club
+      - dateEnd
+      - dateStart
+      - format
+      - id
+      - name
+    LeagueParticipation:
+      type: object
+      properties:
+        tournamentId:
+          type: integer
+        tournamentTitle:
+          type: string
+        date:
+          type: string
+        tournamentPoints:
+          type: integer
+        rulePoints:
+          type: integer
+        manualBonusPoints:
+          type: integer
+        bonusReason:
+          type: string
+        counted:
+          type: boolean
+      required:
+      - bonusReason
+      - counted
+      - date
+      - manualBonusPoints
+      - rulePoints
+      - tournamentId
+      - tournamentPoints
+      - tournamentTitle
+    LeagueQualificationBlock:
+      type: object
+      description: Правило отбора с местами в порядке их раздачи.
+      properties:
+        title:
+          type: string
+          nullable: true
+        slots:
+          type: integer
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueQualificationSeat'
+      required:
+      - seats
+      - slots
+      - title
+    LeagueQualificationSeat:
+      type: object
+      properties:
+        player:
+          allOf:
+          - $ref: '#/components/schemas/IdName'
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+      required:
+      - comment
+      - player
+    LeagueQualifierOption:
+      type: object
+      description: 'Ещё не привязанная строка плана отбора: для выбора при заливке
+        турнира.'
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          nullable: true
+          readOnly: true
+        date:
+          type: string
+          format: date
+          nullable: true
+        slots:
+          type: integer
+        league:
+          allOf:
+          - $ref: '#/components/schemas/IdName'
+          readOnly: true
+      required:
+      - date
+      - id
+      - league
+      - slots
+      - title
+    LeagueRule:
+      type: object
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        threshold:
+          type: integer
+          nullable: true
+        requireUndefeated:
+          type: boolean
+        points:
+          type: integer
+      required:
+      - kind
+      - label
+      - points
+      - requireUndefeated
+      - threshold
+    LeagueStanding:
+      type: object
+      properties:
+        leagueRank:
+          type: integer
+        rank:
+          type: integer
+        player:
+          $ref: '#/components/schemas/IdName'
+        tournamentPoints:
+          type: integer
+        bonusPoints:
+          type: integer
+        rulePoints:
+          type: integer
+        manualBonusPoints:
+          type: integer
+        droppedTournamentPoints:
+          type: integer
+        tournamentsPlayed:
+          type: integer
+        tournamentsCounted:
+          type: integer
+        xZeroCount:
+          type: integer
+        xOneCount:
+          type: integer
+        breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueBreakdownItem'
+        participations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueParticipation'
+      required:
+      - bonusPoints
+      - breakdown
+      - droppedTournamentPoints
+      - leagueRank
+      - manualBonusPoints
+      - participations
+      - player
+      - rank
+      - rulePoints
+      - tournamentPoints
+      - tournamentsCounted
+      - tournamentsPlayed
+      - xOneCount
+      - xZeroCount
+    LeagueSummary:
+      type: object
+      description: Строка списка лиг (модель + аннотации счётчиков).
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        club:
+          $ref: '#/components/schemas/NestedClub'
+        format:
+          $ref: '#/components/schemas/NestedFormat'
+        dateStart:
+          type: string
+          format: date
+        dateEnd:
+          type: string
+          format: date
+        bestTournamentsCount:
+          type: integer
+          nullable: true
+        sort:
+          type: array
+          items:
+            type: string
+        tournamentsCount:
+          type: integer
+        playersCount:
+          type: integer
+      required:
+      - bestTournamentsCount
+      - club
+      - dateEnd
+      - dateStart
+      - format
+      - id
+      - name
+      - playersCount
+      - sort
+      - tournamentsCount
+    LeagueTournament:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+        playersCount:
+          type: integer
+      required:
+      - date
+      - id
+      - playersCount
+      - title
+    MatchupMatrix:
+      type: object
+      properties:
+        decks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeckCard'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/_MatchupRow'
+        appliedFilters:
+          $ref: '#/components/schemas/AppliedFilters'
+      required:
+      - appliedFilters
+      - decks
+      - rows
+    MeleeTournamentImportRequest:
+      type: object
+      properties:
+        leagueQualifierId:
+          type: integer
+          nullable: true
+          description: id строки плана отборочных турниров лиги (необязательно)
+        meleeUrl:
+          type: string
+          description: Ссылка на турнир melee.gg (https://melee.gg/Tournament/View/<id>)
+            или его номер
+        playerDecksText:
+          type: string
+        decksOrder:
+          allOf:
+          - $ref: '#/components/schemas/DecksOrderEnum'
+          description: |-
+            Порядок безымянного списка колод при топе: final — по итоговым местам, swiss — по местам после швейцарки
+
+            * `final` - final
+            * `swiss` - swiss
+        date:
+          type: string
+        cityId:
+          type: string
+        clubId:
+          type: string
+        formatId:
+          type: string
+      required:
+      - cityId
+      - clubId
+      - date
+      - formatId
+      - meleeUrl
+      - playerDecksText
+    MetagameItem:
+      type: object
+      properties:
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckShort'
+          nullable: true
+        playersCount:
+          type: integer
+        metaShare:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+      required:
+      - bestRank
+      - deck
+      - metaShare
+      - playersCount
+    NestedCity:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+    NestedClub:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        cityId:
+          type: string
+      required:
+      - cityId
+      - id
+      - name
+    NestedFormat:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+    NestedLeague:
+      type: object
+      description: 'Лига турнира: `{id: int PK, name}`; `null`, если турнир вне лиги.'
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    NullEnum:
+      enum:
+      - null
+    PaginatedDeckListItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeckListItem'
+        appliedFilters:
+          type: object
+          properties:
+            city:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            club:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                cityId:
+                  type: string
+            format:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            tournamentType:
+              type: string
+            dateFrom:
+              type: string
+            dateTo:
+              type: string
+            league:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+    PaginatedLeagueSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueSummary'
+        appliedFilters:
+          type: object
+          properties:
+            city:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            club:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                cityId:
+                  type: string
+            format:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            tournamentType:
+              type: string
+            dateFrom:
+              type: string
+            dateTo:
+              type: string
+            league:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+    PaginatedPlayerListItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerListItem'
+        appliedFilters:
+          type: object
+          properties:
+            city:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            club:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                cityId:
+                  type: string
+            format:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            tournamentType:
+              type: string
+            dateFrom:
+              type: string
+            dateTo:
+              type: string
+            league:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+    PaginatedTournamentSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TournamentSummary'
+        appliedFilters:
+          type: object
+          properties:
+            city:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            club:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                cityId:
+                  type: string
+            format:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            tournamentType:
+              type: string
+            dateFrom:
+              type: string
+            dateTo:
+              type: string
+            league:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+    Ping:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+      required:
+      - service
+      - status
+    PlayerDeckItem:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/PlayerShort'
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckShort'
+          readOnly: true
+        rank:
+          type: integer
+        record:
+          type: string
+      required:
+      - deck
+      - player
+      - rank
+      - record
+    PlayerDetail:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/IdName'
+        summary:
+          $ref: '#/components/schemas/_PlayerSummary'
+        tournaments:
+          type: array
+          items:
+            $ref: '#/components/schemas/_PlayerTournament'
+        decks:
+          type: array
+          items:
+            $ref: '#/components/schemas/_PlayerDeckBreakdown'
+        recentMatches:
+          type: array
+          items:
+            $ref: '#/components/schemas/_RecentMatch'
+        appliedFilters:
+          $ref: '#/components/schemas/AppliedFilters'
+      required:
+      - appliedFilters
+      - decks
+      - player
+      - recentMatches
+      - summary
+      - tournaments
+    PlayerListItem:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/IdName'
+        tournamentsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        playedWins:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+        mostPlayedDeck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - mostPlayedDeck
+      - playedMatchesCount
+      - playedWins
+      - player
+      - tournamentsCount
+    PlayerShort:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    PlayoffStage:
+      type: object
+      properties:
+        topN:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/_RoundMatch'
+      required:
+      - matches
+      - topN
+    Ref:
+      type: object
+      description: 'Ссылка на справочник `{id: code, name}` (city/club/format).'
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+    Round:
+      type: object
+      properties:
+        roundNumber:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/_RoundMatch'
+      required:
+      - matches
+      - roundNumber
+    SourceEnum:
+      enum:
+      - metadata
+      - finalStandingsFile
+      - allRoundsFile
+      - playerDecksText
+      - aetherhubUrl
+      - playoffMatches
+      - meleeUrl
+      type: string
+      description: |-
+        * `metadata` - metadata
+        * `finalStandingsFile` - finalStandingsFile
+        * `allRoundsFile` - allRoundsFile
+        * `playerDecksText` - playerDecksText
+        * `aetherhubUrl` - aetherhubUrl
+        * `playoffMatches` - playoffMatches
+        * `meleeUrl` - meleeUrl
+    StandingItem:
+      type: object
+      properties:
+        rank:
+          type: integer
+        player:
+          $ref: '#/components/schemas/PlayerShort'
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckShort'
+          readOnly: true
+        record:
+          type: string
+        points:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        omw:
+          type: number
+          format: float
+          readOnly: true
+        gw:
+          type: number
+          format: float
+          readOnly: true
+        ogw:
+          type: number
+          format: float
+          readOnly: true
+        swissRank:
+          type: integer
+      required:
+      - deck
+      - gw
+      - matchDraws
+      - matchLosses
+      - matchWins
+      - ogw
+      - omw
+      - player
+      - points
+      - rank
+      - record
+    TournamentDetail:
+      type: object
+      properties:
+        tournament:
+          $ref: '#/components/schemas/TournamentSummary'
+        standings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandingItem'
+        rounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Round'
+        playoff:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayoffStage'
+        playerDecks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerDeckItem'
+        metagame:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetagameItem'
+      required:
+      - metagame
+      - playerDecks
+      - rounds
+      - standings
+      - tournament
+    TournamentImportRequest:
+      type: object
+      properties:
+        finalStandingsFile:
+          type: string
+          format: uri
+          nullable: true
+        allRoundsFile:
+          type: string
+          format: uri
+          nullable: true
+        aetherhubUrl:
+          type: string
+          description: Ссылка на турнир Aetherhub — альтернатива двум CSV
+        includeInMatchupMatrix:
+          type: boolean
+          default: true
+          description: Учитывать матчи турнира в матрице матчапов. Снять для реконструированных
+            турниров (синтетические пары раундов).
+        playerDecksText:
+          type: string
+        date:
+          type: string
+        cityId:
+          type: string
+        clubId:
+          type: string
+        formatId:
+          type: string
+        leagueQualifierId:
+          type: integer
+          nullable: true
+          description: id строки плана отборочных турниров лиги (необязательно)
+        playoffMatches:
+          type: string
+          description: 'JSON-массив матчей топа: [{topN, playerA, playerB, playerAWins,
+            playerBWins, draws?}]. Обязателен, если не задан noPlayoff.'
+        noPlayoff:
+          type: boolean
+          default: false
+          description: Турнир без топа (только швейцарка)
+        decksOrder:
+          allOf:
+          - $ref: '#/components/schemas/DecksOrderEnum'
+          description: |-
+            Порядок безымянного списка колод при топе: final — по итоговым местам, swiss — по местам после швейцарки
+
+            * `final` - final
+            * `swiss` - swiss
+      required:
+      - cityId
+      - clubId
+      - date
+      - formatId
+      - playerDecksText
+    TournamentShort:
+      type: object
+      description: '`_tournament_short`: краткая карточка турнира в dict-выдаче.'
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+        type:
+          type: string
+        city:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        club:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        format:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        playersCount:
+          type: integer
+      required:
+      - city
+      - club
+      - date
+      - format
+      - id
+      - playersCount
+      - title
+      - type
+    TournamentSummary:
+      type: object
+      description: Шапка турнира — общая для списка и детальной страницы.
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+          format: date
+        type:
+          type: string
+        city:
+          $ref: '#/components/schemas/NestedCity'
+        club:
+          $ref: '#/components/schemas/NestedClub'
+        format:
+          $ref: '#/components/schemas/NestedFormat'
+        league:
+          allOf:
+          - $ref: '#/components/schemas/NestedLeague'
+          nullable: true
+        playersCount:
+          type: integer
+        roundsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        pairingsCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+          readOnly: true
+        winner:
+          allOf:
+          - $ref: '#/components/schemas/Winner'
+          readOnly: true
+        playoffSize:
+          type: integer
+          nullable: true
+      required:
+      - byesCount
+      - city
+      - club
+      - date
+      - format
+      - id
+      - league
+      - matchesCount
+      - pairingsCount
+      - playedMatchesCount
+      - playersCount
+      - roundsCount
+      - sourceUrl
+      - title
+      - type
+      - winner
+    Winner:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/_RefIdName'
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckShort'
+          nullable: true
+      required:
+      - deck
+      - player
+    _AppliedClub:
+      type: object
+      description: 'Клуб в appliedFilters: `{id: code, name, cityId: code}`.'
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        cityId:
+          type: string
+      required:
+      - cityId
+      - id
+      - name
+    _AppliedLeague:
+      type: object
+      description: 'Лига в appliedFilters: `{id: int, name}` (публичный id — int PK).'
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    _DeckHead:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        archetype:
+          type: string
+          nullable: true
+        colors: {}
+        format:
+          $ref: '#/components/schemas/Ref'
+      required:
+      - archetype
+      - colors
+      - format
+      - id
+      - name
+    _DeckMatchup:
+      type: object
+      properties:
+        opponentDeck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        matchesCount:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        draws:
+          type: integer
+        winRate:
+          type: number
+          format: double
+        isSmallSample:
+          type: boolean
+      required:
+      - draws
+      - isSmallSample
+      - losses
+      - matchesCount
+      - opponentDeck
+      - winRate
+      - wins
+    _DeckMetagame:
+      type: object
+      properties:
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        playersCount:
+          type: integer
+        tournamentsCount:
+          type: integer
+        metaShare:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+      required:
+      - bestRank
+      - deck
+      - metaShare
+      - playersCount
+      - tournamentsCount
+    _DeckPerformance:
+      type: object
+      properties:
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - deck
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+    _DeckPlayerBreakdown:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/IdName'
+        tournamentsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+      - player
+      - tournamentsCount
+    _DeckSummary:
+      type: object
+      properties:
+        tournamentsCount:
+          type: integer
+        playersCount:
+          type: integer
+        uniquePlayersCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+      - playersCount
+      - tournamentsCount
+      - uniquePlayersCount
+    _DeckTournamentResult:
+      type: object
+      properties:
+        tournament:
+          $ref: '#/components/schemas/TournamentShort'
+        player:
+          $ref: '#/components/schemas/IdName'
+        rank:
+          type: integer
+        record:
+          type: string
+        points:
+          type: integer
+      required:
+      - player
+      - points
+      - rank
+      - record
+      - tournament
+    _HomeSummary:
+      type: object
+      properties:
+        tournamentsCount:
+          type: integer
+        tournamentPlayersCount:
+          type: integer
+        uniquePlayersCount:
+          type: integer
+        matchesCount:
+          type: integer
+        uniqueDecksCount:
+          type: integer
+      required:
+      - matchesCount
+      - tournamentPlayersCount
+      - tournamentsCount
+      - uniqueDecksCount
+      - uniquePlayersCount
+    _HomeWinner:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/IdName'
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+      required:
+      - deck
+      - player
+    _MatchupRow:
+      type: object
+      properties:
+        deck:
+          $ref: '#/components/schemas/DeckCard'
+        metaShare:
+          type: number
+          format: double
+        mirrorMatches:
+          type: integer
+        overall:
+          $ref: '#/components/schemas/_MatchupStats'
+        cells:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/_MatchupStats'
+            nullable: true
+      required:
+      - cells
+      - deck
+      - metaShare
+      - mirrorMatches
+      - overall
+    _MatchupStats:
+      type: object
+      description: Общая форма ячейки матрицы и `overall` строки (`_matchup_stats`).
+      properties:
+        matchesCount:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        draws:
+          type: integer
+        winRate:
+          type: number
+          format: double
+        winRateLow:
+          type: number
+          format: double
+        winRateHigh:
+          type: number
+          format: double
+        isSmallSample:
+          type: boolean
+      required:
+      - draws
+      - isSmallSample
+      - losses
+      - matchesCount
+      - winRate
+      - winRateHigh
+      - winRateLow
+      - wins
+    _PlayerDeckBreakdown:
+      type: object
+      properties:
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        tournamentsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        playedWins:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+        isSmallSample:
+          type: boolean
+      required:
+      - bestRank
+      - byesCount
+      - deck
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+      - playedWins
+      - tournamentsCount
+    _PlayerSummary:
+      type: object
+      properties:
+        tournamentsCount:
+          type: integer
+        matchesCount:
+          type: integer
+        playedMatchesCount:
+          type: integer
+        byesCount:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        matchDraws:
+          type: integer
+        playedWins:
+          type: integer
+        matchWinRate:
+          type: number
+          format: double
+        gameWins:
+          type: integer
+        gameLosses:
+          type: integer
+        gameDraws:
+          type: integer
+        gameWinRate:
+          type: number
+          format: double
+        bestRank:
+          type: integer
+          nullable: true
+        averageRank:
+          type: number
+          format: double
+          nullable: true
+        uniqueDecksCount:
+          type: integer
+        isSmallSample:
+          type: boolean
+      required:
+      - averageRank
+      - bestRank
+      - byesCount
+      - gameDraws
+      - gameLosses
+      - gameWinRate
+      - gameWins
+      - isSmallSample
+      - matchDraws
+      - matchLosses
+      - matchWinRate
+      - matchWins
+      - matchesCount
+      - playedMatchesCount
+      - playedWins
+      - tournamentsCount
+      - uniqueDecksCount
+    _PlayerTournament:
+      type: object
+      properties:
+        tournament:
+          $ref: '#/components/schemas/TournamentShort'
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        rank:
+          type: integer
+        record:
+          type: string
+        points:
+          type: integer
+        omw:
+          type: number
+          format: double
+          nullable: true
+        gw:
+          type: number
+          format: double
+          nullable: true
+        ogw:
+          type: number
+          format: double
+          nullable: true
+      required:
+      - deck
+      - gw
+      - ogw
+      - omw
+      - points
+      - rank
+      - record
+      - tournament
+    _PopularMatchup:
+      type: object
+      properties:
+        deckA:
+          $ref: '#/components/schemas/DeckCard'
+        deckB:
+          $ref: '#/components/schemas/DeckCard'
+        matchesCount:
+          type: integer
+        deckAWins:
+          type: integer
+        deckBWins:
+          type: integer
+        draws:
+          type: integer
+        deckAWinRate:
+          type: number
+          format: double
+        isSmallSample:
+          type: boolean
+      required:
+      - deckA
+      - deckAWinRate
+      - deckAWins
+      - deckB
+      - deckBWins
+      - draws
+      - isSmallSample
+      - matchesCount
+    _RecentMatch:
+      type: object
+      properties:
+        tournament:
+          $ref: '#/components/schemas/TournamentShort'
+        roundNumber:
+          type: integer
+        tableNumber:
+          type: integer
+        playerDeck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        opponent:
+          $ref: '#/components/schemas/IdName'
+        opponentDeck:
+          allOf:
+          - $ref: '#/components/schemas/DeckCard'
+          nullable: true
+        playerScore:
+          type: integer
+        opponentScore:
+          type: integer
+        scoreText:
+          type: string
+        result:
+          type: string
+        playoffTopN:
+          type: integer
+          nullable: true
+      required:
+      - opponent
+      - opponentDeck
+      - opponentScore
+      - playerDeck
+      - playerScore
+      - result
+      - roundNumber
+      - scoreText
+      - tableNumber
+      - tournament
+    _RecentTournament:
+      type: object
+      description: '`_tournament_short`: краткая карточка турнира в dict-выдаче.'
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        date:
+          type: string
+        type:
+          type: string
+        city:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        club:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        format:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        playersCount:
+          type: integer
+        roundsCount:
+          type: integer
+        winner:
+          allOf:
+          - $ref: '#/components/schemas/_HomeWinner'
+          nullable: true
+      required:
+      - city
+      - club
+      - date
+      - format
+      - id
+      - playersCount
+      - roundsCount
+      - title
+      - type
+      - winner
+    _RefIdName:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    _RoundMatch:
+      type: object
+      properties:
+        tableNumber:
+          type: integer
+        playerA:
+          $ref: '#/components/schemas/_RoundMatchPlayer'
+        playerB:
+          allOf:
+          - $ref: '#/components/schemas/_RoundMatchPlayer'
+          nullable: true
+        scoreText:
+          type: string
+        winnerPlayerId:
+          type: integer
+          nullable: true
+        isBye:
+          type: boolean
+      required:
+      - isBye
+      - playerA
+      - playerB
+      - scoreText
+      - tableNumber
+      - winnerPlayerId
+    _RoundMatchPlayer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        deck:
+          allOf:
+          - $ref: '#/components/schemas/DeckShort'
+          nullable: true
+        score:
+          type: integer
+      required:
+      - deck
+      - id
+      - name
+      - score
+tags:
+- name: reference
+- name: tournaments
+- name: players
+- name: decks
+- name: home
+- name: matchups
+- name: imports
+- name: system

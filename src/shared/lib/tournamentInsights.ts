@@ -13,6 +13,7 @@ export type TournamentMetagameChartItem = {
 };
 
 export type WinnerPathItem = {
+  playoffTopN?: number;
   roundNumber: number;
   tableNumber: number;
   opponent: TournamentMatchPlayer;
@@ -51,7 +52,11 @@ function getWinnerPath(
     return [];
   }
 
-  return details.rounds.flatMap((round) =>
+  const rounds = [
+    ...details.rounds.map((round) => ({ ...round, playoffTopN: undefined as number | undefined })),
+    ...(details.playoff ?? []).map((stage, index) => ({ ...stage, roundNumber: Math.max(0, ...details.rounds.map((round) => round.roundNumber)) + index + 1, playoffTopN: stage.topN })),
+  ];
+  return rounds.flatMap((round) =>
     round.matches.flatMap((match) => {
       const winnerIsPlayerA = match.playerA.id === winnerId;
       const winnerIsPlayerB = match.playerB.id === winnerId;
@@ -72,11 +77,17 @@ function getWinnerPath(
         ? match.playerB.score
         : match.playerA.score;
 
+      const scoreParts = match.scoreText.trim().split(/[-/]/);
+      const drawsSuffix = scoreParts.length === 3 && /^\d+$/.test(scoreParts[2])
+        ? `-${scoreParts[2]}`
+        : '';
+
       return [{
         roundNumber: round.roundNumber,
+        playoffTopN: round.playoffTopN,
         tableNumber: match.tableNumber,
         opponent,
-        scoreText: match.isBye ? 'BYE' : `${winnerScore}-${opponentScore}`,
+        scoreText: match.isBye ? 'BYE' : `${winnerScore}-${opponentScore}${drawsSuffix}`,
         isBye: match.isBye,
       }];
     }),
@@ -170,4 +181,20 @@ export function getTournamentInsights(details: TournamentDetailsResponse) {
       ? details.standings.find((item) => item.player.id === winnerId)
       : undefined,
   };
+}
+
+
+export function getTournamentStandingHighlights(details: TournamentDetailsResponse): Map<string, string> {
+  if (details.tournament.type !== 'tournament') return new Map();
+  if (details.tournament.playoffSize === null) {
+    return new Map(details.standings.filter((row) => row.rank >= 1 && row.rank <= 3)
+      .map((row) => [row.player.id, 'Призовое место']));
+  }
+  const stages = details.playoff ?? [];
+  if (!stages.length) return new Map();
+  const size = Math.max(...stages.map((stage) => stage.topN));
+  const firstStage = stages.find((stage) => stage.topN === size)!;
+  return new Map(firstStage.matches.flatMap((match) => [match.playerA, match.playerB])
+    .filter((player) => player.id !== 'player_bye' && player.id !== 'player_unknown')
+    .map((player) => [player.id, `Участник топ-${size}`]));
 }

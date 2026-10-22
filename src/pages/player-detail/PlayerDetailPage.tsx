@@ -1,3 +1,7 @@
+import { TournamentPerformance } from '@/widgets/tournament-performance/TournamentPerformance';
+import { PlayerEventDetails } from '@/widgets/player-tournament-matches/PlayerEventDetails';
+import { EventSummary } from '@/shared/ui/EventSummary';
+import { formatPlayoffStage } from '@/shared/lib/formatPlayoffStage';
 import { useEffect, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -31,6 +35,7 @@ import {
   getPlayerDetailInsights,
   getPlayerDeckMatchups,
   getPlayerMatchKind,
+  getPlayerMatchRoundOrder,
   getPlayerScopedMatches,
   groupPlayerMatchesByTournament,
   isEstablishedPlayerDeck,
@@ -81,15 +86,7 @@ function getTournamentColumns(
     id: 'tournament',
     header: eventLabel,
     sortValue: (row) => row.tournament.title,
-    render: (row) => (
-      <EntityLink
-        id={row.tournament.id}
-        name={row.tournament.title.endsWith(` ${formatDate(row.tournament.date)}`)
-          ? row.tournament.title.slice(0, -formatDate(row.tournament.date).length).trim()
-          : row.tournament.title}
-        type="tournament"
-      />
-    ),
+    render: (row) => <EventSummary event={row.tournament} />,
   },
   {
     id: 'deck',
@@ -121,7 +118,7 @@ function getTournamentColumns(
     header: 'Итог',
     align: 'center',
     defaultSortDirection: 'asc',
-    render: (row) => `${row.rank} из ${row.tournament.playersCount}`,
+    render: (row) => <div className="stacked-cell"><span>{row.rank > 0 ? `${row.rank} из ${row.tournament.playersCount}` : '—'}</span>{row.swissRank != null ? <small className="muted-text">Швейцарка: {row.swissRank}</small> : null}</div>,
     sortValue: (row) => row.rank / Math.max(1, row.tournament.playersCount),
   },
   ];
@@ -323,11 +320,11 @@ const opponentColumns: TableColumn<PlayerOpponentStat>[] = [
 const matchColumns: TableColumn<PlayerMatchItem>[] = [
   {
     id: 'round',
-    header: 'Раунд',
+    header: 'Раунд / стадия',
     align: 'center',
     defaultSortDirection: 'desc',
-    render: (row) => row.roundNumber,
-    sortValue: (row) => row.roundNumber,
+    render: (row) => row.playoffTopN ? formatPlayoffStage(row.playoffTopN) : row.roundNumber,
+    sortValue: getPlayerMatchRoundOrder,
   },
   {
     id: 'playerDeck',
@@ -419,7 +416,7 @@ const matchColumns: TableColumn<PlayerMatchItem>[] = [
         <div className="table__score-cell">
           {getPlayerMatchKind(row) === 'bye'
             ? 'BYE'
-            : formatRecord(row.playerScore, row.opponentScore)}
+            : row.scoreText || formatRecord(row.playerScore, row.opponentScore)}
         </div>
       ),
     sortValue: (row) =>
@@ -435,187 +432,11 @@ function getMatchGroupPlayerDeck(matches: PlayerMatchItem[]) {
   return matches.find((match) => match.playerDeck)?.playerDeck;
 }
 
-const TOURNAMENT_PREVIEW_LIMIT = 5;
-
-function getTournamentDisplayTitle(item: PlayerTournamentItem) {
-  const formattedDate = formatDate(item.tournament.date);
-
-  return item.tournament.title.endsWith(` ${formattedDate}`)
-    ? item.tournament.title.slice(0, -formattedDate.length).trim()
-    : item.tournament.title;
-}
-
-function isUpperQuarterFinish(item: PlayerTournamentItem) {
-  return item.rank > 0 &&
-    item.rank <= Math.ceil(item.tournament.playersCount / 4);
-}
-
-type TournamentPerformanceProps = {
-  items: PlayerTournamentItem[];
-  isLoading?: boolean;
-};
-
-function TournamentPerformance({ items, isLoading = false }: TournamentPerformanceProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const sortedItems = [...items].sort(
-    (left, right) =>
-      right.tournament.date.localeCompare(left.tournament.date) ||
-      right.tournament.id.localeCompare(left.tournament.id),
-  );
-  const bestTournament = [...items].sort(
-    (left, right) =>
-      left.rank - right.rank ||
-      right.tournament.playersCount - left.tournament.playersCount ||
-      right.tournament.date.localeCompare(left.tournament.date),
-  )[0];
-  const strongFinishesCount = items.filter(isUpperQuarterFinish).length;
-  const winsCount = items.filter((item) => item.rank === 1).length;
-  const hasLongHistory = sortedItems.length >= 10;
-  const visibleItems = hasLongHistory && !isExpanded
-    ? sortedItems.slice(0, TOURNAMENT_PREVIEW_LIMIT)
-    : sortedItems;
-
-  return (
-    <section className="page-stack tournament-performance" aria-labelledby="tournament-performance-title">
-      <div className="section-header">
-        <div>
-          <h2 className="section-header__title" id="tournament-performance-title">
-            Выступления на турнирах
-          </h2>
-          <p className="section-header__description">
-            Итог каждого участия вместе с размером поля, колодой и результатом матчей.
-          </p>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <Card className="tournament-performance__state" tone="muted">
-          Собираем историю турниров…
-        </Card>
-      ) : !bestTournament ? (
-        <Card className="tournament-performance__state" tone="muted">
-          С выбранными фильтрами у игрока пока нет турниров.
-        </Card>
-      ) : (
-        <>
-          <div className="tournament-performance__summary">
-            <Card className="tournament-performance__best" tone="accent">
-              <div className="tournament-performance__label">Лучшее выступление</div>
-              <div className="tournament-performance__place">
-                <strong>{bestTournament.rank} место</strong>
-                <span>из {bestTournament.tournament.playersCount}</span>
-              </div>
-              <div className="tournament-performance__event">
-                <EntityLink
-                  id={bestTournament.tournament.id}
-                  name={getTournamentDisplayTitle(bestTournament)}
-                  type="tournament"
-                />
-              </div>
-              <div className="tournament-performance__meta">
-                {formatDate(bestTournament.tournament.date)}
-                {bestTournament.deck ? (
-                  <>
-                    {' · '}
-                    <EntityLink
-                      colors={bestTournament.deck.colors}
-                      id={bestTournament.deck.id}
-                      name={bestTournament.deck.name}
-                      type="deck"
-                    />
-                  </>
-                ) : null}
-                {' · '}{bestTournament.record}
-              </div>
-            </Card>
-
-            <Card className="tournament-performance__metric">
-              <div className="tournament-performance__label">Участий</div>
-              <strong>{items.length}</strong>
-              <span>
-                {items.length < 10
-                  ? 'Вся история видна ниже'
-                  : `Последние ${TOURNAMENT_PREVIEW_LIMIT} — ниже`}
-              </span>
-            </Card>
-
-            <Card className="tournament-performance__metric">
-              <div className="tournament-performance__label">В верхней четверти</div>
-              <strong>{strongFinishesCount} из {items.length}</strong>
-              <span>
-                {winsCount > 0
-                  ? `Побед в турнирах: ${winsCount}`
-                  : 'Место сопоставлено с размером поля'}
-              </span>
-            </Card>
-          </div>
-
-          <Card className="tournament-performance__history">
-            <div className="tournament-performance__rows" role="list">
-              {visibleItems.map((item) => (
-                <article
-                  className={item.tournament.id === bestTournament.tournament.id
-                    ? 'tournament-performance__row tournament-performance__row--best'
-                    : 'tournament-performance__row'}
-                  key={item.tournament.id}
-                  role="listitem"
-                >
-                  <time dateTime={item.tournament.date}>
-                    {formatDate(item.tournament.date)}
-                  </time>
-                  <div className="tournament-performance__row-event">
-                    <EntityLink
-                      id={item.tournament.id}
-                      name={getTournamentDisplayTitle(item)}
-                      type="tournament"
-                    />
-                    <span>{item.tournament.playersCount} участников</span>
-                  </div>
-                  <div className="tournament-performance__row-deck">
-                    {item.deck ? (
-                      <EntityLink
-                        colors={item.deck.colors}
-                        id={item.deck.id}
-                        name={item.deck.name}
-                        type="deck"
-                      />
-                    ) : 'Колода не указана'}
-                  </div>
-                  <div className="tournament-performance__record" aria-label={`Результат матчей: ${item.record}`}>
-                    {item.record}
-                  </div>
-                  <div className="tournament-performance__rank">
-                    <strong>{item.rank} место</strong>
-                    <span>из {item.tournament.playersCount}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {hasLongHistory ? (
-              <div className="tournament-performance__actions">
-                <Button
-                  aria-expanded={isExpanded}
-                  onClick={() => setIsExpanded((value) => !value)}
-                  type="button"
-                  variant="ghost"
-                >
-                  {isExpanded
-                    ? 'Показать только последние'
-                    : `Показать все турниры (${items.length})`}
-                </Button>
-              </div>
-            ) : null}
-          </Card>
-        </>
-      )}
-    </section>
-  );
-}
-
 export function PlayerDetailPage() {
   const { id = '' } = useParams();
   const [activeTab, setActiveTab] = useState('tournaments');
   const [deckSort, setDeckSort] = useState<PlayerDeckSort>('matches');
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [expandedDeckId, setExpandedDeckId] = useState<string | null>(null);
   const [visibleTournamentsCount, setVisibleTournamentsCount] =
     useState(LIST_PAGE_SIZE);
@@ -673,6 +494,7 @@ export function PlayerDetailPage() {
     setVisibleOpponentsCount(LIST_PAGE_SIZE);
     setVisibleMatchGroupsCount(PLAYER_MATCH_GROUP_PAGE_SIZE);
     setExpandedDeckId(null);
+    setExpandedEventId(null);
   }, [filterKey, id]);
 
   if (playerQuery.isLoading) {
@@ -743,7 +565,7 @@ export function PlayerDetailPage() {
   );
   const isDailyView = filters.tournamentType === 'daily';
   const isTournamentView = filters.tournamentType === 'tournament';
-  const tournamentParticipations = (tournamentStatsData?.tournaments ?? []).filter(
+  const tournamentParticipations = (tournamentStatsData?.tournaments ?? playerQuery.data.tournaments).filter(
     (item) => item.tournament.type === 'tournament',
   );
   function getMatchSummaryItems(data?: PlayerDetailsResponse) {
@@ -798,7 +620,15 @@ export function PlayerDetailPage() {
     },
     ...getMatchSummaryItems(dailyStatsData),
   ];
-  const tournamentColumns = getTournamentColumns(filters.tournamentType);
+  const tournamentColumns: TableColumn<PlayerTournamentItem>[] = [
+    ...getTournamentColumns(filters.tournamentType),
+    { id: 'details', header: '', align: 'right', render: (row) => <Button
+      aria-label={`Матчи: ${row.tournament.title}`}
+      aria-expanded={expandedEventId === row.tournament.id}
+      onClick={() => setExpandedEventId(expandedEventId === row.tournament.id ? null : row.tournament.id)}
+      variant="ghost"
+    >{expandedEventId === row.tournament.id ? '⌃' : '⌄'}</Button> },
+  ];
   const deckColumns = getDeckColumns(filters.tournamentType);
   const eventLabels = filters.tournamentType === 'daily'
     ? {
@@ -881,7 +711,7 @@ export function PlayerDetailPage() {
             items={dailySummaryItems}
           />
           <TournamentPerformance
-            isLoading={!tournamentStatsData}
+            isLoading={splitStatsQueries[1]?.isPending}
             items={tournamentParticipations}
           />
         </div>
@@ -961,6 +791,9 @@ export function PlayerDetailPage() {
           </div>
           <Table
             columns={tournamentColumns}
+            renderAfterRow={(row) => expandedEventId === row.tournament.id ? <tr><td colSpan={tournamentColumns.length}>
+              <PlayerEventDetails tournamentId={row.tournament.id} playerId={id} />
+            </td></tr> : null}
             data={isTournamentView ? sortedTournaments : visibleTournaments}
             isPartial={!isTournamentView && visibleTournaments.length < sortedTournaments.length}
             defaultSort={{ columnId: 'date', direction: 'desc' }}
@@ -1190,7 +1023,7 @@ export function PlayerDetailPage() {
                   defaultSort={{ columnId: 'round', direction: 'asc' }}
                   emptyMessage="В этом событии нет матчей с известными оппонентами."
                   getRowKey={(row) =>
-                    `${row.tournament.id}-${row.roundNumber}-${row.tableNumber}-${row.opponent?.id ?? getPlayerMatchKind(row)}`
+                    `${row.tournament.id}-${row.playoffTopN ?? "swiss"}-${row.roundNumber}-${row.tableNumber}-${row.opponent?.id ?? getPlayerMatchKind(row)}`
                   }
                   minWidth={isDaily ? 720 : 880}
                 />

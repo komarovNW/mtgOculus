@@ -1,3 +1,4 @@
+import { analyzePlayerDecksInput } from '@/shared/lib/playerDecksInput';
 import { apiPostForm, AppError } from '@/shared/api/client';
 import { endpoints } from '@/shared/api/endpoints';
 import type {
@@ -30,21 +31,69 @@ function payloadToFormData(payload: CreateTournamentPayload) {
   formData.set('date', payload.date);
   formData.set('cityId', payload.cityId);
   formData.set('clubId', payload.clubId);
-  formData.set('tournamentType', payload.tournamentType);
   formData.set('formatId', payload.formatId);
-  if (payload.leagueId) {
+  if (payload.tournamentType === 'daily' && payload.leagueId) {
     formData.set('leagueId', payload.leagueId);
   }
-  formData.set('aetherhubUrl', payload.aetherhubUrl);
+  if (payload.aetherhubUrl.trim()) formData.set('aetherhubUrl', payload.aetherhubUrl.trim());
   formData.set('playerDecksText', payload.playerDecksText);
+
+  for (const key of ['finalStandingsFile', 'allRoundsFile'] as const) {
+    if (payload[key]) formData.set(key, payload[key]);
+  }
+  if (payload.includeInMatchupMatrix !== undefined) {
+    formData.set('includeInMatchupMatrix', String(payload.includeInMatchupMatrix));
+  }
+  if (payload.tournamentType === 'tournament') {
+    if (payload.leagueQualifierId) {
+      formData.set('leagueQualifierId', payload.leagueQualifierId);
+    }
+    if (payload.noPlayoff) {
+      formData.set('noPlayoff', 'true');
+    } else {
+      if (payload.playoffMatches?.length) formData.set('playoffMatches', JSON.stringify(payload.playoffMatches));
+      if (payload.decksOrder && analyzePlayerDecksInput(payload.playerDecksText).mode === 'ordered') formData.set('decksOrder', payload.decksOrder);
+    }
+  }
+  return formData;
+}
+
+function meleePayloadToFormData(payload: CreateTournamentPayload) {
+  const formData = new FormData();
+  formData.set('meleeUrl', payload.meleeUrl?.trim() ?? '');
+  formData.set('playerDecksText', payload.playerDecksText);
+  formData.set('date', payload.date);
+  formData.set('cityId', payload.cityId);
+  formData.set('clubId', payload.clubId);
+  formData.set('formatId', payload.formatId);
+
+  if (payload.leagueQualifierId) {
+    formData.set('leagueQualifierId', payload.leagueQualifierId);
+  }
+
+  if (
+    payload.decksOrder &&
+    analyzePlayerDecksInput(payload.playerDecksText).mode === 'ordered'
+  ) {
+    formData.set('decksOrder', payload.decksOrder);
+  }
 
   return formData;
 }
 
 export function createTournament(payload: CreateTournamentPayload): Promise<CreateTournamentResponse> {
+  const isMeleeImport =
+    payload.tournamentType === 'tournament' &&
+    payload.tournamentImportSource === 'melee';
+
   return apiPostForm<BackendCreateTournamentResponse>(
-    endpoints.importTournament,
-    payloadToFormData(payload),
+    isMeleeImport
+      ? endpoints.importTournamentFromMelee
+      : payload.tournamentType === 'daily'
+        ? endpoints.importDaily
+        : endpoints.importTournament,
+    isMeleeImport ? meleePayloadToFormData(payload) : payloadToFormData(payload),
+    isMeleeImport ? { timeoutMs: 120_000 } : undefined,
   ).then((response) => {
     if (!response.success) {
       const details = response.errors ?? [];

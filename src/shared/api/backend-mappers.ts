@@ -97,6 +97,7 @@ type BackendTournamentListItem = {
     name: string;
   } | null;
   playersCount: number;
+  playoffSize?: number | null;
   roundsCount: number;
   matchesCount: number;
   pairingsCount: number;
@@ -115,6 +116,7 @@ type BackendTournamentShort = {
   club?: BackendClub | null;
   format?: BackendFormat | null;
   playersCount: number;
+  playoffSize?: number | null;
 };
 
 type BackendPaginated<T> = {
@@ -127,6 +129,7 @@ type BackendPaginated<T> = {
 
 type BackendTournamentStandingItem = {
   rank: number;
+  swissRank?: number;
   player: BackendPlayer;
   deck?: BackendDeck | null;
   record: string;
@@ -162,6 +165,7 @@ type BackendTournamentDetailsResponse = {
   appliedFilters?: BackendAppliedFilters | null;
   tournament: BackendTournamentListItem;
   standings: BackendTournamentStandingItem[];
+  playoff?: Array<{ topN: number; matches: BackendRoundMatch[] }>;
   rounds: Array<{
     roundNumber: number;
     matches: BackendRoundMatch[];
@@ -227,6 +231,7 @@ type BackendPlayerDetailsResponse = {
     tournament: BackendTournamentShort;
     deck?: BackendDeck | null;
     rank: number;
+    swissRank?: number | null;
     record: string;
     points: number;
     omw?: number | null;
@@ -248,6 +253,7 @@ type BackendPlayerDetailsResponse = {
     isSmallSample: boolean;
   }>;
   recentMatches: Array<{
+    playoffTopN?: number | null;
     tournament: {
       id: number;
       title: string;
@@ -314,6 +320,7 @@ type BackendDeckDetailsResponse = {
     tournament: BackendTournamentShort;
     player: BackendPlayer;
     rank: number;
+    swissRank?: number | null;
     record: string;
     points: number;
   }>;
@@ -353,6 +360,7 @@ type BackendHomeResponse = {
     club?: BackendClub | null;
     format?: BackendFormat | null;
     playersCount: number;
+    playoffSize?: number | null;
     roundsCount: number;
     winner?: BackendWinner;
   }>;
@@ -514,6 +522,7 @@ function mapTournamentListItem(raw: BackendTournamentListItem): TournamentListIt
       ? { id: String(raw.league.id), name: raw.league.name }
       : null,
     playersCount: raw.playersCount,
+    playoffSize: raw.playoffSize,
     roundsCount: raw.roundsCount,
     matchesCount: raw.matchesCount,
     pairingsCount: raw.pairingsCount,
@@ -534,6 +543,7 @@ function mapTournamentShort(raw: BackendTournamentShort) {
     club: mapClub(raw.club, raw.city?.id ?? ''),
     format: mapFormat(raw.format),
     playersCount: raw.playersCount,
+    playoffSize: raw.playoffSize,
   };
 }
 
@@ -623,6 +633,7 @@ export function mapHomeResponse(raw: BackendHomeResponse, appliedFilters: Applie
       club: mapClub(item.club, item.city?.id ?? ''),
       format: mapFormat(item.format),
       playersCount: item.playersCount,
+      playoffSize: item.playoffSize,
       roundsCount: item.roundsCount,
       winner: mapWinner(item.winner),
     })),
@@ -723,6 +734,7 @@ export function mapTournamentDetailsResponse(raw: BackendTournamentDetailsRespon
     },
     standings: raw.standings.map<TournamentStandingItem>((item) => ({
       rank: item.rank,
+      swissRank: item.swissRank,
       player: mapPlayerShort(item.player)!,
       deck: mapDeckShort(item.deck ?? null),
       record: item.record,
@@ -733,6 +745,10 @@ export function mapTournamentDetailsResponse(raw: BackendTournamentDetailsRespon
       omw: item.omw ?? undefined,
       gw: item.gw ?? undefined,
       ogw: item.ogw ?? undefined,
+    })),
+    playoff: (raw.playoff ?? []).map((stage) => ({
+      topN: stage.topN,
+      matches: stage.matches.map((match) => mapTournamentRoundMatch(match, deckByPlayerId)),
     })),
     rounds: raw.rounds.map<TournamentRound>((round) => ({
       roundNumber: round.roundNumber,
@@ -815,6 +831,7 @@ export function mapPlayerDetailsResponse(
       tournament: mapTournamentShort(item.tournament),
       deck: mapDeckShort(item.deck ?? null),
       rank: item.rank,
+      swissRank: item.swissRank,
       record: item.record,
       points: item.points,
       omw: item.omw ?? undefined,
@@ -856,6 +873,7 @@ export function mapPlayerDetailsResponse(
           ? mapClub(item.tournament.club)
           : undefined,
         },
+        playoffTopN: item.playoffTopN,
         roundNumber: item.roundNumber,
         tableNumber: item.tableNumber,
         playerDeck: mapDeckShort(item.playerDeck ?? null),
@@ -933,6 +951,7 @@ export function mapDeckDetailsResponse(
       tournament: mapTournamentShort(item.tournament),
       player: mapPlayerShort(item.player)!,
       rank: item.rank,
+      swissRank: item.swissRank,
       record: item.record,
       points: item.points,
     })),

@@ -1,9 +1,11 @@
+import { EventLinkScope } from '@/shared/lib/eventLinkScope';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useParams } from 'react-router-dom';
 import { getTournamentDetails } from '@/entities/tournament/api';
 import type { TournamentMetagameItem, TournamentRound, TournamentStandingItem } from '@/shared/api/types';
+import { formatPlayoffStage } from '@/shared/lib/formatPlayoffStage';
 import { cn } from '@/shared/lib/cn';
 import { formatDate } from '@/shared/lib/formatDate';
 import { formatChartDeckName } from '@/shared/lib/formatChartDeckName';
@@ -12,6 +14,7 @@ import { MATCH_RECORD_HINT, getRecordSortValue } from '@/shared/lib/formatRecord
 import { getErrorMessage } from '@/shared/lib/getErrorMessage';
 import {
   getTournamentInsights,
+  getTournamentStandingHighlights,
   getTournamentMatchKind,
 } from '@/shared/lib/tournamentInsights';
 import { Badge } from '@/shared/ui/Badge';
@@ -24,10 +27,16 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { MetagameChartTooltip } from '@/shared/ui/MetagameChartTooltip';
 import { Table, type TableColumn } from '@/shared/ui/Table';
 import { Tabs } from '@/shared/ui/Tabs';
+import { Input } from '@/shared/ui/Input';
+import { Button } from '@/shared/ui/Button';
+import { getDeckQualificationCounts } from '@/shared/lib/tournamentExploration';
+import { PlayoffBracket } from './components/PlayoffBracket';
+import { PlayerTournamentMatches } from '@/widgets/player-tournament-matches/PlayerTournamentMatches';
+import './tournament-detail.css';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
 
 const standingsColumns: TableColumn<TournamentStandingItem>[] = [
-  { id: 'rank', header: 'Место', align: 'center', defaultSortDirection: 'asc', render: (row) => row.rank, sortValue: (row) => row.rank },
+  { id: 'rank', header: 'Место', headerTitle: 'Итоговое место события, с учётом плей-офф, если он был.', align: 'center', defaultSortDirection: 'asc', render: (row) => row.rank, sortValue: (row) => row.rank },
   {
     id: 'player',
     header: 'Игрок',
@@ -80,7 +89,7 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
     header: 'GW',
     align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: 'Процент выигранных игр внутри матчей этого турнира.',
+    headerTitle: 'Процент выигранных игр по стендингам. Для турниров — только швейцарка.',
     render: (row) => formatPercent(row.gw),
     sortValue: (row) => row.gw,
   },
@@ -139,9 +148,6 @@ const roundColumns: TableColumn<TournamentRound['matches'][number]>[] = [
             name={row.playerA.name}
             type="player"
           />
-          {row.winnerPlayerId === row.playerA.id && getTournamentMatchKind(row) === 'played' ? (
-            <Badge variant="accent">Победа</Badge>
-          ) : null}
         </div>
         <span className="muted-text">
           {row.playerA.deck ? (
@@ -182,9 +188,6 @@ const roundColumns: TableColumn<TournamentRound['matches'][number]>[] = [
     render: (row) => (
       <div className={cn('stacked-cell stacked-cell--end', row.winnerPlayerId === row.playerB.id && 'match-player--winner')}>
         <div className="entity-cell">
-          {row.winnerPlayerId === row.playerB.id ? (
-            <Badge variant="accent">Победа</Badge>
-          ) : null}
           {getTournamentMatchKind(row) === 'unknown' ? (
             <Badge variant="warning">Оппонент не указан</Badge>
           ) : getTournamentMatchKind(row) === 'bye' ? (
@@ -229,7 +232,7 @@ function getMatchesWord(value: number) {
   return 'матчей';
 }
 
-function getSafeAetherhubUrl(value?: string | null) {
+function getSafeSourceLink(value?: string | null) {
   if (!value) {
     return null;
   }
@@ -239,8 +242,15 @@ function getSafeAetherhubUrl(value?: string | null) {
     const isAetherhub =
       url.hostname === 'aetherhub.com' ||
       url.hostname.endsWith('.aetherhub.com');
+    const isMelee =
+      url.hostname === 'melee.gg' ||
+      url.hostname.endsWith('.melee.gg');
 
-    return url.protocol === 'https:' && isAetherhub ? url.toString() : null;
+    if (url.protocol !== 'https:') return null;
+    if (isAetherhub) return { href: url.toString(), label: 'Открыть на Aetherhub ↗' };
+    if (isMelee) return { href: url.toString(), label: 'Открыть на Melee.gg ↗' };
+
+    return null;
   } catch {
     return null;
   }
@@ -250,8 +260,10 @@ function RoundBlock({
   rounds,
   activeRoundNumber,
   onRoundChange,
+  isTournament,
 }: {
   rounds: TournamentRound[];
+  isTournament: boolean;
   activeRoundNumber: number | null;
   onRoundChange: (roundNumber: number | null) => void;
 }) {
@@ -259,7 +271,7 @@ function RoundBlock({
     <Card className="round-card">
       <div className="section-header">
         <div>
-          <h3 className="section-header__title">Раунды и паринги</h3>
+          <h3 className="section-header__title">{isTournament ? 'Швейцарка: раунды и паринги' : 'Раунды и паринги'}</h3>
           <p className="section-header__description">Выберите нужный раунд и посмотрите пары именно для него.</p>
         </div>
       </div>
@@ -319,6 +331,16 @@ function RoundBlock({
 export function TournamentDetailPage() {
   const { id = '' } = useParams();
   const [activeTab, setActiveTab] = useState('standings');
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [onlyQualified, setOnlyQualified] = useState(false);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveTab('standings');
+    setPlayerSearch('');
+    setOnlyQualified(false);
+    setExpandedPlayerId(null);
+  }, [id]);
   const [activeRoundNumber, setActiveRoundNumber] = useState<number | null>(null);
   const detailQuery = useQuery({
     enabled: Boolean(id),
@@ -356,7 +378,49 @@ export function TournamentDetailPage() {
 
   const tournament = detailQuery.data.tournament;
   const insights = getTournamentInsights(detailQuery.data);
-  const aetherhubUrl = getSafeAetherhubUrl(tournament.sourceUrl);
+  const standingHighlights = getTournamentStandingHighlights(detailQuery.data);
+  const highlightedColumns: TableColumn<TournamentStandingItem>[] = [
+    ...standingsColumns.map((column) => column.id === 'rank' ? {
+      ...column,
+      render: (row: TournamentStandingItem) => standingHighlights.has(row.player.id)
+        ? <span className="standing-place--highlighted" title={standingHighlights.get(row.player.id)} aria-label={`${row.rank} место · ${standingHighlights.get(row.player.id)}`}>{row.rank}</span>
+        : row.rank,
+    } : column),
+    {
+      id: 'actions',
+      header: '',
+      align: 'center',
+      render: (row) => (
+        <button
+          aria-controls={expandedPlayerId === row.player.id ? `matches-${row.player.id}` : undefined}
+          aria-expanded={expandedPlayerId === row.player.id}
+          aria-label={`${expandedPlayerId === row.player.id ? 'Скрыть' : 'Показать'} матчи игрока ${row.player.name}`}
+          className="standing-player-toggle"
+          onClick={() => setExpandedPlayerId((current) => current === row.player.id ? null : row.player.id)}
+          type="button"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      ),
+    },
+  ];
+  const searchTerms = playerSearch.trim().toLocaleLowerCase('ru').replace(/ё/g, 'е').split(/\s+/).filter(Boolean);
+  const visibleStandings = detailQuery.data.standings.filter((row) =>
+    (!onlyQualified || standingHighlights.has(row.player.id)) &&
+    searchTerms.every((term) => row.player.name.toLocaleLowerCase('ru').replace(/ё/g, 'е').includes(term)),
+  );
+  const qualificationCounts = getDeckQualificationCounts(detailQuery.data);
+  const resultColumns: TableColumn<TournamentMetagameItem>[] = [
+    ...metagameColumns,
+    ...(tournament.type === 'tournament' && (tournament.playoffSize || tournament.playoffSize === null) ? [{
+      id: 'qualified', header: tournament.playoffSize ? `В топ-${tournament.playoffSize}` : 'В первой тройке',
+      align: 'center' as const,
+      render: (row: TournamentMetagameItem) => qualificationCounts.get(row.deck.id) ?? 0,
+      sortValue: (row: TournamentMetagameItem) => qualificationCounts.get(row.deck.id) ?? 0,
+    }] : []),
+    { id: 'bestRank', header: 'Лучшее место', align: 'center', defaultSortDirection: 'asc', render: (row) => row.bestRank, sortValue: (row) => row.bestRank },
+  ];
+  const sourceLink = getSafeSourceLink(tournament.sourceUrl);
   const metagameChartData = insights.metagameChartData.map((item) => ({
     name: item.name,
     metaShare: Number(item.metaShare.toFixed(1)),
@@ -364,17 +428,18 @@ export function TournamentDetailPage() {
   }));
 
   return (
+    <EventLinkScope.Provider value={{ cityId: tournament.city.id, clubId: tournament.club.id, formatId: tournament.format.id, tournamentType: tournament.type }}>
     <div className="page-stack">
       <PageHeader
         actions={
-          aetherhubUrl ? (
+          sourceLink ? (
             <a
               className="button button--ghost"
-              href={aetherhubUrl}
+              href={sourceLink.href}
               rel="noreferrer"
               target="_blank"
             >
-              Открыть на Aetherhub ↗
+              {sourceLink.label}
             </a>
           ) : undefined
         }
@@ -410,7 +475,12 @@ export function TournamentDetailPage() {
                 .filter(Boolean)
                 .join(' · ') || 'Все пары сыграны против оппонента',
           },
-          { title: 'Раундов', value: tournament.roundsCount },
+          { title: tournament.type === 'tournament' ? 'Раундов швейцарки' : 'Раундов', value: tournament.roundsCount },
+          ...(tournament.type === 'tournament' ? [{
+            title: 'Плей-офф',
+            value: tournament.playoffSize ? `Топ-${tournament.playoffSize}` : tournament.playoffSize === null ? 'Только швейцарка' : 'Нет данных',
+            valueSize: 'compact' as const,
+          }] : []),
         ]}
       />
 
@@ -442,7 +512,7 @@ export function TournamentDetailPage() {
               </div>
               <div className="spotlight-card__stats">
                 <div className="spotlight-card__stat">
-                  <span>Результат</span>
+                  <span>{tournament.type === 'tournament' ? 'Результат швейцарки' : 'Результат'}</span>
                   <strong>{insights.winnerStanding?.record ?? '—'}</strong>
                 </div>
                 <div className="spotlight-card__stat">
@@ -471,7 +541,7 @@ export function TournamentDetailPage() {
                 <div className="spotlight-card__header">
                   <div>
                     <div className="spotlight-card__subtitle">
-                      Раунд {item.roundNumber} · стол {item.tableNumber}
+                      {item.playoffTopN ? formatPlayoffStage(item.playoffTopN) : `Раунд ${item.roundNumber}`} · стол {item.tableNumber}
                     </div>
                     <div className="spotlight-card__title">{item.scoreText}</div>
                   </div>
@@ -558,11 +628,11 @@ export function TournamentDetailPage() {
             </article>
           ) : null}
           <article className="insight-item">
-            <div className="insight-item__title">Без поражений</div>
+            <div className="insight-item__title">{tournament.type === 'tournament' ? 'Без поражений в швейцарке' : 'Без поражений'}</div>
             <div className="insight-item__body">
               {insights.undefeatedPlayers.length ? (
                 <>
-                  Турнир без поражений завершили:{' '}
+                  {tournament.type === 'tournament' ? 'Швейцарку без поражений завершили: ' : 'Турнир без поражений завершили: '}
                   {insights.undefeatedPlayers.map((item, index) => (
                     <span key={item.player.id}>
                       {index > 0 ? ', ' : ''}
@@ -576,7 +646,7 @@ export function TournamentDetailPage() {
                   .
                 </>
               ) : (
-                'Никто из участников не завершил турнир без поражений.'
+                'Нет участников без поражений в стендингах.'
               )}
             </div>
           </article>
@@ -605,33 +675,50 @@ export function TournamentDetailPage() {
         activeId={activeTab}
         items={[
           { id: 'standings', label: 'Стендинги' },
-          { id: 'rounds', label: 'Раунды и паринги' },
+          { id: 'rounds', label: tournament.type === 'tournament' ? 'Швейцарка' : 'Раунды и паринги' },
+          ...(detailQuery.data.playoff?.length ? [{ id: 'playoff', label: 'Плей-офф' }] : []),
           { id: 'metagame', label: 'Метагейм турнира' },
         ]}
         onChange={setActiveTab}
       />
 
       {activeTab === 'standings' ? (
-        <Card>
+        <Card className="standings-card">
           <div className="section-header">
               <div>
                 <h2 className="section-header__title">Итоговые стендинги</h2>
-                <p className="section-header__description">Финальные места, очки и тайбрейки.</p>
+                <p className="section-header__description">{tournament.type === 'tournament' ? (tournament.playoffSize ? 'Итоговые места с учётом плей-офф. Результат, очки и тайбрейки — по швейцарке.' : 'Итоговые места, результат, очки и тайбрейки по швейцарке.') : 'Финальные места, очки и тайбрейки.'}</p>
               </div>
             </div>
+          <div className="standings-toolbar">
+            <Input label="Найти игрока" type="search" placeholder="Имя или фамилия" value={playerSearch} onChange={(event) => setPlayerSearch(event.target.value)} />
+            {standingHighlights.size > 0 ? <div className="standings-toolbar__scope" role="group" aria-label="Участники стендингов">
+              <Button type="button" variant={!onlyQualified ? 'primary' : 'secondary'} aria-pressed={!onlyQualified} onClick={() => setOnlyQualified(false)}>Все участники</Button>
+              <Button type="button" variant={onlyQualified ? 'primary' : 'secondary'} aria-pressed={onlyQualified} onClick={() => setOnlyQualified(true)}>{tournament.playoffSize ? `Только топ-${tournament.playoffSize}` : 'Первая тройка'}</Button>
+            </div> : null}
+          </div>
+          <div className="standings-results-bar">
+            <p className="muted-text" aria-live="polite">Показано {visibleStandings.length} из {detailQuery.data.standings.length}</p>
+            {playerSearch || onlyQualified ? <Button type="button" variant="ghost" onClick={() => { setPlayerSearch(''); setOnlyQualified(false); }}>Сбросить поиск и фильтр</Button> : null}
+          </div>
           <Table
-            columns={standingsColumns}
-            data={detailQuery.data.standings}
-            emptyMessage="Итоговые стендинги для этого турнира пока не загружены."
+            columns={highlightedColumns}
+            getRowClassName={(row) => standingHighlights.has(row.player.id) ? 'table__row--qualified' : undefined}
+            data={visibleStandings}
+            renderAfterRow={(row) => expandedPlayerId === row.player.id ? <tr><td className="standing-details-cell" colSpan={highlightedColumns.length}><PlayerTournamentMatches details={detailQuery.data} standing={row} /></td></tr> : null}
+            emptyMessage={playerSearch || onlyQualified ? 'Нет игроков по выбранным условиям. Измените поиск или сбросьте фильтр.' : 'Итоговые стендинги для этого турнира пока не загружены.'}
             getRowKey={(row) => `${row.rank}-${row.player.id}`}
           />
         </Card>
       ) : null}
 
+      {activeTab === 'playoff' ? <PlayoffBracket stages={detailQuery.data.playoff ?? []} /> : null}
+
       {activeTab === 'rounds' ? (
         <RoundBlock
           activeRoundNumber={activeRoundNumber}
           onRoundChange={setActiveRoundNumber}
+          isTournament={tournament.type === 'tournament'}
           rounds={detailQuery.data.rounds}
         />
       ) : null}
@@ -691,7 +778,7 @@ export function TournamentDetailPage() {
             </div>
 
             <Table
-              columns={metagameColumns}
+              columns={resultColumns}
               data={insights.metagameItems}
               emptyMessage="Метагейм этого турнира пока не загружен."
               getRowKey={(row) => row.deck.id}
@@ -700,5 +787,6 @@ export function TournamentDetailPage() {
         </Card>
       ) : null}
     </div>
+    </EventLinkScope.Provider>
   );
 }

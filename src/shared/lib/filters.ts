@@ -140,3 +140,10 @@ export function useDashboardFilters() {
     resetFilters,
   };
 }
+
+export function getEventListSearch(search: string, path: string) {
+  const params = new URLSearchParams(getDashboardFilterSearch(search));
+  if (path === '/dailies' || path === '/tournaments') params.delete('tournamentType');
+  const value = params.toString();
+  return value ? `?${value}` : '';
+}

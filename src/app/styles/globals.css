@@ -1208,6 +1208,99 @@ textarea {
   color: var(--text);
 }
 
+.playoff-editor,
+.playoff-editor__intro,
+.playoff-editor__stages,
+.playoff-stage-editor,
+.playoff-stage-editor__matches {
+  display: grid;
+  gap: 12px;
+}
+
+.playoff-editor__intro span,
+.playoff-stage-editor__header span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.playoff-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playoff-editor__actions .button {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.playoff-editor__empty {
+  padding: 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.playoff-stage-editor {
+  gap: 8px;
+}
+
+.playoff-stage-editor__header,
+.playoff-match-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.playoff-stage-editor__header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.playoff-match-editor {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card-muted);
+}
+
+.playoff-match-editor__header .button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.playoff-match-editor__players {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.playoff-match-editor__competitor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  align-items: end;
+  gap: 8px;
+}
+
+.playoff-match-editor__competitor--reverse {
+  grid-template-columns: 84px minmax(0, 1fr);
+}
+
+.playoff-match-editor__versus {
+  padding-bottom: 13px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.playoff-match-editor__draws {
+  width: 120px;
+}
+
 .directory-help {
   padding: 12px 14px;
   border: 1px solid var(--color-accent-border);
@@ -1771,7 +1864,7 @@ textarea {
 
 .tournament-performance__summary {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(170px, 0.7fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -2372,7 +2465,22 @@ textarea {
 }
 
 .match-player--winner {
+  width: 100%;
+  min-height: 68px;
   font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--accent);
+  padding: 10px 12px 10px 14px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.stacked-cell--end.match-player--winner {
+  box-shadow: inset -3px 0 0 var(--accent);
+  padding: 10px 14px 10px 12px;
+}
+
+.match-player--winner > .entity-cell > .entity-link {
+  color: var(--accent);
 }
 
 .chip {
@@ -2791,6 +2899,29 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .playoff-editor__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .playoff-editor__actions .button {
+    width: 100%;
+  }
+
+  .playoff-match-editor__players {
+    grid-template-columns: 1fr;
+  }
+
+  .playoff-match-editor__versus {
+    padding: 0;
+    text-align: center;
+  }
+
+  .playoff-match-editor__draws {
+    width: 100%;
+    max-width: 120px;
+  }
+
   .input-format-guide summary {
     align-items: flex-start;
   }
@@ -2942,4 +3073,35 @@ textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+.table__row--qualified {
+  background: var(--table-row-top);
+}
+
+.table__row--qualified > .table__cell:first-child {
+  box-shadow: inset 3px 0 var(--color-accent);
+}
+
+.standing-place--highlighted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* Tournament achievements and lazily expanded participation details. */
+.tournament-performance__best { grid-column: 1 / -1; }
+.player-event-details { padding: 16px; text-align: left; white-space: normal; }
+.player-event-details > p { margin: 0 0 16px; }
+@media (max-width: 640px) {
+  .tournament-performance__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .player-event-details { padding: 8px; }
 }

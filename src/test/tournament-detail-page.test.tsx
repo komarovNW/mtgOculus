@@ -116,6 +116,42 @@ const details: TournamentDetailsResponse = {
 };
 
 describe('TournamentDetailPage', () => {
+  it('keeps final standings separate from Swiss records and playoff matches', async () => {
+    const tournament = structuredClone(details);
+    tournament.tournament.type = 'tournament';
+    tournament.tournament.sourceUrl = 'https://melee.gg/Tournament/View/145';
+    tournament.tournament.playoffSize = 2;
+    tournament.standings[0].swissRank = 2;
+    tournament.standings[1].swissRank = 1;
+    tournament.playoff = [{ topN: 2, matches: [{ ...tournament.rounds[0].matches[0], scoreText: '1-2-1' }] }];
+    vi.mocked(getTournamentDetails).mockResolvedValue(tournament);
+    render(<TestProviders initialEntry="/tournaments/145"><Routes><Route element={<TournamentDetailPage />} path="/tournaments/:id" /></Routes></TestProviders>);
+    expect(await screen.findByRole('heading', { name: 'Legacy Daily' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Открыть на Melee.gg/ }))
+      .toHaveAttribute('href', 'https://melee.gg/Tournament/View/145');
+    expect(screen.getByText('Топ-2')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /Место в швейцарке/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Результат швейцарки')).toBeInTheDocument();
+    expect(screen.getByText('2-1-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Плей-офф' }));
+    expect(screen.getByRole('heading', { name: 'Финал' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Стол' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Счёт: 1-2-1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Швейцарка' }));
+    expect(screen.queryByText('Счёт: 1-2-1')).not.toBeInTheDocument();
+  });
+
+  it('shows a tournament without playoffs without a playoff tab or invented winner', async () => {
+    vi.mocked(getTournamentDetails).mockResolvedValue({
+      ...details, tournament: { ...details.tournament, type: 'tournament', playoffSize: null, winner: undefined }, playoff: [],
+    });
+    render(<TestProviders initialEntry="/tournaments/145"><Routes><Route element={<TournamentDetailPage />} path="/tournaments/:id" /></Routes></TestProviders>);
+    expect(await screen.findByRole('heading', { name: 'Legacy Daily' })).toBeInTheDocument();
+    expect(screen.getByText('Только швейцарка')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Плей-офф' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Результат победителя' })).not.toBeInTheDocument();
+  });
+
   it('shows honest tournament statistics and removes the duplicate deck tab', async () => {
     vi.mocked(getTournamentDetails).mockResolvedValue(details);
 
@@ -158,5 +194,6 @@ describe('TournamentDetailPage', () => {
     expect(screen.getByText('1 матч')).toBeInTheDocument();
     expect(screen.getByText('0 матчей · 1 BYE')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Стол' })).toBeInTheDocument();
+    expect(screen.queryByText('Победа')).not.toBeInTheDocument();
   });
 });

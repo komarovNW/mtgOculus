@@ -1,28 +1,49 @@
 export type TournamentType = 'daily' | 'tournament';
+export type TournamentImportSource = 'standard' | 'melee';
 export type MatchKind = 'played' | 'bye' | 'unknown';
 
 export type QueryValue = string | number | boolean | undefined | null;
+
+export type PlayoffMatchInput = {
+  topN: number;
+  playerA: string;
+  playerB: string;
+  playerAWins: number;
+  playerBWins: number;
+  draws?: number;
+};
 
 export type CreateTournamentPayload = {
   date: string;
   cityId: string;
   clubId: string;
   tournamentType: TournamentType;
+  tournamentImportSource?: TournamentImportSource;
   formatId: string;
   leagueId?: string;
+  leagueQualifierId?: string;
   aetherhubUrl: string;
+  meleeUrl?: string;
   playerDecksText: string;
+  finalStandingsFile?: File;
+  allRoundsFile?: File;
+  includeInMatchupMatrix?: boolean;
+  playoffMatches?: PlayoffMatchInput[];
+  noPlayoff?: boolean;
+  decksOrder?: 'final' | 'swiss';
 };
 
 export type ImportFeedbackItem = {
   code: string;
   message: string;
   source?: string;
+  rowNumber?: number;
   playerName?: string;
   roundNumber?: number;
   tableNumber?: number;
   rawValue?: string;
   matchedValue?: string;
+  tournamentId?: number;
 };
 
 export type CreateTournamentResponse = {
@@ -87,13 +108,6 @@ export type LeagueColumn = {
   label: string;
 };
 
-export type LeagueCutoffs = {
-  qualify?: number;
-  reserve?: number;
-};
-
-export type LeagueStandingZone = 'prequalified' | 'qualify' | 'reserve' | null;
-
 export type LeagueListItem = {
   id: string;
   name: string;
@@ -120,6 +134,17 @@ export type LeagueOption = {
   format: Format;
   dateStart: string;
   dateEnd: string;
+};
+
+export type LeagueQualifierOption = {
+  id: string;
+  title?: string | null;
+  date?: string | null;
+  slots: number;
+  league: {
+    id: string;
+    name: string;
+  };
 };
 
 export type LeagueRule = {
@@ -166,24 +191,26 @@ export type LeagueStanding = {
   tournamentsCounted: number;
   xZeroCount: number;
   xOneCount: number;
-  zone: LeagueStandingZone;
-  prequalifiedComment: string | null;
   breakdown: LeagueRuleBreakdown[];
   participations: LeagueParticipation[];
 };
 
-export type LeaguePrequalifiedPlayer = {
-  player: PlayerShort;
-  comment: string;
-  leagueRank: number | null;
+export type LeagueQualificationSeat = {
+  player: PlayerShort | null;
+  comment: string | null;
+};
+
+export type LeagueQualificationBlock = {
+  title: string | null;
+  slots: number;
+  seats: LeagueQualificationSeat[];
 };
 
 export type LeagueDetails = Omit<LeagueListItem, 'tournamentsCount' | 'playersCount'> & {
   columns: LeagueColumn[];
-  cutoffs: LeagueCutoffs;
+  qualification: LeagueQualificationBlock[];
   rules: LeagueRule[];
   tournaments: LeagueTournament[];
-  prequalified: LeaguePrequalifiedPlayer[];
   standings: LeagueStanding[];
 };
 
@@ -239,6 +266,7 @@ export type RecentTournamentItem = {
   club: Club;
   format: Format;
   playersCount: number;
+  playoffSize?: number | null;
   roundsCount: number;
   winner?: {
     player: PlayerShort;
@@ -368,6 +396,7 @@ export type TournamentListItem = {
     name: string;
   } | null;
   playersCount: number;
+  playoffSize?: number | null;
   roundsCount: number;
   matchesCount: number;
   pairingsCount: number;
@@ -400,6 +429,7 @@ export type TournamentDetails = TournamentListItem & {
 
 export type TournamentStandingItem = {
   rank: number;
+  swissRank?: number;
   player: PlayerShort;
   deck?: DeckShort;
   record: string;
@@ -452,6 +482,7 @@ export type TournamentDetailsResponse = {
   tournament: TournamentDetails;
   standings: TournamentStandingItem[];
   rounds: TournamentRound[];
+  playoff?: Array<{ topN: number; matches: TournamentRoundMatch[] }>;
   playerDecks: TournamentPlayerDeckItem[];
   metagame: TournamentMetagameItem[];
 };
@@ -519,9 +550,11 @@ export type PlayerTournamentItem = {
     club: Club;
     format: Format;
     playersCount: number;
+    playoffSize?: number | null;
   };
   deck?: DeckShort;
   rank: number;
+  swissRank?: number | null;
   record: string;
   points: number;
   omw?: number;
@@ -545,6 +578,7 @@ export type PlayerDeckItem = {
 };
 
 export type PlayerMatchItem = {
+  playoffTopN?: number | null;
   tournament: {
     id: string;
     title: string;
@@ -633,9 +667,11 @@ export type TournamentDeckResultItem = {
     club: Club;
     format: Format;
     playersCount: number;
+    playoffSize?: number | null;
   };
   player: PlayerShort;
   rank: number;
+  swissRank?: number | null;
   record: string;
   points: number;
 };

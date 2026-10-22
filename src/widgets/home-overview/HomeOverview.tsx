@@ -1,3 +1,4 @@
+import { EventCountLink } from './EventCountLink';
 import { Link } from 'react-router-dom';
 import type {
   HomeCityFormatOverviewItem,
@@ -28,8 +29,8 @@ const cityColumns: TableColumn<HomeCityOverviewItem>[] = [
     render: (row) => <Link className="entity-link" to={homeLink({ cityId: row.city.id })}>{row.city.name}</Link>,
   },
   { id: 'clubs', header: 'Клубов', align: 'center', render: (row) => row.clubsCount },
-  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => row.dailiesCount },
-  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => row.tournamentsCount },
+  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => <EventCountLink count={row.dailiesCount} type="daily" scope={{ cityId: row.city.id }} /> },
+  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => <EventCountLink count={row.tournamentsCount} type="tournament" scope={{ cityId: row.city.id }} /> },
   { id: 'players', header: 'Игроков', align: 'center', render: (row) => row.uniquePlayersCount },
   { id: 'formats', header: 'Форматов', align: 'center', render: (row) => row.formatsCount },
 ];
@@ -45,8 +46,8 @@ const clubColumns: TableColumn<HomeClubOverviewItem>[] = [
       </div>
     ),
   },
-  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => row.dailiesCount },
-  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => row.tournamentsCount },
+  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => <EventCountLink count={row.dailiesCount} type="daily" scope={{ cityId: row.city.id, clubId: row.club.id }} /> },
+  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => <EventCountLink count={row.tournamentsCount} type="tournament" scope={{ cityId: row.city.id, clubId: row.club.id }} /> },
   { id: 'players', header: 'Игроков', align: 'center', render: (row) => row.uniquePlayersCount },
   { id: 'average', header: 'В среднем', align: 'center', headerTitle: 'Среднее число игроков на дейлике или турнире.', render: (row) => formatAverage(row.averagePlayersCount) },
   { id: 'formats', header: 'Форматов', align: 'center', render: (row) => row.formatsCount },
@@ -58,8 +59,8 @@ const formatColumns: TableColumn<HomeFormatOverviewItem>[] = [
     header: 'Формат',
     render: (row) => <Link className="entity-link" to={homeLink({ formatId: row.format.id })}>{row.format.name}</Link>,
   },
-  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => row.dailiesCount },
-  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => row.tournamentsCount },
+  { id: 'dailies', header: 'Дейликов', align: 'center', render: (row) => <EventCountLink count={row.dailiesCount} type="daily" scope={{ formatId: row.format.id }} /> },
+  { id: 'tournaments', header: 'Турниров', align: 'center', render: (row) => <EventCountLink count={row.tournamentsCount} type="tournament" scope={{ formatId: row.format.id }} /> },
   { id: 'participations', header: 'Участий', align: 'center', render: (row) => row.tournamentPlayersCount },
   { id: 'players', header: 'Игроков', align: 'center', render: (row) => row.uniquePlayersCount },
   { id: 'average', header: 'В среднем', align: 'center', headerTitle: 'Среднее число игроков на дейлике или турнире.', render: (row) => formatAverage(row.averagePlayersCount) },

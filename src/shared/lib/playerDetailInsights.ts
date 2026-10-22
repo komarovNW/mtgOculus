@@ -88,12 +88,19 @@ export function getPlayerMatchRecord(
   };
 }
 
+// Swiss rounds precede every playoff stage; smaller topN is a later stage.
+export function getPlayerMatchRoundOrder(match: PlayerMatchItem) {
+  return match.playoffTopN
+    ? 1 + 1 / match.playoffTopN
+    : match.roundNumber / (match.roundNumber + 1);
+}
+
 export function sortPlayerMatches(matches: PlayerMatchItem[]) {
   return [...matches].sort(
     (left, right) =>
       right.tournament.date.localeCompare(left.tournament.date) ||
       right.tournament.id.localeCompare(left.tournament.id) ||
-      right.roundNumber - left.roundNumber ||
+      getPlayerMatchRoundOrder(right) - getPlayerMatchRoundOrder(left) ||
       right.tableNumber - left.tableNumber,
   );
 }

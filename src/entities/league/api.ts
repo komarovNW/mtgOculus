@@ -6,6 +6,7 @@ import type {
   LeagueListItem,
   LeagueListResponse,
   LeagueOption,
+  LeagueQualifierOption,
   LeagueSortField,
 } from '@/shared/api/types';
 
@@ -17,19 +18,29 @@ type BackendLeagueListResponse = {
   appliedFilters?: AppliedFilters;
 };
 
-type BackendLeagueDetails = Omit<LeagueDetails, 'id' | 'club' | 'prequalified' | 'tournaments' | 'standings'> & {
+type BackendLeagueQualification = Omit<LeagueDetails['qualification'][number], 'seats'> & {
+  seats?: Array<Omit<LeagueDetails['qualification'][number]['seats'][number], 'player'> & {
+    player: { id: string | number; name: string } | null;
+  }> | null;
+  players?: Array<{
+    player: { id: string | number; name: string };
+    place: number;
+  }> | null;
+};
+
+type BackendLeagueDetails = Omit<LeagueDetails, 'id' | 'club' | 'columns' | 'qualification' | 'rules' | 'tournaments' | 'standings'> & {
   id: string | number;
   club: { id: string; name: string; cityId?: string };
-  prequalified: Array<Omit<LeagueDetails['prequalified'][number], 'player'> & {
+  columns?: LeagueDetails['columns'] | null;
+  qualification?: BackendLeagueQualification[] | null;
+  rules?: LeagueDetails['rules'] | null;
+  tournaments?: Array<Omit<LeagueDetails['tournaments'][number], 'id'> & { id: string | number }> | null;
+  standings?: Array<Omit<LeagueDetails['standings'][number], 'player' | 'participations'> & {
     player: { id: string | number; name: string };
-  }>;
-  tournaments: Array<Omit<LeagueDetails['tournaments'][number], 'id'> & { id: string | number }>;
-  standings: Array<Omit<LeagueDetails['standings'][number], 'player' | 'participations'> & {
-    player: { id: string | number; name: string };
-    participations: Array<Omit<LeagueDetails['standings'][number]['participations'][number], 'tournamentId'> & {
+    participations?: Array<Omit<LeagueDetails['standings'][number]['participations'][number], 'tournamentId'> & {
       tournamentId: string | number;
-    }>;
-  }>;
+    }> | null;
+  }> | null;
 };
 
 export type LeagueListParams = {
@@ -49,6 +60,11 @@ export type LeagueOptionsParams = {
 
 type BackendLeagueOption = Omit<LeagueOption, 'id'> & {
   id: string | number;
+};
+
+type BackendLeagueQualifierOption = Omit<LeagueQualifierOption, 'id' | 'league'> & {
+  id: string | number;
+  league: { id: string | number; name: string };
 };
 
 function normalizeLeague(item: BackendLeagueListResponse['results'][number]): LeagueListItem {
@@ -94,6 +110,16 @@ export function getLeagueOptions(params: LeagueOptionsParams, options?: RequestO
   })));
 }
 
+export function getLeagueQualifierOptions(leagueId: string, options?: RequestOptions) {
+  return apiGet<BackendLeagueQualifierOption[]>(endpoints.leagueQualifierOptions, {
+    leagueId,
+  }, options).then<LeagueQualifierOption[]>((items) => items.map((item) => ({
+    ...item,
+    id: String(item.id),
+    league: { ...item.league, id: String(item.league.id) },
+  })));
+}
+
 export function getLeagueDetails(id: string, sort: LeagueSortField[] = [], options?: RequestOptions) {
   return apiGet<BackendLeagueDetails>(endpoints.leagueById(id), {
     sort: sort.length ? sort.join(',') : undefined,
@@ -102,20 +128,37 @@ export function getLeagueDetails(id: string, sort: LeagueSortField[] = [], optio
     id: String(response.id),
     club: { ...response.club, cityId: response.club.cityId ?? '' },
     bestTournamentsCount: response.bestTournamentsCount ?? null,
-    columns: [...response.columns].sort((left, right) => left.position - right.position),
-    cutoffs: response.cutoffs ?? {},
-    prequalified: (response.prequalified ?? []).map((entry) => ({
-      ...entry,
-      player: { ...entry.player, id: String(entry.player.id) },
-    })),
-    tournaments: response.tournaments.map((tournament) => ({
+    columns: [...(response.columns ?? [])].sort((left, right) => left.position - right.position),
+    rules: response.rules ?? [],
+    qualification: (response.qualification ?? []).map((block) => {
+      const receivedSeats = block.seats ?? block.players
+        ?.slice()
+        .sort((left, right) => left.place - right.place)
+        .map((entry) => ({ player: entry.player, comment: null })) ?? [];
+      const emptySeats = Array.from(
+        { length: Math.max(0, block.slots - receivedSeats.length) },
+        () => ({ player: null, comment: null }),
+      );
+
+      return {
+        ...block,
+        seats: receivedSeats.concat(emptySeats).map((seat) => ({
+          ...seat,
+          player: seat.player
+            ? { ...seat.player, id: String(seat.player.id) }
+            : null,
+        })),
+      };
+    }),
+    tournaments: (response.tournaments ?? []).map((tournament) => ({
       ...tournament,
       id: String(tournament.id),
     })),
-    standings: response.standings.map((standing) => ({
+    standings: (response.standings ?? []).map((standing) => ({
       ...standing,
       player: { ...standing.player, id: String(standing.player.id) },
-      participations: standing.participations.map((participation) => ({
+      breakdown: standing.breakdown ?? [],
+      participations: (standing.participations ?? []).map((participation) => ({
         ...participation,
         tournamentId: String(participation.tournamentId),
       })),

@@ -51,11 +51,13 @@ function parseFeedbackItems(value: unknown): ImportFeedbackItem[] {
       code: typeof raw.code === 'string' ? raw.code : 'REQUEST_FAILED',
       message: item.message.trim(),
       source: typeof raw.source === 'string' ? raw.source : undefined,
+      rowNumber: typeof raw.rowNumber === 'number' ? raw.rowNumber : undefined,
       playerName: typeof raw.playerName === 'string' ? raw.playerName : undefined,
       roundNumber: typeof raw.roundNumber === 'number' ? raw.roundNumber : undefined,
       tableNumber: typeof raw.tableNumber === 'number' ? raw.tableNumber : undefined,
       rawValue: typeof raw.rawValue === 'string' ? raw.rawValue : undefined,
       matchedValue: typeof raw.matchedValue === 'string' ? raw.matchedValue : undefined,
+      tournamentId: typeof raw.tournamentId === 'number' ? raw.tournamentId : undefined,
     }];
   });
 }
@@ -155,6 +157,7 @@ async function parseError(response: Response): Promise<AppError> {
 
 export type RequestOptions = {
   signal?: AbortSignal;
+  timeoutMs?: number;
 };
 
 export async function apiGet<T>(
@@ -162,6 +165,11 @@ export async function apiGet<T>(
   params?: Record<string, QueryValue>,
   options?: RequestOptions,
 ): Promise<T> {
+  if (import.meta.env.DEV && import.meta.env.VITE_MOCK_TOURNAMENTS === 'true') {
+    const { getTournamentMockResponse } = await import('@/dev/tournament-preview/api');
+    const response = getTournamentMockResponse(path, params);
+    if (response !== undefined) return response as T;
+  }
   const response = await fetch(buildUrl(path, params), {
     method: 'GET',
     signal: options?.signal,
@@ -179,11 +187,43 @@ export async function apiPostForm<T>(
   body: FormData,
   options?: RequestOptions,
 ): Promise<T> {
-  const response = await fetch(buildUrl(path), {
-    method: 'POST',
-    body,
-    signal: options?.signal,
-  });
+  const timeoutController = options?.timeoutMs ? new AbortController() : null;
+  let didTimeout = false;
+  const abortFromSignal = () => timeoutController?.abort(options?.signal?.reason);
+  const timeoutId = timeoutController
+    ? window.setTimeout(() => {
+        didTimeout = true;
+        timeoutController.abort();
+      }, options?.timeoutMs)
+    : undefined;
+
+  if (timeoutController && options?.signal) {
+    if (options.signal.aborted) abortFromSignal();
+    else options.signal.addEventListener('abort', abortFromSignal, { once: true });
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(buildUrl(path), {
+      method: 'POST',
+      body,
+      signal: timeoutController?.signal ?? options?.signal,
+    });
+  } catch (error) {
+    if (didTimeout) {
+      throw new AppError({
+        status: 408,
+        code: 'REQUEST_TIMEOUT',
+        message: 'Сервер не успел обработать импорт. Попробуйте ещё раз.',
+      });
+    }
+
+    throw error;
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    options?.signal?.removeEventListener('abort', abortFromSignal);
+  }
 
   if (!response.ok) {
     throw await parseError(response);

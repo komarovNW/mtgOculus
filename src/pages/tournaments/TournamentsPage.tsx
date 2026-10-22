@@ -71,6 +71,12 @@ const columns: TableColumn<TournamentListItem>[] = [
     sortValue: (row) => row.playedMatchesCount,
   },
   {
+    id: 'playoff',
+    header: 'Плей-офф',
+    render: (row) => row.playoffSize === null ? 'Без плей-офф' : row.playoffSize ? `Топ-${row.playoffSize}` : '—',
+    sortValue: (row) => row.playoffSize,
+  },
+  {
     id: 'winner',
     header: 'Победитель',
     sortValue: (row) => row.winner?.player.name,
@@ -102,6 +108,7 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
     .filter(
       (column) =>
         column.id !== 'type' &&
+        (!isDaily || column.id !== 'playoff') &&
         column.id !== 'rounds' &&
         column.id !== 'matches' &&
         (!filters.clubId || column.id !== 'club') &&
@@ -309,11 +316,6 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
                 </p>
               </div>
             </div>
-            {!isDaily && tournaments.length === 0 ? (
-              <div className="recent-tournaments__empty-callout">
-                ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.
-              </div>
-            ) : (
               <Table
                 columns={tableColumns}
                 data={tournaments}
@@ -323,7 +325,6 @@ export function TournamentsPage({ eventType = 'tournament' }: TournamentsPagePro
                 minWidth={isDaily ? 720 : 880}
                 isPartial={tournaments.length < totalCount}
               />
-            )}
             <LoadMorePagination
               hasMore={tournamentsQuery.hasNextPage}
               isError={tournamentsQuery.isFetchNextPageError}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { currentAppVersion } from '@/shared/config/releases';
 import { cn } from '@/shared/lib/cn';
-import { getDashboardFilterSearch } from '@/shared/lib/filters';
+import { getDashboardFilterSearch, getEventListSearch } from '@/shared/lib/filters';
 
 type HeaderLink = {
   to: string;
@@ -139,7 +139,7 @@ export function AppLayout() {
                   end={link.end}
                   to={{
                     pathname: link.to,
-                    search: link.preserveFilters === false ? '' : dashboardFilterSearch,
+                    search: link.preserveFilters === false ? '' : getEventListSearch(location.search, link.to),
                   }}
                 >
                   {link.label}

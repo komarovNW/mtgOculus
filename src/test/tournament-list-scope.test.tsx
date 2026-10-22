@@ -108,7 +108,7 @@ describe('tournament list scope', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Турниры' })).toBeInTheDocument();
     expect(
-      await screen.findByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.'),
+      await screen.findByText('По этим фильтрам пока нет загруженных турниров.'),
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(getTournaments).toHaveBeenCalledWith(

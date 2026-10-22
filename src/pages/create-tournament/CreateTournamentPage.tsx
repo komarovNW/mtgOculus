@@ -8,6 +8,7 @@ import { AppError } from '@/shared/api/client';
 import type {
   CreateTournamentPayload,
   ImportFeedbackItem,
+  TournamentImportSource,
   TournamentType,
 } from '@/shared/api/types';
 import { buildDashboardFilterSearch } from '@/shared/lib/filters';
@@ -26,6 +27,12 @@ import { Textarea } from '@/shared/ui/Textarea';
 
 type FormState = CreateTournamentPayload;
 
+const playoffStages = [
+  { topN: 8, title: 'Четвертьфиналы', matchTitle: 'Четвертьфинал', maxMatches: 4 },
+  { topN: 4, title: 'Полуфиналы', matchTitle: 'Полуфинал', maxMatches: 2 },
+  { topN: 2, title: 'Финал', matchTitle: 'Финал', maxMatches: 1 },
+] as const;
+
 function getCalendarDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -39,10 +46,14 @@ function createInitialState(): FormState {
     cityId: 'moscow',
     clubId: '',
     tournamentType: 'daily',
+    tournamentImportSource: 'standard',
     formatId: '',
     leagueId: '',
+    leagueQualifierId: '',
     aetherhubUrl: '',
+    meleeUrl: '',
     playerDecksText: '',
+    includeInMatchupMatrix: true,
   };
 }
 
@@ -71,10 +82,16 @@ const aetherhubClubLinks = [
 
 const importSourceLabels: Record<string, string> = {
   aetherhubUrl: 'Ссылка Aetherhub',
+  meleeUrl: 'Ссылка Melee.gg',
   allRoundsFile: 'Раунды и результаты',
   date: 'Дата события',
   playerDecksText: 'Список игроков и колод',
   standingsFile: 'Стендинги',
+  finalStandingsFile: 'Стендинги',
+  playoffMatches: 'Плей-офф',
+  noPlayoff: 'Без плей-офф',
+  decksOrder: 'Порядок колод',
+  leagueQualifierId: 'Отборочный турнир',
 };
 
 function ImportFeedbackList({
@@ -124,6 +141,22 @@ function isAetherhubTournamentUrl(value: string) {
   }
 }
 
+function isMeleeTournamentReference(value: string) {
+  if (/^\d+$/.test(value)) return true;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+
+    return (
+      (hostname === 'melee.gg' || hostname === 'www.melee.gg') &&
+      /^\/tournament\/view\/\d+\/?$/i.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function CreateTournamentPage() {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<FormState>(createInitialState);
@@ -140,9 +173,14 @@ export function CreateTournamentPage() {
       formatId: formState.formatId || undefined,
       date: formState.date || undefined,
     }),
+    enabled: Boolean(
+      formState.cityId && formState.clubId && formState.formatId && formState.date,
+    ),
+  });
+  const leagueQualifierOptionsQuery = useQuery({
+    ...leagueQueries.qualifierOptions(formState.leagueId ?? ''),
     enabled:
-      formState.tournamentType === 'daily' &&
-      Boolean(formState.cityId && formState.clubId && formState.formatId && formState.date),
+      formState.tournamentType === 'tournament' && Boolean(formState.leagueId),
   });
   const importMutation = useMutation({
     mutationFn: createTournament,
@@ -156,6 +194,9 @@ export function CreateTournamentPage() {
     importMutation.error instanceof AppError ? importMutation.error : null;
 
   const inputAnalysis = analyzePlayerDecksInput(formState.playerDecksText);
+  const isMeleeImport =
+    formState.tournamentType === 'tournament' &&
+    formState.tournamentImportSource === 'melee';
   const playerDeckLinesCount = formState.playerDecksText
     .split('\n')
     .filter((line) => line.trim()).length;
@@ -170,6 +211,9 @@ export function CreateTournamentPage() {
   );
   const selectedLeague = leagueOptionsQuery.data?.find(
     (item) => item.id === formState.leagueId,
+  );
+  const selectedLeagueQualifier = leagueQualifierOptionsQuery.data?.find(
+    (item) => item.id === formState.leagueQualifierId,
   );
   const eventFilterSearch = buildDashboardFilterSearch({
     cityId: formState.cityId,
@@ -187,6 +231,26 @@ export function CreateTournamentPage() {
     }
   }
 
+  function addPlayoffMatch(topN: number) {
+    const matches = [
+      ...(formState.playoffMatches ?? []),
+      { topN, playerA: '', playerB: '', playerAWins: 2, playerBWins: 0 },
+    ].sort((a, b) => b.topN - a.topN);
+
+    setField('playoffMatches', matches);
+  }
+
+  function updatePlayoffMatch(
+    index: number,
+    patch: Partial<NonNullable<FormState['playoffMatches']>[number]>,
+  ) {
+    setField(
+      'playoffMatches',
+      formState.playoffMatches?.map((match, matchIndex) =>
+        matchIndex === index ? { ...match, ...patch } : match),
+    );
+  }
+
   useEffect(() => {
     const clubs = clubsQuery.data?.items ?? [];
 
@@ -198,8 +262,8 @@ export function CreateTournamentPage() {
   }, [clubsQuery.data?.items, formState.cityId, formState.clubId]);
 
   useEffect(() => {
-    setFormState((current) => current.leagueId
-      ? { ...current, leagueId: '' }
+    setFormState((current) => current.leagueId || current.leagueQualifierId
+      ? { ...current, leagueId: '', leagueQualifierId: '' }
       : current);
   }, [
     formState.cityId,
@@ -216,12 +280,20 @@ export function CreateTournamentPage() {
     if (!formState.cityId) errors.push('Выберите город.');
     if (!formState.clubId) errors.push('Выберите клуб.');
     if (!formState.formatId) errors.push('Выберите формат.');
-    if (!formState.aetherhubUrl.trim()) {
-      errors.push('Добавьте ссылку на Aetherhub.');
-    } else if (!isAetherhubTournamentUrl(formState.aetherhubUrl.trim())) {
-      errors.push(
-        'Укажите полную ссылку на событие в разделе Tourney на Aetherhub.',
-      );
+    if (isMeleeImport) {
+      if (!formState.meleeUrl?.trim()) {
+        errors.push('Добавьте ссылку на турнир Melee.gg или его номер.');
+      } else if (!isMeleeTournamentReference(formState.meleeUrl.trim())) {
+        errors.push('Укажите ссылку вида melee.gg/Tournament/View/123 или номер турнира.');
+      }
+    } else {
+      if (!formState.aetherhubUrl.trim() && !(formState.finalStandingsFile && formState.allRoundsFile)) {
+        errors.push('Добавьте ссылку на Aetherhub или оба файла: стендинги и раунды.');
+      } else if (formState.aetherhubUrl.trim() && !isAetherhubTournamentUrl(formState.aetherhubUrl.trim())) {
+        errors.push(
+          'Укажите полную ссылку на событие в разделе Tourney на Aetherhub.',
+        );
+      }
     }
     if (!formState.playerDecksText.trim()) {
       errors.push('Добавьте список игроков и колод.');
@@ -229,6 +301,17 @@ export function CreateTournamentPage() {
       errors.push(...inputAnalysis.errors);
     }
 
+    if (isMeleeImport && inputAnalysis.mode === 'ordered' && !formState.decksOrder) {
+      errors.push('Выберите порядок колод.');
+    }
+
+    if (formState.tournamentType === 'tournament' && !isMeleeImport && !formState.noPlayoff) {
+      if (!formState.playoffMatches?.length) errors.push('Добавьте матчи плей-офф или выберите турнир без плей-офф.');
+      if (formState.playoffMatches?.some((match) => !match.playerA.trim() || !match.playerB.trim() || match.playerA.trim() === match.playerB.trim() || !Number.isInteger(match.playerAWins) || !Number.isInteger(match.playerBWins) || match.playerAWins < 0 || match.playerBWins < 0 || match.playerAWins === match.playerBWins || !Number.isInteger(match.draws ?? 0) || (match.draws ?? 0) < 0)) {
+        errors.push('Для каждого матча топа укажите двух разных игроков и счёт с победителем.');
+      }
+      if (inputAnalysis.mode === 'ordered' && !formState.decksOrder) errors.push('Выберите порядок колод.');
+    }
     setValidationErrors(errors);
     return errors.length === 0;
   }
@@ -241,6 +324,7 @@ export function CreateTournamentPage() {
     importMutation.mutate({
       ...formState,
       aetherhubUrl: formState.aetherhubUrl.trim(),
+      meleeUrl: formState.meleeUrl?.trim(),
       playerDecksText: formState.playerDecksText.trim(),
     });
   }
@@ -249,6 +333,7 @@ export function CreateTournamentPage() {
     importMutation.mutate({
       ...formState,
       aetherhubUrl: formState.aetherhubUrl.trim(),
+      meleeUrl: formState.meleeUrl?.trim(),
       playerDecksText: formState.playerDecksText.trim(),
     });
   }
@@ -257,8 +342,16 @@ export function CreateTournamentPage() {
     setFormState((current) => ({
       ...current,
       aetherhubUrl: '',
+      meleeUrl: '',
       playerDecksText: '',
+      leagueQualifierId: '',
+      playoffMatches: [],
+      noPlayoff: false,
+      decksOrder: undefined,
+      finalStandingsFile: undefined,
+      allRoundsFile: undefined,
     }));
+    formRef.current?.reset();
     setValidationErrors([]);
     importMutation.reset();
     formRef.current?.scrollIntoView?.({
@@ -292,9 +385,9 @@ export function CreateTournamentPage() {
           >
             Доступно всем
           </Badge>,
-          <Badge key="method">Импорт из Aetherhub</Badge>,
+          <Badge key="method">Aetherhub, файлы и Melee.gg</Badge>,
         ]}
-        description="Добавьте событие с Aetherhub и укажите колоды участников."
+        description="Добавьте событие из Aetherhub, файлов или Melee.gg и укажите колоды участников."
         eyebrow="Импорт события"
         title="Добавить"
       />
@@ -307,18 +400,18 @@ export function CreateTournamentPage() {
           <div>
             <h2 className="section-header__title">Как добавить событие</h2>
             <p className="section-header__description">
-              Нужны данные события, ссылка на Aetherhub и список колод.
+              Нужны данные события, источник результатов и список колод.
             </p>
           </div>
         </div>
         <ol className="flat-list">
           <li>
             <strong>Заполните данные события.</strong> Укажите дату, площадку, тип,
-            формат и ссылку на Aetherhub.
+            формат и источник результатов. Melee.gg загрузит швейцарку и плей-офф автоматически.
           </li>
           <li>
             <strong>Добавьте колоды.</strong> Вставьте список с именами игроков или
-            перечислите колоды по порядку итоговых мест.
+            перечислите колоды по порядку мест. Для турнира с топом выберите итоговый порядок или порядок швейцарки.
           </li>
           <li>
             <strong>Добавьте и проверьте.</strong> После сохранения откройте событие
@@ -428,8 +521,7 @@ export function CreateTournamentPage() {
             required
             value={formState.formatId}
           />
-          {formState.tournamentType === 'daily' ? (
-            <div className="field-stack">
+          <div className="field-stack">
               <Select
                 disabled={
                   !formState.date ||
@@ -439,8 +531,11 @@ export function CreateTournamentPage() {
                   leagueOptionsQuery.isLoading ||
                   leagueOptionsQuery.isError
                 }
-                label="Лига"
-                onChange={(event) => setField('leagueId', event.target.value)}
+                label={formState.tournamentType === 'daily' ? 'Лига' : 'Лига отбора'}
+                onChange={(event) => {
+                  setField('leagueId', event.target.value);
+                  setField('leagueQualifierId', '');
+                }}
                 options={[
                   {
                     value: '',
@@ -451,7 +546,9 @@ export function CreateTournamentPage() {
                         : leagueOptionsQuery.isError
                           ? 'Не удалось загрузить лиги'
                           : leagueOptionsQuery.data?.length
-                            ? 'Без лиги'
+                            ? formState.tournamentType === 'daily'
+                              ? 'Без лиги'
+                              : 'Не связывать с отбором'
                             : 'Нет подходящих лиг',
                   },
                   ...(leagueOptionsQuery.data ?? []).map((league) => ({
@@ -476,6 +573,54 @@ export function CreateTournamentPage() {
                 </div>
               ) : null}
             </div>
+          {formState.tournamentType === 'tournament' ? (
+            <div className="field-stack">
+              <Select
+                disabled={
+                  !formState.leagueId ||
+                  leagueQualifierOptionsQuery.isLoading ||
+                  leagueQualifierOptionsQuery.isError
+                }
+                helperText="Необязательно. Связывает турнир со строкой плана отбора лиги."
+                label="Отборочный турнир"
+                onChange={(event) => setField('leagueQualifierId', event.target.value)}
+                options={[
+                  {
+                    value: '',
+                    label: !formState.leagueId
+                      ? 'Сначала выберите лигу'
+                      : leagueQualifierOptionsQuery.isLoading
+                        ? 'Загружаем отборочные…'
+                        : leagueQualifierOptionsQuery.isError
+                          ? 'Не удалось загрузить отборочные'
+                          : leagueQualifierOptionsQuery.data?.length
+                            ? 'Не связывать с отбором'
+                            : 'Нет свободных отборочных',
+                  },
+                  ...(leagueQualifierOptionsQuery.data ?? []).map((qualifier) => ({
+                    value: qualifier.id,
+                    label: `${qualifier.title ?? 'Отборочный турнир'} · ${
+                      qualifier.date ? formatDate(qualifier.date) : 'дата не задана'
+                    } · мест: ${qualifier.slots}`,
+                  })),
+                ]}
+                value={formState.leagueQualifierId ?? ''}
+              />
+              {leagueQualifierOptionsQuery.isError ? (
+                <div className="field-message field-message--error" role="alert">
+                  <span>Не получилось загрузить свободные отборочные.</span>
+                  <Button
+                    onClick={() => {
+                      void leagueQualifierOptionsQuery.refetch();
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    Повторить
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <div aria-hidden="true" className="form-grid__spacer" />
           )}
@@ -490,42 +635,217 @@ export function CreateTournamentPage() {
             </a>
             , и мы добавим недостающее значение в список.
           </div>
-          <div className="form-grid__full">
-            <Input
-              helperText="Обязательное поле. Вставьте полную ссылку на страницу события в Aetherhub."
-              label="Ссылка на Aetherhub"
-              onChange={(event) => setField('aetherhubUrl', event.target.value)}
-              placeholder="https://aetherhub.com/Tourney/RoundTourney/100523"
-              required
-              type="url"
-              value={formState.aetherhubUrl}
-            />
-            <div className="aetherhub-club-directory">
-              <div>
-                <h3 className="aetherhub-club-directory__title">
-                  Где найти событие на Aetherhub
-                </h3>
-                <p className="aetherhub-club-directory__description">
-                  Откройте страницу нужного клуба, найдите своё событие и вставьте
-                  ссылку на него в поле выше.
-                </p>
-              </div>
-              <div className="aetherhub-club-directory__grid">
-                {aetherhubClubLinks.map((item) => (
-                  <a
-                    className="aetherhub-club-link"
-                    href={item.href}
-                    key={item.club}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <strong>{item.club}</strong>
-                    <span>{item.city} · открыть Aetherhub ↗</span>
-                  </a>
-                ))}
+          {formState.tournamentType === 'tournament' ? (
+            <div className="form-grid__full">
+              <Select
+                label="Источник результатов"
+                onChange={(event) => setField(
+                  'tournamentImportSource',
+                  event.target.value as TournamentImportSource,
+                )}
+                options={[
+                  { value: 'standard', label: 'Aetherhub или файлы' },
+                  { value: 'melee', label: 'Melee.gg' },
+                ]}
+                value={formState.tournamentImportSource ?? 'standard'}
+              />
+            </div>
+          ) : null}
+
+          {isMeleeImport ? (
+            <div className="form-grid__full">
+              <Input
+                helperText="Вставьте полную ссылку или только номер завершённого турнира. Загрузка может занять до 40 секунд."
+                label="Ссылка или номер турнира Melee.gg"
+                onChange={(event) => setField('meleeUrl', event.target.value)}
+                placeholder="https://melee.gg/Tournament/View/12345"
+                required
+                type="text"
+                value={formState.meleeUrl ?? ''}
+              />
+              <div className="input-numbering-note">
+                <strong>Турнир должен быть завершён на Melee.gg.</strong>{' '}
+                Пока событие идёт или результаты не опубликованы, импорт вернёт ошибку.
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="form-grid__full">
+                <Input
+                  helperText="Вставьте ссылку на событие или загрузите оба файла ниже."
+                  label="Ссылка на Aetherhub"
+                  onChange={(event) => setField('aetherhubUrl', event.target.value)}
+                  placeholder="https://aetherhub.com/Tourney/RoundTourney/100523"
+                  type="url"
+                  value={formState.aetherhubUrl}
+                />
+                <div className="aetherhub-club-directory">
+                  <div>
+                    <h3 className="aetherhub-club-directory__title">
+                      Где найти событие на Aetherhub
+                    </h3>
+                    <p className="aetherhub-club-directory__description">
+                      Откройте страницу нужного клуба, найдите своё событие и вставьте
+                      ссылку на него в поле выше.
+                    </p>
+                  </div>
+                  <div className="aetherhub-club-directory__grid">
+                    {aetherhubClubLinks.map((item) => (
+                      <a
+                        className="aetherhub-club-link"
+                        href={item.href}
+                        key={item.club}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <strong>{item.club}</strong>
+                        <span>{item.city} · открыть Aetherhub ↗</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Input label="Файл итоговых стендингов" type="file" onChange={(event) => setField('finalStandingsFile', event.target.files?.[0])} />
+              <Input label="Файл всех раундов" type="file" onChange={(event) => setField('allRoundsFile', event.target.files?.[0])} />
+              <label className="form-grid__full">
+                <input type="checkbox" checked={formState.includeInMatchupMatrix ?? true} onChange={(event) => setField('includeInMatchupMatrix', event.target.checked)} /> Учитывать в матрице матчапов
+              </label>
+            </>
+          )}
+          {formState.tournamentType === 'tournament' && !isMeleeImport ? (
+            <section className="form-grid__full form-section">
+              <h2 className="form-section__title">Плей-офф</h2>
+              <label><input type="checkbox" checked={formState.noPlayoff ?? false} onChange={(event) => setField('noPlayoff', event.target.checked)} /> Турнир без плей-офф</label>
+              {!formState.noPlayoff ? <div className="playoff-editor">
+                <div className="playoff-editor__intro">
+                  <strong>Соберите сетку по стадиям</strong>
+                  <span>Имена должны совпадать со стендингами. Порядок матчей сверху вниз задаёт пары следующей стадии.</span>
+                </div>
+                <div className="playoff-editor__actions">
+                  {playoffStages.map((stage) => {
+                    const matchesCount = (formState.playoffMatches ?? [])
+                      .filter((match) => match.topN === stage.topN).length;
+
+                    return (
+                      <Button
+                        disabled={matchesCount >= stage.maxMatches}
+                        key={stage.topN}
+                        onClick={() => addPlayoffMatch(stage.topN)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        + {stage.matchTitle} · {matchesCount}/{stage.maxMatches}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {(formState.playoffMatches ?? []).length === 0 ? (
+                  <div className="playoff-editor__empty">
+                    Для топ-4 добавьте два полуфинала и финал. Для топ-8 — четыре четвертьфинала, два полуфинала и финал.
+                  </div>
+                ) : null}
+                <div className="playoff-editor__stages">
+                  {playoffStages.map((stage) => {
+                    const stageMatches = (formState.playoffMatches ?? [])
+                      .map((match, index) => ({ match, index }))
+                      .filter(({ match }) => match.topN === stage.topN);
+
+                    if (stageMatches.length === 0) return null;
+
+                    return (
+                      <section className="playoff-stage-editor" key={stage.topN}>
+                        <div className="playoff-stage-editor__header">
+                          <h3>{stage.title}</h3>
+                          <span>{stageMatches.length} из {stage.maxMatches}</span>
+                        </div>
+                        <div className="playoff-stage-editor__matches">
+                          {stageMatches.map(({ match, index }, stageIndex) => {
+                            const matchLabel = `${stage.matchTitle} ${stageIndex + 1}`;
+
+                            return (
+                              <article className="playoff-match-editor" key={`${stage.topN}-${index}`}>
+                                <div className="playoff-match-editor__header">
+                                  <strong>{matchLabel}</strong>
+                                  <Button
+                                    onClick={() => setField('playoffMatches', formState.playoffMatches?.filter((_, matchIndex) => matchIndex !== index))}
+                                    type="button"
+                                    variant="ghost"
+                                  >
+                                    Удалить
+                                  </Button>
+                                </div>
+                                <div className="playoff-match-editor__players">
+                                  <div className="playoff-match-editor__competitor">
+                                    <Input
+                                      label={`Игрок A · ${matchLabel}`}
+                                      onChange={(event) => updatePlayoffMatch(index, { playerA: event.target.value })}
+                                      required
+                                      type="text"
+                                      value={match.playerA}
+                                    />
+                                    <Input
+                                      id={`player-a-wins-${stage.topN}-${stageIndex}`}
+                                      label="Победы"
+                                      min={0}
+                                      onChange={(event) => updatePlayoffMatch(index, { playerAWins: Number(event.target.value) })}
+                                      required
+                                      step={1}
+                                      type="number"
+                                      value={match.playerAWins}
+                                    />
+                                  </div>
+                                  <span className="playoff-match-editor__versus">против</span>
+                                  <div className="playoff-match-editor__competitor playoff-match-editor__competitor--reverse">
+                                    <Input
+                                      id={`player-b-wins-${stage.topN}-${stageIndex}`}
+                                      label="Победы"
+                                      min={0}
+                                      onChange={(event) => updatePlayoffMatch(index, { playerBWins: Number(event.target.value) })}
+                                      required
+                                      step={1}
+                                      type="number"
+                                      value={match.playerBWins}
+                                    />
+                                    <Input
+                                      label={`Игрок B · ${matchLabel}`}
+                                      onChange={(event) => updatePlayoffMatch(index, { playerB: event.target.value })}
+                                      required
+                                      type="text"
+                                      value={match.playerB}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="playoff-match-editor__draws">
+                                  <Input
+                                    helperText="Обычно 0"
+                                    label={`Ничьи · ${matchLabel}`}
+                                    min={0}
+                                    onChange={(event) => updatePlayoffMatch(index, { draws: Number(event.target.value) })}
+                                    step={1}
+                                    type="number"
+                                    value={match.draws ?? 0}
+                                  />
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+                {inputAnalysis.mode === 'ordered' ? (
+                  <Select
+                    helperText="Итоговые места учитывают плей-офф. Места швейцарки — положение игроков до начала топа."
+                    label="Порядок колод"
+                    value={formState.decksOrder ?? ''}
+                    options={[{ value: '', label: 'Выберите порядок' }, { value: 'final', label: 'По итоговым местам' }, { value: 'swiss', label: 'По местам швейцарки' }]}
+                    onChange={(event) => setField('decksOrder', event.target.value as FormState['decksOrder'])}
+                  />
+                ) : null}
+              </div> : null}
+            </section>
+          ) : null}
 
           <div className="form-grid__full form-section">
             <h2 className="form-section__title">2. Игроки и колоды</h2>
@@ -638,8 +958,8 @@ export function CreateTournamentPage() {
                     нескольких игроков в одной строке.
                   </li>
                   <li>
-                    В режиме по местам не меняйте порядок колод относительно
-                    финальных мест в Aetherhub.
+                    В режиме по местам используйте выбранный порядок: итоговые места
+                    или места швейцарки для турнира с плей-офф.
                   </li>
                   <li>
                     Пустые строки между участниками можно оставлять — они будут
@@ -651,7 +971,9 @@ export function CreateTournamentPage() {
           </details>
           <div className="form-grid__full">
             <Textarea
-              helperText="Одна строка соответствует одной колоде. Ниже появится выбранный способ привязки."
+              helperText={isMeleeImport
+                ? 'Имена должны совпадать с Melee.gg. Можно перечислить только колоды по порядку мест.'
+                : 'Одна строка соответствует одной колоде. Ниже появится выбранный способ привязки.'}
               label="Список игроков и колод"
               onChange={(event) => setField('playerDecksText', event.target.value)}
               placeholder={'Игрок 1 - Lands\nИгрок 2 - UW Phelia\nИгрок 3 - Grixis Reanimator'}
@@ -660,6 +982,24 @@ export function CreateTournamentPage() {
               value={formState.playerDecksText}
             />
           </div>
+          {isMeleeImport && inputAnalysis.mode === 'ordered' ? (
+            <div className="form-grid__full">
+              <Select
+                helperText="Итоговые места учитывают плей-офф. Места швейцарки — положение игроков до начала топа. Если топа нет, оба порядка совпадают."
+                label="Порядок колод"
+                onChange={(event) => setField(
+                  'decksOrder',
+                  event.target.value as FormState['decksOrder'],
+                )}
+                options={[
+                  { value: '', label: 'Выберите порядок' },
+                  { value: 'final', label: 'По итоговым местам' },
+                  { value: 'swiss', label: 'По местам швейцарки' },
+                ]}
+                value={formState.decksOrder ?? ''}
+              />
+            </div>
+          ) : null}
           {formState.playerDecksText.trim() ? (
             <div
               className={`form-grid__full input-mode-status ${
@@ -688,7 +1028,7 @@ export function CreateTournamentPage() {
               inputAnalysis.warnings.length ? (
                 <ul className="flat-list">
                   {inputAnalysis.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
+                    <li key={warning}>{formState.tournamentType === 'tournament' && (isMeleeImport || !formState.noPlayoff) && inputAnalysis.mode === 'ordered' ? 'Колоды будут сопоставлены по выбранному порядку мест. После добавления проверьте привязку.' : warning}</li>
                   ))}
                 </ul>
               ) : null}
@@ -726,7 +1066,9 @@ export function CreateTournamentPage() {
             <span>
               {formState.tournamentType === 'daily'
                 ? 'Дейлик'
-                : 'Турнир'}{' '}
+                : isMeleeImport
+                  ? 'Турнир из Melee.gg'
+                  : 'Турнир'}{' '}
               ·{' '}
               {formState.date
                 ? formatDate(formState.date)
@@ -737,7 +1079,9 @@ export function CreateTournamentPage() {
               {selectedFormat?.name ?? 'формат не выбран'} ·{' '}
               {formState.tournamentType === 'daily'
                 ? `${selectedLeague?.name ?? 'без лиги'} · `
-                : ''}
+                : selectedLeagueQualifier
+                  ? `${selectedLeagueQualifier.title ?? 'отборочный турнир'} · `
+                  : ''}
               {playerDeckLinesCount}{' '}
               {playerDeckLinesCount === 1 ? 'строка' : 'строк'}
             </span>
@@ -752,7 +1096,11 @@ export function CreateTournamentPage() {
               }
               type="submit"
             >
-              {importMutation.isPending ? 'Добавляем...' : 'Добавить'}
+              {importMutation.isPending
+                ? isMeleeImport
+                  ? 'Загружаем с Melee.gg…'
+                  : 'Добавляем...'
+                : 'Добавить'}
             </Button>
           </div>
         </form>
@@ -782,7 +1130,26 @@ export function CreateTournamentPage() {
             title="Дополнительные предупреждения"
             tone="warning"
           />
+          {importError?.code === 'MELEE_UNSUPPORTED_TOURNAMENT' ||
+          importError?.details.some((item) => item.code === 'MELEE_UNSUPPORTED_TOURNAMENT') ? (
+            <div className="directory-help">
+              Такой тип турнира нельзя загрузить автоматически с Melee.gg. Переключитесь
+              на обычный импорт и добавьте результаты через Aetherhub или файлы.
+            </div>
+          ) : null}
           <div className="state-card__actions">
+            {importError?.code === 'MELEE_UNSUPPORTED_TOURNAMENT' ||
+            importError?.details.some((item) => item.code === 'MELEE_UNSUPPORTED_TOURNAMENT') ? (
+              <Button
+                onClick={() => {
+                  setField('tournamentImportSource', 'standard');
+                  formRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+                }}
+                variant="primary"
+              >
+                Перейти к обычному импорту
+              </Button>
+            ) : null}
             <Button
               onClick={retryImport}
               variant="secondary"
