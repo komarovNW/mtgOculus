@@ -35,7 +35,8 @@ import { PlayerTournamentMatches } from '@/widgets/player-tournament-matches/Pla
 import './tournament-detail.css';
 import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
 
-const standingsColumns: TableColumn<TournamentStandingItem>[] = [
+function getStandingsColumns(isTournament: boolean): TableColumn<TournamentStandingItem>[] {
+  return [
   { id: 'rank', header: 'Место', headerTitle: 'Итоговое место события, с учётом плей-офф, если он был.', align: 'center', defaultSortDirection: 'asc', render: (row) => row.rank, sortValue: (row) => row.rank },
   {
     id: 'player',
@@ -67,10 +68,12 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
   },
   {
     id: 'record',
-    header: 'Результат',
+    header: isTournament ? 'Швейцарка' : 'Результат',
     align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: MATCH_RECORD_HINT,
+    headerTitle: isTournament
+      ? `${MATCH_RECORD_HINT} Плей-офф в эту колонку не входит.`
+      : MATCH_RECORD_HINT,
     render: (row) => row.record,
     sortValue: (row) => getRecordSortValue(row.matchWins, row.matchLosses, row.matchDraws),
   },
@@ -102,7 +105,8 @@ const standingsColumns: TableColumn<TournamentStandingItem>[] = [
     render: (row) => formatPercent(row.ogw),
     sortValue: (row) => row.ogw,
   },
-];
+  ];
+}
 
 const metagameColumns: TableColumn<TournamentMetagameItem>[] = [
   {
@@ -379,6 +383,7 @@ export function TournamentDetailPage() {
   const tournament = detailQuery.data.tournament;
   const insights = getTournamentInsights(detailQuery.data);
   const standingHighlights = getTournamentStandingHighlights(detailQuery.data);
+  const standingsColumns = getStandingsColumns(tournament.type === 'tournament');
   const highlightedColumns: TableColumn<TournamentStandingItem>[] = [
     ...standingsColumns.map((column) => column.id === 'rank' ? {
       ...column,

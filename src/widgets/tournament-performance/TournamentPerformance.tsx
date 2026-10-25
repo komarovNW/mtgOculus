@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import type { PlayerTournamentItem } from '@/shared/api/types';
+import type { PlayerMatchItem, PlayerTournamentItem } from '@/shared/api/types';
 import { getTournamentAchievements } from '@/shared/lib/tournamentResults';
 import { formatDate } from '@/shared/lib/formatDate';
+import { formatRecord } from '@/shared/lib/formatRecord';
+import {
+  addMatchRecords,
+  getPlayoffRecords,
+  parseMatchRecord,
+  type MatchRecord,
+} from '@/shared/lib/tournamentRecord';
 import { Card } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
 import { EntityLink } from '@/shared/ui/EntityLink';
@@ -17,10 +24,31 @@ function getTournamentDisplayTitle(item: PlayerTournamentItem) {
 }
 type TournamentPerformanceProps = {
   items: PlayerTournamentItem[];
+  matches?: PlayerMatchItem[];
   isLoading?: boolean;
 };
 
-export function TournamentPerformance({ items, isLoading = false }: TournamentPerformanceProps) {
+function getRecordDisplay(item: PlayerTournamentItem, playoffRecords: Map<string, MatchRecord>) {
+  const swissRecord = parseMatchRecord(item.record);
+  const playoffRecord = playoffRecords.get(item.tournament.id);
+
+  if (!swissRecord || !playoffRecord) {
+    return { total: item.record, breakdown: null };
+  }
+
+  const totalRecord = addMatchRecords(swissRecord, playoffRecord);
+
+  return {
+    total: formatRecord(totalRecord.wins, totalRecord.losses, totalRecord.draws),
+    breakdown: `Шв. ${item.record} · топ ${formatRecord(
+      playoffRecord.wins,
+      playoffRecord.losses,
+      playoffRecord.draws,
+    )}`,
+  };
+}
+
+export function TournamentPerformance({ items, matches = [], isLoading = false }: TournamentPerformanceProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const sortedItems = [...items].sort(
     (left, right) =>
@@ -29,6 +57,10 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
   );
   const achievements = getTournamentAchievements(items);
   const bestTournament = achievements.best;
+  const playoffRecords = getPlayoffRecords(matches);
+  const bestRecord = bestTournament
+    ? getRecordDisplay(bestTournament, playoffRecords)
+    : null;
   const hasLongHistory = sortedItems.length >= 10;
   const visibleItems = hasLongHistory && !isExpanded
     ? sortedItems.slice(0, TOURNAMENT_PREVIEW_LIMIT)
@@ -84,7 +116,8 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
                     />
                   </>
                 ) : null}
-                {' · '}{bestTournament.record}
+                {' · '}{bestRecord?.total}
+                {bestRecord?.breakdown ? ` (${bestRecord.breakdown})` : null}
               </div>
             </Card> : <Card className="tournament-performance__best">Итоговые места пока не опубликованы.</Card>}
 
@@ -105,7 +138,10 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
 
           <Card className="tournament-performance__history">
             <div className="tournament-performance__rows" role="list">
-              {visibleItems.map((item) => (
+              {visibleItems.map((item) => {
+                const record = getRecordDisplay(item, playoffRecords);
+
+                return (
                 <article
                   className={item.tournament.id === bestTournament?.tournament.id
                     ? 'tournament-performance__row tournament-performance__row--best'
@@ -134,15 +170,17 @@ export function TournamentPerformance({ items, isLoading = false }: TournamentPe
                       />
                     ) : 'Колода не указана'}
                   </div>
-                  <div className="tournament-performance__record" aria-label={`Результат матчей: ${item.record}`}>
-                    {item.record}
+                  <div className="tournament-performance__record" aria-label={`Результат матчей: ${record.total}`}>
+                    <strong>{record.total}</strong>
+                    {record.breakdown ? <span>{record.breakdown}</span> : null}
                   </div>
                   <div className="tournament-performance__rank">
                     <strong>{item.rank > 0 ? `${item.rank} место` : 'Место не указано'}</strong>
                     <span>из {item.tournament.playersCount}</span>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
             {hasLongHistory ? (
               <div className="tournament-performance__actions">

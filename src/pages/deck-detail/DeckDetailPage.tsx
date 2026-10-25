@@ -50,6 +50,9 @@ function getTournamentColumns(
     : tournamentType === 'tournament'
       ? 'Турнир'
       : 'Событие';
+  const recordLabel = tournamentType === 'tournament'
+    ? 'Швейцарка'
+    : 'Результат';
 
   return [
   {
@@ -79,11 +82,20 @@ function getTournamentColumns(
   },
   {
     id: 'record',
-    header: 'Результат',
+    header: recordLabel,
     align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: MATCH_RECORD_HINT,
-    render: (row) => row.record,
+    headerTitle: tournamentType === 'tournament'
+      ? `${MATCH_RECORD_HINT} Для турниров здесь показана только швейцарка.`
+      : MATCH_RECORD_HINT,
+    render: (row) => tournamentType === '' && row.tournament.type === 'tournament'
+      ? (
+          <div className="stacked-cell stacked-cell--center">
+            <span>{row.record}</span>
+            <small className="muted-text">Швейцарка</small>
+          </div>
+        )
+      : row.record,
     sortValue: (row) => getRecordSortValueFromString(row.record),
   },
   {

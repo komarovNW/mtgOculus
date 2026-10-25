@@ -18,6 +18,12 @@ import { getAppliedFilterLabels } from '@/shared/lib/appliedFilters';
 import { formatDate } from '@/shared/lib/formatDate';
 import { formatPercent } from '@/shared/lib/formatPercent';
 import {
+  addMatchRecords,
+  getPlayoffRecords,
+  parseMatchRecord,
+  type MatchRecord,
+} from '@/shared/lib/tournamentRecord';
+import {
   MATCH_RECORD_HINT,
   MATCH_RECORD_LABEL,
   WIN_RATE_HINT,
@@ -66,6 +72,7 @@ import { SummaryCards } from '@/widgets/summary-cards/SummaryCards';
 
 function getTournamentColumns(
   tournamentType: DashboardFilters['tournamentType'],
+  playoffRecords: Map<string, MatchRecord>,
 ): TableColumn<PlayerTournamentItem>[] {
   const eventLabel = tournamentType === 'daily'
     ? 'Дейлик'
@@ -109,9 +116,41 @@ function getTournamentColumns(
     header: MATCH_RECORD_LABEL,
     align: 'center',
     defaultSortDirection: 'desc',
-    headerTitle: MATCH_RECORD_HINT,
-    render: (row) => row.record,
-    sortValue: (row) => getRecordSortValueFromString(row.record),
+    headerTitle: `${MATCH_RECORD_HINT} В турнирах с плей-офф основной результат включает швейцарку и топ.`,
+    render: (row) => {
+      const playoffRecord = playoffRecords.get(row.tournament.id);
+      const swissRecord = parseMatchRecord(row.record);
+
+      if (!playoffRecord || !swissRecord) {
+        return row.record;
+      }
+
+      const totalRecord = addMatchRecords(swissRecord, playoffRecord);
+
+      return (
+        <div className="stacked-cell stacked-cell--center">
+          <span>{formatRecord(totalRecord.wins, totalRecord.losses, totalRecord.draws)}</span>
+          <small className="muted-text">
+            Швейцарка: {row.record} · Плей-офф: {formatRecord(
+              playoffRecord.wins,
+              playoffRecord.losses,
+              playoffRecord.draws,
+            )}
+          </small>
+        </div>
+      );
+    },
+    sortValue: (row) => {
+      const playoffRecord = playoffRecords.get(row.tournament.id);
+      const swissRecord = parseMatchRecord(row.record);
+      const totalRecord = playoffRecord && swissRecord
+        ? addMatchRecords(swissRecord, playoffRecord)
+        : swissRecord;
+
+      return totalRecord
+        ? getRecordSortValue(totalRecord.wins, totalRecord.losses, totalRecord.draws)
+        : getRecordSortValueFromString(row.record);
+    },
   },
   {
     id: 'finish',
@@ -551,6 +590,7 @@ export function PlayerDetailPage() {
   const sortedMatches = sortPlayerMatches(
     getPlayerScopedMatches(playerQuery.data),
   );
+  const playoffRecords = getPlayoffRecords(sortedMatches);
   const opponents = getPlayerOpponentList(sortedMatches);
   const matchGroups = groupPlayerMatchesByTournament(sortedMatches);
   const visibleTournaments = sortedTournaments.slice(
@@ -619,7 +659,7 @@ export function PlayerDetailPage() {
     ...getMatchSummaryItems(dailyStatsData),
   ];
   const tournamentColumns: TableColumn<PlayerTournamentItem>[] = [
-    ...getTournamentColumns(filters.tournamentType),
+    ...getTournamentColumns(filters.tournamentType, playoffRecords),
     { id: 'details', header: '', align: 'right', render: (row) => <Button
       aria-label={`Матчи: ${row.tournament.title}`}
       aria-expanded={expandedEventId === row.tournament.id}
@@ -711,6 +751,7 @@ export function PlayerDetailPage() {
           <TournamentPerformance
             isLoading={splitStatsQueries[1]?.isPending}
             items={tournamentParticipations}
+            matches={sortedMatches}
           />
         </div>
       ) : isDailyView ? (
@@ -723,6 +764,7 @@ export function PlayerDetailPage() {
       ) : (
         <TournamentPerformance
           items={tournamentParticipations}
+          matches={sortedMatches}
         />
       )}
 

@@ -257,12 +257,43 @@ describe('PlayerDetailPage', () => {
       },
       tournaments: details.tournaments.map((item) => ({
         ...item,
+        record: item.tournament.id === 'two' ? '3-0-2' : item.record,
         tournament: { ...item.tournament, type: 'tournament' as const },
       })),
-      recentMatches: details.recentMatches?.map((item) => ({
-        ...item,
-        tournament: { ...item.tournament, type: 'tournament' as const },
-      })),
+      recentMatches: [
+        ...(details.recentMatches ?? []).map((item) => ({
+          ...item,
+          tournament: { ...item.tournament, type: 'tournament' as const },
+        })),
+        {
+          tournament: {
+            ...details.tournaments[1].tournament,
+            type: 'tournament' as const,
+          },
+          playoffTopN: 8,
+          roundNumber: 3,
+          tableNumber: 1,
+          opponent: { id: 'quarterfinalist', name: 'Игрок четвертьфинала' },
+          playerScore: 2,
+          opponentScore: 0,
+          scoreText: '2-0',
+          result: 'win' as const,
+        },
+        {
+          tournament: {
+            ...details.tournaments[1].tournament,
+            type: 'tournament' as const,
+          },
+          playoffTopN: 4,
+          roundNumber: 4,
+          tableNumber: 1,
+          opponent: { id: 'semifinalist', name: 'Игрок полуфинала' },
+          playerScore: 1,
+          opponentScore: 2,
+          scoreText: '1-2',
+          result: 'loss' as const,
+        },
+      ],
     });
 
     render(
@@ -284,6 +315,9 @@ describe('PlayerDetailPage', () => {
     expect(screen.getByText('Топ-8')).toBeInTheDocument();
     expect(screen.getAllByText('1 место')).toHaveLength(2);
     expect(screen.getAllByText('из 30')).toHaveLength(2);
+    expect(screen.getAllByText('4-1-2')).toHaveLength(2);
+    expect(screen.getByText('Швейцарка: 3-0-2 · Плей-офф: 1-1')).toBeInTheDocument();
+    expect(screen.getByText('Шв. 3-0-2 · топ 1-1')).toBeInTheDocument();
     expect(screen.getByText('Полная история турниров: место, размер поля, колода и результат каждого участия.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Активность по месяцам' })).not.toBeInTheDocument();
     expect(screen.queryByText('ВИТАЛЯ ДОДЕЛАЙ ТУРНИРЫ.')).not.toBeInTheDocument();

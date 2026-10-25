@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { getDeckDetails } from '@/entities/deck/api';
@@ -172,5 +173,30 @@ describe('DeckDetailPage', () => {
       .toBeInTheDocument();
     expect(screen.getByText('Участий в дейликах')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Дейлики (2)' })).toBeInTheDocument();
+  });
+
+  it('labels a tournament participation record as Swiss-only', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDeckDetails).mockResolvedValue({
+      ...detail,
+      tournamentResults: detail.tournamentResults.map((item) => ({
+        ...item,
+        tournament: { ...item.tournament, type: 'tournament' },
+      })),
+    });
+
+    render(
+      <TestProviders initialEntry="/decks/5?tournamentType=tournament">
+        <Routes>
+          <Route element={<DeckDetailPage />} path="/decks/:id" />
+        </Routes>
+      </TestProviders>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'UB tempo' }))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Турниры (2)' }));
+    expect(screen.getByRole('columnheader', { name: /^Швейцарка/ }))
+      .toBeInTheDocument();
   });
 });

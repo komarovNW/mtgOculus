@@ -130,6 +130,7 @@ describe('TournamentDetailPage', () => {
     expect(screen.getByRole('link', { name: /Открыть на Melee.gg/ }))
       .toHaveAttribute('href', 'https://melee.gg/Tournament/View/145');
     expect(screen.getByText('Топ-2')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Швейцарка/ })).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: /Место в швейцарке/ })).not.toBeInTheDocument();
     expect(screen.getByText('Результат швейцарки')).toBeInTheDocument();
     expect(screen.getByText('2-1-1')).toBeInTheDocument();
